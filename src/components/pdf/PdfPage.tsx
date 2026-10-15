@@ -24,6 +24,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
+  const formLayerRef = useRef<HTMLDivElement>(null);
   const [isRendered, setIsRendered] = useState(false);
   const activeRenderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
@@ -83,6 +84,16 @@ export const PdfPage: React.FC<PdfPageProps> = ({
             rotation
           );
         }
+
+        // 3. İnteraktif Form Katmanı Çizimi (Faz 3 - AcroForms)
+        if (formLayerRef.current) {
+          await PdfRenderService.renderFormLayer(
+            page,
+            formLayerRef.current,
+            scale,
+            rotation
+          );
+        }
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException') {
           console.error(`Sayfa ${pageNumber} render hatası:`, err);
@@ -126,6 +137,13 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       <div
         ref={textLayerRef}
         className="textLayer"
+      />
+
+      {/* İnteraktif Form Katmanı (Faz 3 - AcroForm Fields) */}
+      <div
+        ref={formLayerRef}
+        className="absolute inset-0 pointer-events-auto"
+        style={{ width: `${targetWidth}px`, height: `${targetHeight}px` }}
       />
 
       {/* İnteraktif İşaretleme Katmanı (Faz 2 - AnnotationLayer) */}

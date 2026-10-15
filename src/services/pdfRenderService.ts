@@ -120,6 +120,116 @@ export class PdfRenderService {
   }
 
   /**
+   * Sayfadaki interaktif form alanlarını (AcroForms - Text, Checkbox, Choice) DOM üzerinde render eder
+   */
+  static async renderFormLayer(
+    page: pdfjsLib.PDFPageProxy,
+    container: HTMLElement,
+    scale: number,
+    rotation: number = 0,
+    onFieldChange?: (name: string, value: string | boolean) => void
+  ): Promise<void> {
+    container.innerHTML = '';
+    const viewport = page.getViewport({ scale, rotation });
+
+    try {
+      const annotations = await page.getAnnotations({ intent: 'display' });
+      const widgetAnnots = annotations.filter((a: any) => a.subtype === 'Widget');
+      if (widgetAnnots.length === 0) return;
+
+      for (const annot of widgetAnnots) {
+        if (!annot.rect) continue;
+
+        // PDF koordinatlarını (sol alttan) ekran koordinatlarına (sol üstten) çevir
+        const rect = viewport.convertToViewportRectangle(annot.rect);
+        const minX = Math.min(rect[0], rect[2]);
+        const minY = Math.min(rect[1], rect[3]);
+        const width = Math.abs(rect[0] - rect[2]);
+        const height = Math.abs(rect[1] - rect[3]);
+
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+        wrapper.style.left = `${minX}px`;
+        wrapper.style.top = `${minY}px`;
+        wrapper.style.width = `${width}px`;
+        wrapper.style.height = `${height}px`;
+        wrapper.style.zIndex = '15';
+
+        if (annot.fieldType === 'Tx') {
+          // Metin Giriş Alanı (Text Field)
+          const input = annot.multiLine
+            ? document.createElement('textarea')
+            : document.createElement('input');
+
+          input.style.width = '100%';
+          input.style.height = '100%';
+          input.style.fontSize = `${Math.max(10, height * 0.65)}px`;
+          input.style.backgroundColor = 'rgba(238, 242, 255, 0.7)';
+          input.style.border = '1px solid #6366f1';
+          input.style.borderRadius = '2px';
+          input.style.color = '#1e1e1e';
+          input.style.padding = '1px 3px';
+          input.style.outline = 'none';
+          input.style.boxSizing = 'border-box';
+          input.value = annot.fieldValue || '';
+          if (annot.readOnly) input.disabled = true;
+
+          input.addEventListener('change', () => {
+            if (onFieldChange) onFieldChange(annot.fieldName, input.value);
+          });
+
+          wrapper.appendChild(input);
+        } else if (annot.fieldType === 'Btn') {
+          // Onay Kutusu (Checkbox) veya Buton
+          if (!annot.pushButton) {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.style.width = '100%';
+            checkbox.style.height = '100%';
+            checkbox.style.cursor = 'pointer';
+            checkbox.checked = annot.fieldValue === 'Yes' || annot.fieldValue === true;
+            if (annot.readOnly) checkbox.disabled = true;
+
+            checkbox.addEventListener('change', () => {
+              if (onFieldChange) onFieldChange(annot.fieldName, checkbox.checked);
+            });
+
+            wrapper.appendChild(checkbox);
+          }
+        } else if (annot.fieldType === 'Ch') {
+          // Açılır Menü (Choice / Dropdown)
+          const select = document.createElement('select');
+          select.style.width = '100%';
+          select.style.height = '100%';
+          select.style.fontSize = `${Math.max(10, height * 0.65)}px`;
+          select.style.backgroundColor = 'rgba(238, 242, 255, 0.85)';
+          select.style.border = '1px solid #6366f1';
+
+          if (annot.options && Array.isArray(annot.options)) {
+            for (const opt of annot.options) {
+              const optionEl = document.createElement('option');
+              optionEl.value = opt.exportValue || opt.displayValue;
+              optionEl.textContent = opt.displayValue;
+              if (opt.exportValue === annot.fieldValue) optionEl.selected = true;
+              select.appendChild(optionEl);
+            }
+          }
+
+          select.addEventListener('change', () => {
+            if (onFieldChange) onFieldChange(annot.fieldName, select.value);
+          });
+
+          wrapper.appendChild(select);
+        }
+
+        container.appendChild(wrapper);
+      }
+    } catch (e) {
+      console.warn('Form katmanı render uyarısı:', e);
+    }
+  }
+
+  /**
    * Belgenin içindekiler (Bookmarks / Outline) ağacını çıkarır
    */
   static async getDocumentOutline(doc: pdfjsLib.PDFDocumentProxy): Promise<BookmarkItem[]> {
