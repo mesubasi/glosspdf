@@ -35,7 +35,9 @@ export function useKeyboardShortcuts({
     undo,
     redo,
     selectedAnnotationId,
-    deleteAnnotation
+    deleteAnnotation,
+    shortcutHelpModalOpen,
+    setShortcutHelpModalOpen
   } = usePdfStore();
 
   useEffect(() => {
@@ -180,6 +182,20 @@ export function useKeyboardShortcuts({
         } else {
           document.exitFullscreen().then(() => setIsFullScreen(false));
         }
+        return;
+      }
+
+      // F1: Kısayol Yardım Penceresi
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setShortcutHelpModalOpen(!shortcutHelpModalOpen);
+        return;
+      }
+
+      // Escape: Kısayol Yardımını Kapat
+      if (e.key === 'Escape' && shortcutHelpModalOpen) {
+        e.preventDefault();
+        setShortcutHelpModalOpen(false);
         return;
       }
     };

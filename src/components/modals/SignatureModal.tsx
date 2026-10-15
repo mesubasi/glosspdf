@@ -17,6 +17,7 @@ export const SignatureModal: React.FC = () => {
     tabs,
     activeTabId,
     updateTab,
+    setCurrentPage,
     language
   } = usePdfStore();
 
@@ -26,6 +27,7 @@ export const SignatureModal: React.FC = () => {
   const [hasDrawn, setHasDrawn] = useState(false);
   const [penColor, setPenColor] = useState('#0d47a1'); // Klasik mavi tükenmez kalem rengi
   const [targetPage, setTargetPage] = useState<number>(1);
+  const [position, setPosition] = useState<'bottom-right' | 'bottom-left' | 'bottom-center' | 'center'>('bottom-right');
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -50,18 +52,25 @@ export const SignatureModal: React.FC = () => {
 
   if (!signatureModalOpen || !activeTab) return null;
 
-  // Çizim Başlangıcı
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Çizim Başlangıcı (Fare, Dokunmatik ve Kalem Desteği)
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {}
+
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     ctx.strokeStyle = penColor;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(x, y);
     setIsDrawing(true);
@@ -69,7 +78,7 @@ export const SignatureModal: React.FC = () => {
   };
 
   // Çizim Hareketi
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -77,16 +86,23 @@ export const SignatureModal: React.FC = () => {
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     ctx.lineTo(x, y);
     ctx.stroke();
   };
 
   // Çizim Bitişi
-  const stopDrawing = () => {
-    setIsDrawing(false);
+  const stopDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      try {
+        canvasRef.current?.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
   };
 
   // Canvas'ı Temizle
@@ -118,12 +134,26 @@ export const SignatureModal: React.FC = () => {
         pngBytes[i] = binaryString.charCodeAt(i);
       }
 
-      // İmzayı sayfanın sağ alt köşesine 160x70 pt boyutunda yerleştir
       const currentDim = activeTab.pageDimensions[targetPage - 1] || activeTab.pageDimensions[0];
+      const pageW = currentDim.originalWidth;
+      const pageH = currentDim.originalHeight;
       const sigWidth = 160;
       const sigHeight = 70;
-      const posX = currentDim.originalWidth - sigWidth - 40;
-      const posY = 50; // Alttan 50pt pay
+
+      // Konum koordinatları hesaplama (PDF koordinat dönüşümü ile)
+      let posX = pageW - sigWidth - 40;
+      let posY = pageH - sigHeight - 50; // Alttan 50pt pay
+
+      if (position === 'bottom-left') {
+        posX = 40;
+        posY = pageH - sigHeight - 50;
+      } else if (position === 'bottom-center') {
+        posX = (pageW - sigWidth) / 2;
+        posY = pageH - sigHeight - 50;
+      } else if (position === 'center') {
+        posX = (pageW - sigWidth) / 2;
+        posY = (pageH - sigHeight) / 2;
+      }
 
       const updatedBytes = await PdfEditService.addSignature(
         activeTab.data.slice(),
@@ -141,9 +171,11 @@ export const SignatureModal: React.FC = () => {
       updateTab(activeTab.id, {
         data: updatedBytes,
         pageDimensions: dims,
+        currentPage: targetPage,
         isModified: true
       });
 
+      setCurrentPage(targetPage);
       setSignatureModalOpen(false);
     } catch (err: any) {
       console.error('İmza ekleme hatası:', err);
@@ -179,57 +211,59 @@ export const SignatureModal: React.FC = () => {
               {language === 'tr' ? 'Aşağıdaki kutucuğa imzanızı çizin:' : 'Draw your signature in the box below:'}
             </span>
 
-            {/* Kalem Rengi */}
-            <div className="flex items-center space-x-2">
-              <span className="text-[11px] text-slate-400">{language === 'tr' ? 'Mürekkep:' : 'Ink:'}</span>
-              <button
-                type="button"
-                onClick={() => setPenColor('#0d47a1')}
-                className={`w-5 h-5 rounded-full bg-blue-900 transition-transform ${
-                  penColor === '#0d47a1' ? 'ring-2 ring-blue-500 scale-110' : ''
-                }`}
-                title="Mavi Mürekkep"
-              />
-              <button
-                type="button"
-                onClick={() => setPenColor('#111827')}
-                className={`w-5 h-5 rounded-full bg-slate-900 transition-transform ${
-                  penColor === '#111827' ? 'ring-2 ring-slate-400 scale-110' : ''
-                }`}
-                title="Siyah Mürekkep"
-              />
+            {/* Kalem Renkleri */}
+            <div className="flex items-center space-x-1.5">
+              {[
+                { label: 'Mavi', hex: '#0d47a1' },
+                { label: 'Siyah', hex: '#111827' },
+                { label: 'Kırmızı', hex: '#b91c1c' }
+              ].map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setPenColor(c.hex)}
+                  style={{ backgroundColor: c.hex }}
+                  className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                    penColor === c.hex ? 'border-white scale-110 shadow-sm ring-2 ring-red-500' : 'border-transparent'
+                  }`}
+                  title={c.label}
+                />
+              ))}
             </div>
           </div>
 
-          {/* İmza Çizim Alanı */}
+          {/* İmza Çizim Alanı (Pointer Events) */}
           <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white rounded-lg overflow-hidden flex flex-col items-center justify-center">
             <canvas
               ref={canvasRef}
               width={450}
               height={180}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              className="cursor-crosshair block w-full touch-none"
+              onPointerDown={startDrawing}
+              onPointerMove={draw}
+              onPointerUp={stopDrawing}
+              onPointerCancel={stopDrawing}
+              className="cursor-crosshair block w-full touch-none select-none"
             />
 
             {!hasDrawn && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-300 dark:text-slate-400 text-xs">
                 <Pen className="w-4 h-4 mr-1.5 opacity-40" />
-                <span>{language === 'tr' ? 'İmzanızı buraya çizin' : 'Sign here'}</span>
+                <span>{language === 'tr' ? 'İmzanızı buraya çizin (Fare veya Dokunmatik)' : 'Sign here (Mouse or Touch)'}</span>
               </div>
             )}
           </div>
 
-          {/* Sayfa Seçimi ve Temizle */}
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center space-x-2">
-              <span className="text-slate-500">{language === 'tr' ? 'Hedef Sayfa:' : 'Target Page:'}</span>
+          {/* Konum ve Sayfa Seçimi */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            {/* Hedef Sayfa */}
+            <div>
+              <label className="block text-slate-500 mb-1 font-medium">
+                {language === 'tr' ? 'Hedef Sayfa:' : 'Target Page:'}
+              </label>
               <select
                 value={targetPage}
                 onChange={(e) => setTargetPage(parseInt(e.target.value, 10))}
-                className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none text-xs"
+                className="w-full px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none text-xs"
               >
                 {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((p) => (
                   <option key={p} value={p}>
@@ -239,14 +273,34 @@ export const SignatureModal: React.FC = () => {
               </select>
             </div>
 
+            {/* İmza Konumu */}
+            <div>
+              <label className="block text-slate-500 mb-1 font-medium">
+                {language === 'tr' ? 'İmza Konumu:' : 'Placement Position:'}
+              </label>
+              <select
+                value={position}
+                onChange={(e) => setPosition(e.target.value as any)}
+                className="w-full px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none text-xs"
+              >
+                <option value="bottom-right">{language === 'tr' ? 'Sağ Alt Köşe (Önerilen)' : 'Bottom-Right (Default)'}</option>
+                <option value="bottom-left">{language === 'tr' ? 'Sol Alt Köşe' : 'Bottom-Left'}</option>
+                <option value="bottom-center">{language === 'tr' ? 'Orta Alt' : 'Bottom-Center'}</option>
+                <option value="center">{language === 'tr' ? 'Sayfa Ortası' : 'Page Center'}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Temizle Butonu */}
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={clearCanvas}
               disabled={!hasDrawn}
-              className="flex items-center space-x-1 px-3 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+              className="flex items-center space-x-1 px-3 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>{language === 'tr' ? 'Temizle' : 'Clear'}</span>
+              <span>{language === 'tr' ? 'Çizimi Temizle' : 'Clear Drawing'}</span>
             </button>
           </div>
         </div>
@@ -262,10 +316,10 @@ export const SignatureModal: React.FC = () => {
           <button
             onClick={handleApplySignature}
             disabled={!hasDrawn || isProcessing}
-            className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+            className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40 cursor-pointer"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Ekleniyor...' : (language === 'tr' ? 'İmzayı Yerleştir' : 'Apply Signature')}</span>
+            <span>{isProcessing ? 'Ekleniyor...' : (language === 'tr' ? 'İmzayı Belgeye Ekle' : 'Apply Signature')}</span>
           </button>
         </div>
       </div>

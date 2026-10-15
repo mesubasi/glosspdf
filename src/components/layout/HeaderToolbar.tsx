@@ -17,7 +17,8 @@ import {
   Sun,
   Moon,
   Layout,
-  Expand
+  Expand,
+  HelpCircle
 } from 'lucide-react';
 
 interface HeaderToolbarProps {
@@ -60,7 +61,8 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     isFullScreen,
     setIsFullScreen,
     annotationModeOpen,
-    setAnnotationModeOpen
+    setAnnotationModeOpen,
+    setShortcutHelpModalOpen
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -295,6 +297,15 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           title={language === 'tr' ? 'Tam Ekran (F11 / Ctrl+L)' : 'Full Screen (F11 / Ctrl+L)'}
         >
           {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
+
+        {/* Kısayollar ve Yardım */}
+        <button
+          onClick={() => setShortcutHelpModalOpen(true)}
+          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          title={language === 'tr' ? 'Klavye Kısayolları (F1)' : 'Keyboard Shortcuts (F1)'}
+        >
+          <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
         </button>
 
         <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />

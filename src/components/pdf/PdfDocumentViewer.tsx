@@ -3,12 +3,13 @@ import { usePdfStore } from '../../store/usePdfStore';
 import { PdfPage } from './PdfPage';
 import { SearchBar } from './SearchBar';
 import * as pdfjsLib from 'pdfjs-dist';
-import { FileUp, UploadCloud } from 'lucide-react';
+import { FileUp, UploadCloud, FileText, Clock, Trash2, FolderOpen } from 'lucide-react';
 
 interface PdfDocumentViewerProps {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
   onOpenFile: () => void;
   onFileDrop: (file: File) => void;
+  onOpenRecentFile?: (filePath: string, fileName: string) => void;
   containerRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -16,6 +17,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   pdfDocument,
   onOpenFile,
   onFileDrop,
+  onOpenRecentFile,
   containerRef
 }) => {
   const {
@@ -24,7 +26,9 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     activeTool,
     setZoom,
     setCurrentPage,
-    language
+    language,
+    recentFiles,
+    clearRecentFiles
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -43,6 +47,17 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
       }
     }
   }, [activeTab?.id, activeTab?.numPages]);
+
+  // Aktif sayfa değiştiğinde (küçük resim, arama veya durum çubuğundan atlandığında)
+  // hedef sayfayı ve hemen yanındaki komşu sayfaları gecikmesiz görünür listesine ekle
+  useEffect(() => {
+    if (!activeTab || activeTab.numPages <= 50) return;
+    const cur = activeTab.currentPage;
+    const neighborhood = [cur - 2, cur - 1, cur, cur + 1, cur + 2].filter(
+      (p) => p >= 1 && p <= activeTab.numPages
+    );
+    setVisiblePages((prev) => Array.from(new Set([...prev, ...neighborhood])));
+  }, [activeTab?.id, activeTab?.currentPage, activeTab?.numPages]);
 
   // El Aracı (Pan) ile sürükleme durumu
   const isPanningRef = useRef(false);
@@ -164,31 +179,92 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`flex-1 flex flex-col items-center justify-center p-8 bg-acrobat-bg dark:bg-acrobat-darkBg text-slate-300 transition-colors ${
+        className={`flex-1 flex flex-col items-center justify-center p-6 bg-acrobat-bg dark:bg-acrobat-darkBg text-slate-300 transition-colors overflow-y-auto ${
           isDraggingFile ? 'ring-4 ring-acrobat-red ring-inset bg-black/40' : ''
         }`}
       >
-        <div className="max-w-md w-full border-2 border-dashed border-slate-500/50 rounded-2xl p-10 flex flex-col items-center text-center bg-black/10 backdrop-blur-sm shadow-2xl">
-          <div className="w-16 h-16 rounded-full bg-acrobat-red/10 flex items-center justify-center text-acrobat-red mb-4">
-            <UploadCloud className="w-8 h-8" />
+        <div className="max-w-xl w-full flex flex-col items-center space-y-6">
+          {/* Logo & Başlık Alanı */}
+          <div className="flex flex-col items-center text-center">
+            <img src="/logo.png" alt="GlossPDF" className="w-16 h-16 rounded-2xl shadow-xl mb-3" />
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              Gloss<span className="text-acrobat-red">PDF</span>
+            </h1>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm">
+              {language === 'tr'
+                ? 'Hızlı, modern ve gizlilik odaklı masaüstü PDF iş istasyonu.'
+                : 'Fast, modern, and privacy-respecting desktop PDF workstation.'}
+            </p>
           </div>
 
-          <h2 className="text-xl font-bold text-white mb-2">
-            {language === 'tr' ? 'PDF Dosyası Aç' : 'Open PDF File'}
-          </h2>
-          <p className="text-xs text-slate-400 mb-6">
-            {language === 'tr'
-              ? 'Görüntülemek veya düzenlemek istediğiniz PDF dosyasını buraya sürükleyin veya bilgisayarınızdan seçin.'
-              : 'Drag and drop your PDF here, or select a file from your computer to view and edit.'}
-          </p>
+          {/* Sürükle Bırak / Dosya Aç Kartı */}
+          <div className="w-full border-2 border-dashed border-slate-500/40 rounded-2xl p-6 flex flex-col items-center text-center bg-black/15 backdrop-blur-xs shadow-lg">
+            <div className="w-12 h-12 rounded-full bg-acrobat-red/10 flex items-center justify-center text-acrobat-red mb-3">
+              <UploadCloud className="w-6 h-6" />
+            </div>
 
-          <button
-            onClick={onOpenFile}
-            className="flex items-center space-x-2 px-5 py-2.5 bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium text-xs rounded-lg shadow-lg hover:shadow-red-500/20 transition-all active:scale-95"
-          >
-            <FileUp className="w-4 h-4" />
-            <span>{language === 'tr' ? 'Dosya Seç (Ctrl+O)' : 'Select File (Ctrl+O)'}</span>
-          </button>
+            <p className="text-xs text-slate-300 mb-4">
+              {language === 'tr'
+                ? 'PDF dosyanızı buraya sürükleyin veya bilgisayarınızdan seçin'
+                : 'Drag and drop your PDF here, or select from your computer'}
+            </p>
+
+            <button
+              onClick={onOpenFile}
+              className="flex items-center space-x-2 px-6 py-2.5 bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium text-xs rounded-xl shadow-lg hover:shadow-red-500/25 transition-all active:scale-95 cursor-pointer"
+            >
+              <FileUp className="w-4 h-4" />
+              <span>{language === 'tr' ? 'Dosya Aç (Ctrl+O)' : 'Open File (Ctrl+O)'}</span>
+            </button>
+          </div>
+
+          {/* Son Açılan Belgeler (Recent Files) */}
+          {recentFiles.length > 0 && (
+            <div className="w-full bg-black/20 border border-slate-700/50 rounded-2xl p-4 shadow-md text-left">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/50">
+                <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300">
+                  <Clock className="w-3.5 h-3.5 text-acrobat-red" />
+                  <span>{language === 'tr' ? 'Son Açılan Belgeler' : 'Recent Documents'}</span>
+                </div>
+                <button
+                  onClick={clearRecentFiles}
+                  className="flex items-center space-x-1 text-[11px] text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                  title={language === 'tr' ? 'Geçmişi Temizle' : 'Clear Recent List'}
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>{language === 'tr' ? 'Temizle' : 'Clear'}</span>
+                </button>
+              </div>
+
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {recentFiles.map((file, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => onOpenRecentFile && onOpenRecentFile(file.filePath, file.fileName)}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center space-x-2.5 overflow-hidden">
+                      <FileText className="w-4 h-4 text-acrobat-red flex-shrink-0" />
+                      <div className="truncate">
+                        <span className="text-xs font-medium text-slate-200 group-hover:text-white block truncate">
+                          {file.fileName}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block truncate">
+                          {file.filePath}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-500 ml-2 flex-shrink-0">
+                      {new Date(file.lastOpened).toLocaleDateString([], {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -238,7 +314,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
       <div className="flex flex-col items-center min-w-max pb-12">
         {activeTab.pageDimensions.map((dimension) => (
           <PdfPage
-            key={dimension.pageNumber}
+            key={`${dimension.pageNumber}-${activeTab.data.byteLength}`}
             pageNumber={dimension.pageNumber}
             pdfDocument={pdfDocument}
             dimension={dimension}

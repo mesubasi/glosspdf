@@ -158,10 +158,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           <div className="flex-1 overflow-y-auto p-3 space-y-4">
             {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((pageNum) => (
               <ThumbnailItem
-                key={pageNum}
+                key={`${pageNum}-${activeTab.rotation}`}
                 pageNumber={pageNum}
                 isCurrent={activeTab.currentPage === pageNum}
                 pdfDocument={pdfDocument}
+                rotation={activeTab.rotation}
                 onClick={() => onPageClick(pageNum)}
               />
             ))}
@@ -281,7 +282,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                   <div
                     key={match.id}
                     onClick={() => {
-                      onPageClick(match.pageIndex + 1);
+                      onPageClick(match.pageIndex);
                       nextSearchResult();
                     }}
                     className={`p-2 rounded cursor-pointer transition-colors ${
@@ -291,7 +292,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                     }`}
                   >
                     <div className="text-[10px] text-slate-400 mb-0.5">
-                      {language === 'tr' ? `Sayfa ${match.pageIndex + 1}` : `Page ${match.pageIndex + 1}`}
+                      {language === 'tr' ? `Sayfa ${match.pageIndex}` : `Page ${match.pageIndex}`}
                     </div>
                     <div className="truncate">{match.text}</div>
                   </div>
@@ -310,26 +311,28 @@ const ThumbnailItem: React.FC<{
   pageNumber: number;
   isCurrent: boolean;
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
+  rotation?: number;
   onClick: () => void;
-}> = ({ pageNumber, isCurrent, pdfDocument, onClick }) => {
+}> = ({ pageNumber, isCurrent, pdfDocument, rotation = 0, onClick }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isRenderedRef = useRef(false);
 
   useEffect(() => {
-    if (!pdfDocument || isRenderedRef.current || !canvasRef.current) return;
+    if (!pdfDocument || !canvasRef.current) return;
 
     let isCancelled = false;
 
     pdfDocument.getPage(pageNumber).then((page) => {
       if (isCancelled || !canvasRef.current) return;
-      const viewport = page.getViewport({ scale: 0.2 });
+      const viewport = page.getViewport({ scale: 0.2, rotation });
       const canvas = canvasRef.current;
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        page.render({ canvasContext: ctx, viewport }).promise.then(() => {
-          isRenderedRef.current = true;
+        page.render({ canvasContext: ctx, viewport }).promise.catch((err) => {
+          if (err?.name !== 'RenderingCancelledException') {
+            console.error('Küçük resim çizim hatası:', err);
+          }
         });
       }
     });
@@ -337,7 +340,7 @@ const ThumbnailItem: React.FC<{
     return () => {
       isCancelled = true;
     };
-  }, [pdfDocument, pageNumber]);
+  }, [pdfDocument, pageNumber, rotation]);
 
   return (
     <div
