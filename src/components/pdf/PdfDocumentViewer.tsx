@@ -3,7 +3,7 @@ import { usePdfStore } from '../../store/usePdfStore';
 import { PdfPage } from './PdfPage';
 import { SearchBar } from './SearchBar';
 import * as pdfjsLib from 'pdfjs-dist';
-import { FileUp, UploadCloud, FileText, Clock, Trash2, FolderOpen } from 'lucide-react';
+import { FileUp, UploadCloud, FileText, Clock, Trash2, FolderOpen, X } from 'lucide-react';
 
 interface PdfDocumentViewerProps {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
@@ -28,7 +28,8 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     setCurrentPage,
     language,
     recentFiles,
-    clearRecentFiles
+    clearRecentFiles,
+    removeRecentFile
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -241,25 +242,38 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
                   <div
                     key={idx}
                     onClick={() => onOpenRecentFile && onOpenRecentFile(file.filePath, file.fileName)}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/10 active:bg-white/15 transition-colors cursor-pointer group select-none"
                   >
-                    <div className="flex items-center space-x-2.5 overflow-hidden">
+                    <div className="flex items-center space-x-2.5 overflow-hidden flex-1 min-w-0 mr-2">
                       <FileText className="w-4 h-4 text-acrobat-red flex-shrink-0" />
                       <div className="truncate">
                         <span className="text-xs font-medium text-slate-200 group-hover:text-white block truncate">
                           {file.fileName}
                         </span>
-                        <span className="text-[10px] text-slate-500 block truncate">
+                        <span className="text-[10px] text-slate-500 block truncate" title={file.filePath}>
                           {file.filePath}
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] text-slate-500 ml-2 flex-shrink-0">
-                      {new Date(file.lastOpened).toLocaleDateString([], {
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </span>
+                    <div className="flex items-center space-x-1.5 flex-shrink-0">
+                      <span className="text-[10px] text-slate-500">
+                        {new Date(file.lastOpened).toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeRecentFile(file.filePath);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"
+                        title={language === 'tr' ? 'Listeden Kaldır' : 'Remove from List'}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
