@@ -1,3 +1,4 @@
+import * as PDFLib from 'pdf-lib';
 import {
   PDFDocument,
   PDFName,
@@ -8,6 +9,7 @@ import {
   rgb,
   StandardFonts
 } from 'pdf-lib';
+import { configure, lock } from 'pdf-lib-encrypt';
 import { AnnotationItem } from '../types/pdf';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -564,6 +566,91 @@ export class PdfEditService {
       doc.removePage(pageIndex);
     }
     return await doc.save({ useObjectStreams: true });
+  }
+
+  /**
+   * Sayfaya PNG veya JPG görseli ekler
+   */
+  static async insertImage(
+    data: Uint8Array,
+    pageNumber: number,
+    imageBytes: Uint8Array,
+    isJpg: boolean,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): Promise<Uint8Array> {
+    const doc = await this.loadPdf(data);
+    const pages = doc.getPages();
+    const targetIdx = pageNumber - 1;
+    if (targetIdx < 0 || targetIdx >= pages.length) return data;
+
+    const page = pages[targetIdx];
+    const pageH = page.getHeight();
+    const img = isJpg ? await doc.embedJpg(imageBytes) : await doc.embedPng(imageBytes);
+
+    const lly = pageH - (y + height);
+    page.drawImage(img, {
+      x,
+      y: lly,
+      width,
+      height
+    });
+
+    return await doc.save({ useObjectStreams: true });
+  }
+
+  /**
+   * Sayfada belirtilen koordinatları kalıcı olarak siyah bantla karartır (Redact)
+   */
+  static async applyRedaction(
+    data: Uint8Array,
+    pageNumber: number,
+    rects: [number, number, number, number][] // [x, y, w, h] (72 DPI)
+  ): Promise<Uint8Array> {
+    const doc = await this.loadPdf(data);
+    const pages = doc.getPages();
+    const targetIdx = pageNumber - 1;
+    if (targetIdx < 0 || targetIdx >= pages.length) return data;
+
+    const page = pages[targetIdx];
+    const pageH = page.getHeight();
+
+    for (const [x, y, w, h] of rects) {
+      const lly = pageH - (y + h);
+      page.drawRectangle({
+        x,
+        y: lly,
+        width: w,
+        height: h,
+        color: rgb(0, 0, 0),
+        borderColor: rgb(0, 0, 0)
+      });
+    }
+
+    return await doc.save({ useObjectStreams: true });
+  }
+
+  /**
+   * PDF belgesini nesne akışlarını optimize ederek ve gereksiz verileri temizleyerek sıkıştırır
+   */
+  static async compressPdf(data: Uint8Array): Promise<Uint8Array> {
+    const doc = await this.loadPdf(data);
+    return await doc.save({
+      useObjectStreams: true,
+      addDefaultPage: false
+    });
+  }
+
+  /**
+   * PDF belgesini ISO 32000 AES-256 standardında kullanıcı parolasıyla şifreler
+   */
+  static async encryptPdf(data: Uint8Array, password: string): Promise<Uint8Array> {
+    configure(PDFLib);
+    const doc = await this.loadPdf(data);
+    const rawBytes = await doc.save({ useObjectStreams: false });
+    return await lock(rawBytes, password, { algo: 'aes256' });
   }
 
   /**

@@ -41,7 +41,16 @@
 - **Official Stamps:** Predefined stamps (e.g., *APPROVED*, *CONFIDENTIAL*, *DRAFT*, *REJECTED*) with automated dates.
 - **Diagonal Watermarks:** Semi-transparent text watermarks with customizable opacity, color, and size.
 
-### 🛡️ 6. Privacy & System Language
+### 🖼️ 6. Image Insertion & Page Export
+- **Insert Images:** Embed PNG or JPEG images onto any page with custom scaling and placement anchors.
+- **Export Pages as Images:** Render any page or full documents to high-resolution PNG or JPEG image files.
+
+### 🔒 7. Security, Protection & Compression
+- **AES-256 PDF Encryption:** Lock documents with ISO 32000 standard AES-256 password protection.
+- **PDF Compression & Optimization:** Purge redundant metadata, rebuild cross-reference tables, and optimize object streams to reduce file size.
+- **Redaction Ready:** Structural support for permanent black-box information redaction.
+
+### 🛡️ 8. Privacy & System Language
 - **100% Local-First:** All operations execute locally on your machine. Zero cloud dependency, zero telemetry.
 - **Automatic System Language Detection:** Automatically starts in your OS language (English / Turkish) with single-click manual toggle.
 
