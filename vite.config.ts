@@ -33,7 +33,11 @@ export default defineConfig({
             },
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron']
+              external: ['electron'],
+              output: {
+                format: 'cjs',
+                exports: 'none'
+              }
             }
           }
         }
