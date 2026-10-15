@@ -209,8 +209,10 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     // Eğer bir not popover açıksa, dışarı tıklandığında popover'ı kapat ve içi boşsa sil
     if (activeNotePopover) {
-      if (!activeNotePopover.annotation.contents?.trim()) {
-        deleteAnnotation(activeNotePopover.annotation.id);
+      const noteId = activeNotePopover.annotation.id;
+      const currentNote = (activeTab?.annotations || []).find((a) => a.id === noteId);
+      if (!currentNote || !currentNote.contents?.trim()) {
+        deleteAnnotation(noteId);
       }
       setActiveNotePopover(null);
       setSelectedAnnotationId(null);
@@ -243,9 +245,11 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
       };
 
       addAnnotation(newNote);
+      const popoverX = coords.x + 300 > pageWidth ? Math.max(10, coords.x - 290) : coords.x + 12;
+      const popoverY = coords.y + 200 > pageHeight ? Math.max(10, coords.y - 120) : coords.y;
       setActiveNotePopover({
         annotation: newNote,
-        position: { x: coords.x + 12, y: coords.y }
+        position: { x: popoverX, y: popoverY }
       });
     } else if (activeTool === 'text') {
       setActiveTextInput({
@@ -610,9 +614,11 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedAnnotationId(note.id);
+                const popoverX = pxX + 300 > pageWidth ? Math.max(10, pxX - 290) : pxX + 28;
+                const popoverY = pxY + 200 > pageHeight ? Math.max(10, pxY - 120) : pxY;
                 setActiveNotePopover({
                   annotation: note,
-                  position: { x: pxX + 28, y: pxY }
+                  position: { x: popoverX, y: popoverY }
                 });
               }}
               onMouseDown={(e) => e.stopPropagation()}
@@ -669,10 +675,12 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             annotation={activeNotePopover.annotation}
             position={activeNotePopover.position}
             onSave={(contents) => {
-              if (!contents.trim()) {
-                deleteAnnotation(activeNotePopover.annotation.id);
+              const noteId = activeNotePopover.annotation.id;
+              const trimmed = contents.trim();
+              if (!trimmed) {
+                deleteAnnotation(noteId);
               } else {
-                updateAnnotation(activeNotePopover.annotation.id, { contents });
+                updateAnnotation(noteId, { contents: trimmed });
               }
               setActiveNotePopover(null);
               setSelectedAnnotationId(null);
@@ -683,8 +691,10 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
               setSelectedAnnotationId(null);
             }}
             onClose={() => {
-              if (!activeNotePopover.annotation.contents?.trim()) {
-                deleteAnnotation(activeNotePopover.annotation.id);
+              const noteId = activeNotePopover.annotation.id;
+              const currentNote = (activeTab?.annotations || []).find((a) => a.id === noteId);
+              if (!currentNote || !currentNote.contents?.trim()) {
+                deleteAnnotation(noteId);
               }
               setActiveNotePopover(null);
               setSelectedAnnotationId(null);
