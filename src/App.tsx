@@ -28,6 +28,7 @@ export function App() {
     tabs,
     activeTabId,
     addTab,
+    setActiveTab,
     updateTab,
     setZoom,
     setCurrentPage,
@@ -111,6 +112,16 @@ export function App() {
   // Yeni PDF Belgesini Açma ve State'e Aktarma
   const openNewPdf = async (filePath: string, fileName: string, rawBytes: Uint8Array) => {
     try {
+      // Eğer bu dosya zaten sekmelerde açıksa doğrudan o sekmeye geç
+      const existingTab = tabs.find(
+        (t) => t.filePath === filePath || (t.fileName === fileName && t.filePath === filePath)
+      );
+      if (existingTab) {
+        setActiveTab(existingTab.id);
+        addRecentFile({ filePath: existingTab.filePath, fileName: existingTab.fileName });
+        return;
+      }
+
       // Store için bağımsız temiz kopya sakla
       const storeData = rawBytes.slice();
       // Yükleme için ayrı bir kopya ile belgeyi hazırla
@@ -150,22 +161,34 @@ export function App() {
   // Son Açılan Belgeyi Açma
   const handleOpenRecentFile = async (filePath: string, fileName: string) => {
     if (window.electronAPI) {
-      const res = await window.electronAPI.readFile(filePath);
-      if (res.success && res.data) {
-        const binaryString = atob(res.data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+      try {
+        const res = await window.electronAPI.readFile(filePath);
+        if (res.success && res.data) {
+          const binaryString = atob(res.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          await openNewPdf(res.filePath || filePath, res.fileName || fileName, bytes);
+          return;
+        } else {
+          // Dosya bulunamadıysa kullanıcıya dosyayı seçme seçeneği sun
+          const confirmPick = confirm(
+            language === 'tr'
+              ? `"${fileName}" dosyası taşınmış veya silinmiş olabilir.\nDosyayı kendiniz seçmek ister misiniz?`
+              : `"${fileName}" may have been moved or deleted.\nWould you like to locate and open it?`
+          );
+          if (confirmPick) {
+            handleOpenFile();
+          }
         }
-        await openNewPdf(filePath, fileName, bytes);
-        return;
-      } else {
-        alert(
-          language === 'tr'
-            ? 'Dosya bulunamadı veya taşınmış olabilir:\n' + filePath
-            : 'File could not be found or may have been moved:\n' + filePath
-        );
+      } catch (err: any) {
+        console.error('Son dosya açma hatası:', err);
+        alert(`Dosya açılamadı: ${err?.message || err}`);
       }
+    } else {
+      // Tarayıcı / Web Fallback
+      handleOpenFile();
     }
   };
 
@@ -201,8 +224,10 @@ export function App() {
   const handleFileDrop = async (file: File) => {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    const path = (file as any).path || file.name;
-    await openNewPdf(path, file.name, bytes);
+    const resolvedPath =
+      (window.electronAPI?.getPathForFile ? window.electronAPI.getPathForFile(file) : (file as any).path) ||
+      file.name;
+    await openNewPdf(resolvedPath, file.name, bytes);
   };
 
   // Mevcut Dosyayı Kaydet (Ctrl+S) - ISO 32000 Annotation'ları ile Birlikte

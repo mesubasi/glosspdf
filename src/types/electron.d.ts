@@ -18,6 +18,7 @@ export interface SavePdfResult {
 export interface IElectronAPI {
   openPdf: () => Promise<OpenPdfResult>;
   readFile: (filePath: string) => Promise<OpenPdfResult>;
+  getPathForFile?: (file: File) => string;
   savePdf: (filePath: string, base64Data: string) => Promise<SavePdfResult>;
   savePdfAs: (defaultName: string, base64Data: string) => Promise<SavePdfResult>;
   print: () => Promise<boolean>;

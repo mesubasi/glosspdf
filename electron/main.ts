@@ -95,11 +95,32 @@ ipcMain.handle('dialog:openPdf', async () => {
 // IPC: Verilen Yoldaki Dosyayı Oku (Sürükle-bırak veya son açılanlar için)
 ipcMain.handle('fs:readFile', async (_event, targetPath: string) => {
   try {
-    const fileBuffer = await fs.promises.readFile(targetPath);
-    const fileName = path.basename(targetPath);
+    let resolvedPath = targetPath;
+
+    // Eğer dosya belirtilen yolda doğrudan bulunamazsa kullanıcı dizinlerinde ara
+    if (!fs.existsSync(resolvedPath)) {
+      const base = path.basename(targetPath);
+      const searchDirs = [
+        app.getPath('desktop'),
+        app.getPath('downloads'),
+        app.getPath('documents'),
+        process.cwd()
+      ];
+
+      for (const dir of searchDirs) {
+        const candidate = path.join(dir, base);
+        if (fs.existsSync(candidate)) {
+          resolvedPath = candidate;
+          break;
+        }
+      }
+    }
+
+    const fileBuffer = await fs.promises.readFile(resolvedPath);
+    const fileName = path.basename(resolvedPath);
     return {
       success: true,
-      filePath: targetPath,
+      filePath: resolvedPath,
       fileName,
       data: fileBuffer.toString('base64')
     };
