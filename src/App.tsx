@@ -23,6 +23,38 @@ import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import * as pdfjsLib from 'pdfjs-dist';
 
+/**
+ * Oturum boyunca açılan belgelerin baytlarını bellekte tutar.
+ *
+ * "Son Açılan Belgeler" listesine tıklandığında dosya diskten okunamazsa
+ * (dosya taşınmış/silinmiş ya da masaüstü köprüsü kullanılamıyor) belgeyi
+ * yine de açabilmek için kullanılır. Böylece kullanıcıya istemediği halde
+ * dosya seçici gösterilmez.
+ */
+type CachedFileBytes = { bytes: Uint8Array; fileName: string };
+
+const sessionFileBytes = new Map<string, CachedFileBytes>();
+
+function cacheFileBytes(filePath: string, fileName: string, bytes: Uint8Array) {
+  const entry: CachedFileBytes = { bytes, fileName };
+  if (filePath) sessionFileBytes.set(filePath, entry);
+  if (fileName) sessionFileBytes.set(fileName, entry);
+}
+
+function getCachedFileBytes(filePath: string, fileName: string): CachedFileBytes | undefined {
+  return sessionFileBytes.get(filePath) ?? sessionFileBytes.get(fileName);
+}
+
+/** IPC'den gelen base64 gövdesini baytlara çevirir. */
+function base64ToBytes(base64Data: string): Uint8Array {
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 export function App() {
   const {
     tabs,
@@ -42,6 +74,20 @@ export function App() {
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const [activePdfDoc, setActivePdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Masaüstü kabuğunda preload yüklenemediyse sessizce devam etme: konsola açıkça yaz.
+  // (Preload yüklenmezse window.electronAPI oluşmaz ve dosya açma/kaydetme ile
+  //  "Son Açılan Belgeler" tarayıcı davranışına düşer.)
+  useEffect(() => {
+    const isElectronShell = typeof navigator !== 'undefined' && /electron/i.test(navigator.userAgent);
+    if (isElectronShell && !window.electronAPI) {
+      console.error(
+        '[GlossPDF] window.electronAPI bulunamadı: preload betiği yüklenemedi. ' +
+          'Dosya açma/kaydetme ve son açılan belgeler masaüstü yerine tarayıcı davranışına düşecek. ' +
+          'Çözüm: dist-electron/preload.cjs dosyasını yeniden derleyin (npm run build).'
+      );
+    }
+  }, []);
 
   // Sekme değiştiğinde aktif PDF belgesini yükle
   useEffect(() => {
@@ -151,6 +197,9 @@ export function App() {
       // Doğrudan açılan belgeyi aktif kıl
       setActivePdfDoc(doc);
 
+      // Baytları oturum önbelleğine al (son açılanlar için yedek kaynak)
+      cacheFileBytes(filePath, fileName, storeData);
+
       // Son açılanlar geçmişine kaydet
       addRecentFile({ filePath, fileName });
     } catch (err: any) {
@@ -160,35 +209,69 @@ export function App() {
   };
 
   // Son Açılan Belgeyi Açma
+  // Önemli: Bu işlev HİÇBİR durumda "Dosya Aç" seçicisini kendiliğinden açmaz.
+  // Sıra: açık sekme -> diskten doğrudan okuma -> oturum önbelleği -> bilgilendirme.
   const handleOpenRecentFile = async (filePath: string, fileName: string) => {
-    if (window.electronAPI) {
+    // 1) Belge zaten bir sekmede açıksa doğrudan o sekmeye geç
+    const existingTab = tabs.find((t) => t.filePath === filePath);
+    if (existingTab) {
+      setActiveTab(existingTab.id);
+      addRecentFile({ filePath: existingTab.filePath, fileName: existingTab.fileName });
+      return;
+    }
+
+    // 2) Masaüstü köprüsü varsa dosyayı yoldan doğrudan oku (kullanıcıya seçici gösterme)
+    let desktopReadAttempted = false;
+    let readError: string | null = null;
+
+    const readFile = window.electronAPI?.readFile;
+    if (typeof readFile === 'function') {
+      desktopReadAttempted = true;
       try {
-        const res = await window.electronAPI.readFile(filePath);
-        if (res.success && res.data) {
-          const binaryString = atob(res.data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          await openNewPdf(res.filePath || filePath, res.fileName || fileName, bytes);
-          return;
-        } else {
-          // Dosya bulunamadıysa listeden temizle ve bilgilendir (zorla dosya seçtirme yok)
-          removeRecentFile(filePath);
-          alert(
-            language === 'tr'
-              ? `"${fileName}" dosyası diskte bulunamadı (silinmiş veya taşınmış olabilir). Liste güncellendi.`
-              : `"${fileName}" was not found on disk (may have been deleted or moved). List updated.`
+        const res = await readFile(filePath);
+        if (res?.success && res.data) {
+          await openNewPdf(
+            res.filePath || filePath,
+            res.fileName || fileName,
+            base64ToBytes(res.data)
           );
+          return;
         }
+        readError = res?.error || 'Dosya okunamadı';
       } catch (err: any) {
-        console.error('Son dosya açma hatası:', err);
-        alert(`Dosya açılamadı: ${err?.message || err}`);
+        readError = err?.message || String(err);
       }
     } else {
-      // Tarayıcı / Web Fallback
-      handleOpenFile();
+      readError = 'Masaüstü köprüsü (electronAPI) kullanılamıyor';
     }
+
+    // 3) Diskten okunamadıysa oturum önbelleğindeki baytlarla aç
+    const cached = getCachedFileBytes(filePath, fileName);
+    if (cached) {
+      console.warn(
+        `[GlossPDF] "${fileName}" diskten okunamadı (${readError}); oturum önbelleğinden açılıyor.`
+      );
+      await openNewPdf(filePath, cached.fileName || fileName, cached.bytes.slice());
+      return;
+    }
+
+    console.error(`[GlossPDF] Son dosya açılamadı (${filePath}):`, readError);
+
+    // 4) Gerçekten erişilemiyor: seçici açmak yerine net bir mesaj göster
+    //    (masaüstünde dosya gerçekten yoksa kaydı listeden temizle)
+    if (desktopReadAttempted) {
+      removeRecentFile(filePath);
+    }
+
+    alert(
+      language === 'tr'
+        ? desktopReadAttempted
+          ? `"${fileName}" açılamadı; dosya silinmiş veya taşınmış olabilir. Kayıt listeden kaldırıldı. "Dosya Aç" ile yeniden seçebilirsiniz.`
+          : `"${fileName}" bu ortamda yeniden açılamıyor: masaüstü dosya köprüsü yüklenmemiş (preload). Uygulamayı yeniden derleyip başlatın veya "Dosya Aç" ile dosyayı seçin.`
+        : desktopReadAttempted
+          ? `"${fileName}" could not be opened; the file may have been deleted or moved. The entry was removed from the list. Use "Open File" to pick it again.`
+          : `"${fileName}" cannot be reopened in this environment: the desktop file bridge (preload) is not loaded. Rebuild and restart the app, or use "Open File".`
+    );
   };
 
   // Dosya Aç (Electron veya Web fallback)
@@ -196,12 +279,7 @@ export function App() {
     if (window.electronAPI) {
       const res = await window.electronAPI.openPdf();
       if (res.success && res.data && res.filePath && res.fileName) {
-        const binaryString = atob(res.data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        await openNewPdf(res.filePath, res.fileName, bytes);
+        await openNewPdf(res.filePath, res.fileName, base64ToBytes(res.data));
       }
       return;
     }

@@ -8,10 +8,35 @@ const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 
+/**
+ * Preload betiğini çözer.
+ *
+ * `preload.cjs` (CommonJS) tercih edilir: `package.json` "type": "module" olduğu
+ * için `.js` uzantılı bir preload ESM olarak yorumlanır ve `require` kullanan
+ * içerik yüklenemez. Bu yüzden tek geçerli çıktı `preload.cjs`'tir.
+ */
+function resolvePreloadPath(): string {
+  const candidates = ['preload.cjs', 'preload.js'].map((file) => path.join(__dirname, file));
+  const existing = candidates.find((candidate) => fs.existsSync(candidate));
+
+  if (!existing) {
+    console.error(
+      `[GlossPDF] Preload betiği bulunamadı. Beklenen konum: ${candidates[0]}. ` +
+        'Uygulamayı yeniden derleyin (npm run build). Bu dosya olmadan dosya açma/kaydetme gibi ' +
+        'masaüstü özellikleri çalışmaz.'
+    );
+    return candidates[0];
+  }
+
+  return existing;
+}
+
 function createWindow() {
   const iconPath = fs.existsSync(path.join(__dirname, '../build/icon.ico'))
     ? path.join(__dirname, '../build/icon.ico')
     : path.join(__dirname, '../public/logo.png');
+
+  const preloadPath = resolvePreloadPath();
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -22,13 +47,16 @@ function createWindow() {
     icon: iconPath,
     backgroundColor: '#525659',
     webPreferences: {
-      preload: fs.existsSync(path.join(__dirname, 'preload.cjs'))
-        ? path.join(__dirname, 'preload.cjs')
-        : path.join(__dirname, 'preload.js'),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
     }
+  });
+
+  // Preload yüklenemezse sessizce devam etme: nedeni konsola yaz
+  mainWindow.webContents.on('preload-error', (_event, failedPath, error) => {
+    console.error(`[GlossPDF] Preload yüklenemedi (${failedPath}):`, error);
   });
 
   mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
