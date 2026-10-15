@@ -102,13 +102,33 @@ function getInitialLanguage(): 'tr' | 'en' {
   return 'en';
 }
 
+// Tema başlangıç durumunu tespit etme
+function getInitialTheme(): 'light' | 'dark' {
+  try {
+    const saved = localStorage.getItem('glosspdf_theme');
+    if (saved === 'light' || saved === 'dark') {
+      if (saved === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      return saved;
+    }
+  } catch {}
+
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.add('dark');
+  }
+  return 'dark';
+}
+
 export const usePdfStore = create<PdfStoreState>((set, get) => ({
   tabs: [],
   activeTabId: null,
   activeTool: 'select',
   leftSidebarTab: 'thumbnails',
   rightPanelOpen: false,
-  theme: 'dark',
+  theme: getInitialTheme(),
   language: getInitialLanguage(),
   searchBarOpen: false,
   searchQuery: '',
@@ -237,13 +257,17 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   toggleRightPanel: () => set((state) => ({ rightPanelOpen: !state.rightPanelOpen })),
 
   toggleTheme: () =>
-    set((state) => {
-      const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
+    set(() => {
+      const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      const nextTheme = isCurrentlyDark ? 'light' : 'dark';
       if (nextTheme === 'dark') {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
+      try {
+        localStorage.setItem('glosspdf_theme', nextTheme);
+      } catch {}
       return { theme: nextTheme };
     }),
 
