@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { PdfRenderService } from '../../services/pdfRenderService';
 import { PageDimension } from '../../types/pdf';
 import { AnnotationLayer } from '../annotations/AnnotationLayer';
+import { usePdfStore } from '../../store/usePdfStore';
 
 interface PdfPageProps {
   pageNumber: number;
@@ -21,6 +22,9 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   rotation,
   isVisible
 }) => {
+  const { activeTool } = usePdfStore();
+  const isTextMarkupTool = activeTool === 'highlight' || activeTool === 'underline' || activeTool === 'strikeout';
+
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -136,13 +140,13 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       {/* Seçilebilir Metin Katmanı (TextLayer) */}
       <div
         ref={textLayerRef}
-        className="textLayer"
+        className={`textLayer ${isTextMarkupTool ? '!z-30 cursor-text select-text pointer-events-auto' : ''}`}
       />
 
       {/* İnteraktif Form Katmanı (Faz 3 - AcroForm Fields) */}
       <div
         ref={formLayerRef}
-        className="absolute inset-0 pointer-events-auto"
+        className="absolute inset-0 pointer-events-none z-10"
         style={{ width: `${targetWidth}px`, height: `${targetHeight}px` }}
       />
 

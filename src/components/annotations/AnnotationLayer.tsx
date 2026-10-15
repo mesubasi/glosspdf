@@ -86,7 +86,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
 
   // Metin Seçimi ile Vurgu, Altını Çizme ve Üstünü Çizme
   useEffect(() => {
-    const handleMouseUp = () => {
+    const handleTextSelectionMouseUp = () => {
       if (
         activeTool !== 'highlight' &&
         activeTool !== 'underline' &&
@@ -98,41 +98,96 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed || !containerRef.current) return;
 
+      const selectedText = selection.toString().trim();
+      if (!selectedText) return;
+
       // Seçimin bu sayfada olup olmadığını kontrol et
       const pageEl = containerRef.current.closest(`#pdf-page-${pageNumber}`);
       if (!pageEl) return;
 
       const range = selection.getRangeAt(0);
-      if (!pageEl.contains(range.commonAncestorContainer)) return;
 
-      const clientRects = range.getClientRects();
+      // Range'in bu sayfada olup olmadığını güvenli kontrol et
+      try {
+        if (!range.intersectsNode(pageEl)) return;
+      } catch (err) {
+        if (!pageEl.contains(range.commonAncestorContainer)) return;
+      }
+
+      const clientRects = Array.from(range.getClientRects());
+      if (clientRects.length === 0) return;
+
       const pageRect = pageEl.getBoundingClientRect();
+      const validBoxes: { x: number; y: number; w: number; h: number }[] = [];
 
-      for (let i = 0; i < clientRects.length; i++) {
-        const r = clientRects[i];
-        if (r.width <= 0 || r.height <= 0) continue;
+      for (const r of clientRects) {
+        if (r.width <= 1 || r.height <= 1) continue;
 
-        // Sayfaya bağıl piksel
+        // Sayfaya bağıl piksel koordinatları
         const relX = r.left - pageRect.left;
         const relY = r.top - pageRect.top;
         const relW = r.width;
         const relH = r.height;
 
-        // 72 DPI PDF noktasına çevir
-        const ptX = pxToPt(relX);
-        const ptY = pxToPt(relY);
-        const ptW = pxToPt(relW);
-        const ptH = pxToPt(relH);
+        // Sayfa sınırları dışındaysa atla
+        if (
+          relX + relW <= 0 ||
+          relX >= pageRect.width ||
+          relY + relH <= 0 ||
+          relY >= pageRect.height
+        ) {
+          continue;
+        }
 
+        // Sınırları sayfaya kırp (clamping)
+        const clampedX = Math.max(0, relX);
+        const clampedY = Math.max(0, relY);
+        const clampedW = Math.min(pageRect.width - clampedX, relW - (clampedX - relX));
+        const clampedH = Math.min(pageRect.height - clampedY, relH - (clampedY - relY));
+
+        if (clampedW > 2 && clampedH > 2) {
+          validBoxes.push({
+            x: pxToPt(clampedX),
+            y: pxToPt(clampedY),
+            w: pxToPt(clampedW),
+            h: pxToPt(clampedH)
+          });
+        }
+      }
+
+      if (validBoxes.length === 0) return;
+
+      // Aynı satırdaki parçaları birleştir
+      validBoxes.sort((a, b) => a.y - b.y || a.x - b.x);
+      const mergedBoxes: { x: number; y: number; w: number; h: number }[] = [];
+
+      for (const box of validBoxes) {
+        const last = mergedBoxes[mergedBoxes.length - 1];
+        if (
+          last &&
+          Math.abs(last.y - box.y) < 4 &&
+          Math.abs(last.h - box.h) < 4 &&
+          box.x <= last.x + last.w + 8
+        ) {
+          const newRight = Math.max(last.x + last.w, box.x + box.w);
+          last.w = newRight - last.x;
+          last.h = Math.max(last.h, box.h);
+        } else {
+          mergedBoxes.push({ ...box });
+        }
+      }
+
+      // Her satır için annotation ekle
+      for (const box of mergedBoxes) {
         const newAnnot: AnnotationItem = {
-          id: `annot-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          id: `annot-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           pageNumber,
           type: activeTool,
           color: annotationColor,
           opacity: activeTool === 'highlight' ? 0.35 : 1.0,
           strokeWidth: activeTool === 'highlight' ? 0 : 2,
-          rect: [ptX, ptY, ptW, ptH],
-          contents: selection.toString(),
+          rect: [box.x, box.y, box.w, box.h],
+          contents: selectedText,
           createdAt: new Date().toISOString(),
           author: 'Kullanıcı'
         };
@@ -140,17 +195,28 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
         addAnnotation(newAnnot);
       }
 
+      // Metin seçimini sıfırla
       selection.removeAllRanges();
     };
 
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleTextSelectionMouseUp);
     return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleTextSelectionMouseUp);
     };
   }, [activeTool, pageNumber, pxToPt, annotationColor, addAnnotation]);
 
   // Fare Tıklaması ve Çizim Başlangıcı
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Eğer bir not popover açıksa, dışarı tıklandığında popover'ı kapat ve içi boşsa sil
+    if (activeNotePopover) {
+      if (!activeNotePopover.annotation.contents?.trim()) {
+        deleteAnnotation(activeNotePopover.annotation.id);
+      }
+      setActiveNotePopover(null);
+      setSelectedAnnotationId(null);
+      return;
+    }
+
     const coords = getRelativeCoords(e);
 
     if (activeTool === 'draw') {
@@ -179,7 +245,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
       addAnnotation(newNote);
       setActiveNotePopover({
         annotation: newNote,
-        position: { x: coords.x, y: coords.y + 10 }
+        position: { x: coords.x + 12, y: coords.y }
       });
     } else if (activeTool === 'text') {
       setActiveTextInput({
@@ -295,20 +361,34 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     return d;
   };
 
-  const isInteractive = activeTool !== 'select' && activeTool !== 'hand';
+  const isDrawingTool =
+    activeTool === 'draw' ||
+    activeTool === 'rect' ||
+    activeTool === 'note' ||
+    activeTool === 'text';
+
+  const isTextMarkupTool =
+    activeTool === 'highlight' ||
+    activeTool === 'underline' ||
+    activeTool === 'strikeout';
+
+  const itemPointerClass =
+    activeTool === 'select'
+      ? 'pointer-events-auto cursor-pointer'
+      : 'pointer-events-none';
 
   return (
     <div
       ref={containerRef}
-      onMouseDown={isInteractive ? handleMouseDown : undefined}
-      onMouseMove={isInteractive ? handleMouseMove : undefined}
-      onMouseUp={isInteractive ? handleMouseUp : undefined}
+      onMouseDown={isDrawingTool ? handleMouseDown : undefined}
+      onMouseMove={isDrawingTool ? handleMouseMove : undefined}
+      onMouseUp={isDrawingTool ? handleMouseUp : undefined}
       style={{
         width: `${pageWidth}px`,
         height: `${pageHeight}px`
       }}
       className={`absolute inset-0 z-20 ${
-        isInteractive ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'
+        isDrawingTool ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'
       }`}
     >
       {/* SVG Katmanı - İşaretlemelerin Render Edilmesi */}
@@ -336,9 +416,10 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                   width={pxW}
                   height={pxH}
                   fill={annot.color}
-                  opacity={0.4}
-                  className="pointer-events-auto cursor-pointer hover:opacity-60 transition-opacity"
+                  opacity={annot.opacity ?? 0.35}
+                  className={`${itemPointerClass} hover:opacity-60 transition-opacity`}
                   onClick={(e) => {
+                    if (activeTool !== 'select') return;
                     e.stopPropagation();
                     setSelectedAnnotationId(annot.id);
                   }}
@@ -364,9 +445,10 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                   x2={pxX + pxW}
                   y2={pxY}
                   stroke={annot.color}
-                  strokeWidth={2}
-                  className="pointer-events-auto cursor-pointer hover:opacity-80"
+                  strokeWidth={annot.strokeWidth || 2}
+                  className={`${itemPointerClass} hover:opacity-80`}
                   onClick={(e) => {
+                    if (activeTool !== 'select') return;
                     e.stopPropagation();
                     setSelectedAnnotationId(annot.id);
                   }}
@@ -389,9 +471,10 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                   x2={pxX + pxW}
                   y2={pxY}
                   stroke={annot.color}
-                  strokeWidth={2}
-                  className="pointer-events-auto cursor-pointer hover:opacity-80"
+                  strokeWidth={annot.strokeWidth || 2}
+                  className={`${itemPointerClass} hover:opacity-80`}
                   onClick={(e) => {
+                    if (activeTool !== 'select') return;
                     e.stopPropagation();
                     setSelectedAnnotationId(annot.id);
                   }}
@@ -413,8 +496,9 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                   strokeWidth={strokeW}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="pointer-events-auto cursor-pointer hover:opacity-80"
+                  className={`${itemPointerClass} hover:opacity-80`}
                   onClick={(e) => {
+                    if (activeTool !== 'select') return;
                     e.stopPropagation();
                     setSelectedAnnotationId(annot.id);
                   }}
@@ -441,8 +525,9 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                   fill="none"
                   stroke={annot.color}
                   strokeWidth={strokeW}
-                  className="pointer-events-auto cursor-pointer hover:opacity-80"
+                  className={`${itemPointerClass} hover:opacity-80`}
                   onClick={(e) => {
+                    if (activeTool !== 'select') return;
                     e.stopPropagation();
                     setSelectedAnnotationId(annot.id);
                   }}
@@ -466,8 +551,9 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                   fontSize={fontSize}
                   fontFamily="sans-serif"
                   fontWeight="bold"
-                  className="pointer-events-auto cursor-pointer select-none"
+                  className={`${itemPointerClass} select-none`}
                   onClick={(e) => {
+                    if (activeTool !== 'select') return;
                     e.stopPropagation();
                     setSelectedAnnotationId(annot.id);
                   }}
@@ -529,6 +615,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                   position: { x: pxX + 28, y: pxY }
                 });
               }}
+              onMouseDown={(e) => e.stopPropagation()}
               className={`absolute pointer-events-auto cursor-pointer p-1 rounded-full shadow-md transition-transform hover:scale-125 ${
                 isSelected ? 'ring-2 ring-blue-500 scale-110' : ''
               }`}
@@ -577,18 +664,31 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
 
       {/* Aktif Not Popover'ı */}
       {activeNotePopover && (
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto" onMouseDown={(e) => e.stopPropagation()}>
           <NotePopover
             annotation={activeNotePopover.annotation}
             position={activeNotePopover.position}
             onSave={(contents) => {
-              updateAnnotation(activeNotePopover.annotation.id, { contents });
+              if (!contents.trim()) {
+                deleteAnnotation(activeNotePopover.annotation.id);
+              } else {
+                updateAnnotation(activeNotePopover.annotation.id, { contents });
+              }
+              setActiveNotePopover(null);
+              setSelectedAnnotationId(null);
             }}
             onDelete={() => {
               deleteAnnotation(activeNotePopover.annotation.id);
               setActiveNotePopover(null);
+              setSelectedAnnotationId(null);
             }}
-            onClose={() => setActiveNotePopover(null)}
+            onClose={() => {
+              if (!activeNotePopover.annotation.contents?.trim()) {
+                deleteAnnotation(activeNotePopover.annotation.id);
+              }
+              setActiveNotePopover(null);
+              setSelectedAnnotationId(null);
+            }}
           />
         </div>
       )}

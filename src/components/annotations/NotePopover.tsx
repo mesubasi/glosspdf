@@ -45,6 +45,8 @@ export const NotePopover: React.FC<NotePopoverProps> = ({
   return (
     <div
       ref={popoverRef}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`
@@ -59,14 +61,24 @@ export const NotePopover: React.FC<NotePopoverProps> = ({
         </div>
         <div className="flex items-center space-x-1">
           <button
-            onClick={onDelete}
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className="p-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
             title="Notu Sil"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={onClose}
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             title="Kapat"
           >
@@ -97,13 +109,23 @@ export const NotePopover: React.FC<NotePopoverProps> = ({
       {/* Alt Eylem Butonları */}
       <div className="flex items-center justify-end space-x-2 px-3 pb-3">
         <button
-          onClick={onClose}
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           className="px-2.5 py-1 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
         >
           İptal
         </button>
         <button
-          onClick={handleSave}
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSave();
+          }}
           className="flex items-center space-x-1 px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white font-medium shadow transition-colors"
         >
           <Check className="w-3.5 h-3.5" />
