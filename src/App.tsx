@@ -15,6 +15,10 @@ import { MergePdfModal } from './components/modals/MergePdfModal';
 import { SplitPdfModal } from './components/modals/SplitPdfModal';
 import { WatermarkModal } from './components/modals/WatermarkModal';
 import { SignatureModal } from './components/modals/SignatureModal';
+import { InsertImageModal } from './components/modals/InsertImageModal';
+import { ExportImagesModal } from './components/modals/ExportImagesModal';
+import { ProtectPdfModal } from './components/modals/ProtectPdfModal';
+import { CompressPdfModal } from './components/modals/CompressPdfModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -350,6 +354,10 @@ export function App() {
       <SplitPdfModal />
       <WatermarkModal />
       <SignatureModal />
+      <InsertImageModal />
+      <ExportImagesModal />
+      <ProtectPdfModal />
+      <CompressPdfModal />
     </div>
   );
 }

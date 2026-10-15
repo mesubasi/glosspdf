@@ -36,6 +36,12 @@ interface PdfStoreState {
   watermarkModalOpen: boolean;
   signatureModalOpen: boolean;
 
+  // Faz 4: İleri Düzey Modallar (Protect, InsertImage, ExportImages, Compress)
+  protectModalOpen: boolean;
+  insertImageModalOpen: boolean;
+  exportImagesModalOpen: boolean;
+  compressModalOpen: boolean;
+
   // Eylemler (Actions)
   addTab: (tab: PdfTab) => void;
   closeTab: (tabId: string) => void;
@@ -79,6 +85,12 @@ interface PdfStoreState {
   setSplitModalOpen: (open: boolean) => void;
   setWatermarkModalOpen: (open: boolean) => void;
   setSignatureModalOpen: (open: boolean) => void;
+
+  // Faz 4 Eylemleri
+  setProtectModalOpen: (open: boolean) => void;
+  setInsertImageModalOpen: (open: boolean) => void;
+  setExportImagesModalOpen: (open: boolean) => void;
+  setCompressModalOpen: (open: boolean) => void;
 }
 
 // Bilgisayar / İşletim sistemi dilini tespit etme fonksiyonu
@@ -149,6 +161,11 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   splitModalOpen: false,
   watermarkModalOpen: false,
   signatureModalOpen: false,
+
+  protectModalOpen: false,
+  insertImageModalOpen: false,
+  exportImagesModalOpen: false,
+  compressModalOpen: false,
 
   addTab: (newTab) => {
     set((state) => {
@@ -420,5 +437,11 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   setMergeModalOpen: (open) => set({ mergeModalOpen: open }),
   setSplitModalOpen: (open) => set({ splitModalOpen: open }),
   setWatermarkModalOpen: (open) => set({ watermarkModalOpen: open }),
-  setSignatureModalOpen: (open: boolean) => set({ signatureModalOpen: open })
+  setSignatureModalOpen: (open: boolean) => set({ signatureModalOpen: open }),
+
+  // Faz 4 Eylemleri
+  setProtectModalOpen: (open) => set({ protectModalOpen: open }),
+  setInsertImageModalOpen: (open) => set({ insertImageModalOpen: open }),
+  setExportImagesModalOpen: (open) => set({ exportImagesModalOpen: open }),
+  setCompressModalOpen: (open) => set({ compressModalOpen: open })
 }));

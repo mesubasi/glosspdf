@@ -11,7 +11,11 @@ import {
   X,
   FileCheck,
   Stamp,
-  FolderSync
+  FolderSync,
+  Image as ImageIcon,
+  FileImage,
+  Lock,
+  Minimize2
 } from 'lucide-react';
 
 export const RightToolsPanel: React.FC = () => {
@@ -25,7 +29,11 @@ export const RightToolsPanel: React.FC = () => {
     setMergeModalOpen,
     setSplitModalOpen,
     setWatermarkModalOpen,
-    setSignatureModalOpen
+    setSignatureModalOpen,
+    setInsertImageModalOpen,
+    setExportImagesModalOpen,
+    setProtectModalOpen,
+    setCompressModalOpen
   } = usePdfStore();
 
   if (!rightPanelOpen) return null;
@@ -95,6 +103,30 @@ export const RightToolsPanel: React.FC = () => {
       name: language === 'tr' ? 'Islak İmza Ekle (Sign)' : 'Handwritten Signature',
       icon: FileCheck,
       action: () => setSignatureModalOpen(true)
+    },
+    {
+      id: 'insertImage',
+      name: language === 'tr' ? 'Resim Ekle (Image)' : 'Insert Image',
+      icon: ImageIcon,
+      action: () => setInsertImageModalOpen(true)
+    },
+    {
+      id: 'exportImages',
+      name: language === 'tr' ? 'Resim Olarak Aktar' : 'Export Pages to Images',
+      icon: FileImage,
+      action: () => setExportImagesModalOpen(true)
+    },
+    {
+      id: 'protect',
+      name: language === 'tr' ? 'Parola ile Koru (Protect)' : 'Protect with Password',
+      icon: Lock,
+      action: () => setProtectModalOpen(true)
+    },
+    {
+      id: 'compress',
+      name: language === 'tr' ? 'PDF Sıkıştır (Compress)' : 'Compress PDF',
+      icon: Minimize2,
+      action: () => setCompressModalOpen(true)
     }
   ];
 
