@@ -95,15 +95,37 @@ ipcMain.handle('dialog:openPdf', async () => {
 // IPC: Verilen Yoldaki Dosyayı Oku (Sürükle-bırak veya son açılanlar için)
 ipcMain.handle('fs:readFile', async (_event, targetPath: string) => {
   try {
+    if (!targetPath) {
+      return { success: false, error: 'Dosya yolu belirtilmedi' };
+    }
+
     let resolvedPath = targetPath;
+
+    // file:// protokolü varsa temizle
+    if (resolvedPath.startsWith('file://')) {
+      try {
+        resolvedPath = fileURLToPath(resolvedPath);
+      } catch {}
+    }
+
+    // URL kodlamalı karakterleri (örn. %20 -> boşluk) çöz
+    if (resolvedPath.includes('%')) {
+      try {
+        resolvedPath = decodeURIComponent(resolvedPath);
+      } catch {}
+    }
+
+    // Tırnak işaretlerini ve slaşları standartlaştır
+    resolvedPath = path.normalize(resolvedPath.trim().replace(/^["']|["']$/g, ''));
 
     // Eğer dosya belirtilen yolda doğrudan bulunamazsa kullanıcı dizinlerinde ara
     if (!fs.existsSync(resolvedPath)) {
-      const base = path.basename(targetPath);
+      const base = path.basename(resolvedPath);
       const searchDirs = [
         app.getPath('desktop'),
         app.getPath('downloads'),
         app.getPath('documents'),
+        app.getPath('home'),
         process.cwd()
       ];
 
@@ -125,6 +147,7 @@ ipcMain.handle('fs:readFile', async (_event, targetPath: string) => {
       data: fileBuffer.toString('base64')
     };
   } catch (error: any) {
+    console.error('fs:readFile hatası:', error);
     return { success: false, error: error.message };
   }
 });

@@ -35,6 +35,7 @@ export function App() {
     openPasswordModal,
     annotationModeOpen,
     addRecentFile,
+    removeRecentFile,
     language
   } = usePdfStore();
 
@@ -172,15 +173,13 @@ export function App() {
           await openNewPdf(res.filePath || filePath, res.fileName || fileName, bytes);
           return;
         } else {
-          // Dosya bulunamadıysa kullanıcıya dosyayı seçme seçeneği sun
-          const confirmPick = confirm(
+          // Dosya bulunamadıysa listeden temizle ve bilgilendir (zorla dosya seçtirme yok)
+          removeRecentFile(filePath);
+          alert(
             language === 'tr'
-              ? `"${fileName}" dosyası taşınmış veya silinmiş olabilir.\nDosyayı kendiniz seçmek ister misiniz?`
-              : `"${fileName}" may have been moved or deleted.\nWould you like to locate and open it?`
+              ? `"${fileName}" dosyası diskte bulunamadı (silinmiş veya taşınmış olabilir). Liste güncellendi.`
+              : `"${fileName}" was not found on disk (may have been deleted or moved). List updated.`
           );
-          if (confirmPick) {
-            handleOpenFile();
-          }
         }
       } catch (err: any) {
         console.error('Son dosya açma hatası:', err);

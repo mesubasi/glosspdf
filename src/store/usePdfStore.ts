@@ -95,6 +95,7 @@ interface PdfStoreState {
   // Son Açılan Belgeler (Recent Files) & Kısayol Yardım Modalı
   recentFiles: { filePath: string; fileName: string; lastOpened: number }[];
   addRecentFile: (file: { filePath: string; fileName: string }) => void;
+  removeRecentFile: (filePath: string) => void;
   clearRecentFiles: () => void;
   shortcutHelpModalOpen: boolean;
   setShortcutHelpModalOpen: (open: boolean) => void;
@@ -471,6 +472,16 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
     set((state) => {
       const filtered = state.recentFiles.filter((f) => f.filePath !== file.filePath);
       const updated = [{ ...file, lastOpened: Date.now() }, ...filtered].slice(0, 8);
+      try {
+        localStorage.setItem('glosspdf_recent_files', JSON.stringify(updated));
+      } catch {}
+      return { recentFiles: updated };
+    });
+  },
+
+  removeRecentFile: (filePath) => {
+    set((state) => {
+      const updated = state.recentFiles.filter((f) => f.filePath !== filePath);
       try {
         localStorage.setItem('glosspdf_recent_files', JSON.stringify(updated));
       } catch {}
