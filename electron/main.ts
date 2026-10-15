@@ -9,12 +9,17 @@ const __dirname = path.dirname(__filename);
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  const iconPath = fs.existsSync(path.join(__dirname, '../build/icon.ico'))
+    ? path.join(__dirname, '../build/icon.ico')
+    : path.join(__dirname, '../public/logo.png');
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 850,
     minWidth: 900,
     minHeight: 600,
     title: 'GlossPDF - Sleek Desktop PDF Workstation',
+    icon: iconPath,
     backgroundColor: '#525659',
     webPreferences: {
       preload: fs.existsSync(path.join(__dirname, 'preload.cjs'))
