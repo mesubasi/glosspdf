@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Standart Kaydırma Çubuğu Stilleri */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #2b2b2b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+/* PDF.js Metin Katmanı (TextLayer) Stilleri */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+  user-select: text;
+}
+
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+/* Metin Seçimi Rengi (Acrobat Mavisi) */
+.textLayer ::selection {
+  background: rgba(0, 102, 204, 0.35);
+  color: transparent;
+}
+
+/* Arama Vurgulama Sınıfları */
+.textLayer .highlight {
+  background-color: rgba(255, 235, 59, 0.45);
+  border-radius: 2px;
+}
+
+.textLayer .highlight.selected {
+  background-color: rgba(255, 152, 0, 0.7);
+  box-shadow: 0 0 4px rgba(255, 152, 0, 0.8);
+}
