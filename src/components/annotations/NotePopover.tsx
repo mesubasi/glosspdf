@@ -27,17 +27,18 @@ export const NotePopover: React.FC<NotePopoverProps> = ({
     setTimeout(() => {
       textareaRef.current?.focus();
     }, 50);
-  }, [annotation.id]);
+  }, [annotation.id, annotation.contents]);
 
   const handleSave = () => {
     onSave(text.trim());
-    onClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
       handleSave();
     } else if (e.key === 'Escape') {
+      e.preventDefault();
       onClose();
     }
   };
