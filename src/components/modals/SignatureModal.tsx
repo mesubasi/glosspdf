@@ -1,0 +1,274 @@
+import React, { useRef, useState, useEffect } from 'react';
+import { usePdfStore } from '../../store/usePdfStore';
+import { PdfEditService } from '../../services/pdfEditService';
+import { PdfRenderService } from '../../services/pdfRenderService';
+import {
+  X,
+  FileCheck,
+  RotateCcw,
+  Check,
+  Pen
+} from 'lucide-react';
+
+export const SignatureModal: React.FC = () => {
+  const {
+    signatureModalOpen,
+    setSignatureModalOpen,
+    tabs,
+    activeTabId,
+    updateTab,
+    language
+  } = usePdfStore();
+
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const [penColor, setPenColor] = useState('#0d47a1'); // Klasik mavi tükenmez kalem rengi
+  const [targetPage, setTargetPage] = useState<number>(1);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (!signatureModalOpen || !activeTab) return;
+    setTargetPage(activeTab.currentPage);
+    setHasDrawn(false);
+
+    // Canvas'ı temizle ve hazırla
+    setTimeout(() => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.lineWidth = 2.5;
+        }
+      }
+    }, 50);
+  }, [signatureModalOpen, activeTab?.id]);
+
+  if (!signatureModalOpen || !activeTab) return null;
+
+  // Çizim Başlangıcı
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.strokeStyle = penColor;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+    setHasDrawn(true);
+  };
+
+  // Çizim Hareketi
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  // Çizim Bitişi
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  // Canvas'ı Temizle
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setHasDrawn(false);
+    }
+  };
+
+  // İmzayı Belgeye Ekle
+  const handleApplySignature = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasDrawn) return;
+
+    try {
+      setIsProcessing(true);
+
+      // Canvas'tan PNG data URL al
+      const dataUrl = canvas.toDataURL('image/png');
+      const base64Data = dataUrl.split(',')[1];
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const pngBytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        pngBytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // İmzayı sayfanın sağ alt köşesine 160x70 pt boyutunda yerleştir
+      const currentDim = activeTab.pageDimensions[targetPage - 1] || activeTab.pageDimensions[0];
+      const sigWidth = 160;
+      const sigHeight = 70;
+      const posX = currentDim.originalWidth - sigWidth - 40;
+      const posY = 50; // Alttan 50pt pay
+
+      const updatedBytes = await PdfEditService.addSignature(
+        activeTab.data.slice(),
+        targetPage,
+        pngBytes,
+        posX,
+        posY,
+        sigWidth,
+        sigHeight
+      );
+
+      const doc = await PdfRenderService.loadDocument(updatedBytes.slice());
+      const dims = await PdfRenderService.getAllPageDimensions(doc);
+
+      updateTab(activeTab.id, {
+        data: updatedBytes,
+        pageDimensions: dims,
+        isModified: true
+      });
+
+      setSignatureModalOpen(false);
+    } catch (err: any) {
+      console.error('İmza ekleme hatası:', err);
+      alert(`Hata: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 w-full max-w-lg rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+        {/* Başlık */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+          <div className="flex items-center space-x-2">
+            <FileCheck className="w-5 h-5 text-red-500" />
+            <h2 className="font-semibold text-sm">
+              {language === 'tr' ? 'Islak İmza Ekle' : 'Add Hand-drawn Signature'}
+            </h2>
+          </div>
+          <button
+            onClick={() => setSignatureModalOpen(false)}
+            className="p-1.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Gövde */}
+        <div className="p-5 flex-1 flex flex-col space-y-4 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500 font-medium">
+              {language === 'tr' ? 'Aşağıdaki kutucuğa imzanızı çizin:' : 'Draw your signature in the box below:'}
+            </span>
+
+            {/* Kalem Rengi */}
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] text-slate-400">{language === 'tr' ? 'Mürekkep:' : 'Ink:'}</span>
+              <button
+                type="button"
+                onClick={() => setPenColor('#0d47a1')}
+                className={`w-5 h-5 rounded-full bg-blue-900 transition-transform ${
+                  penColor === '#0d47a1' ? 'ring-2 ring-blue-500 scale-110' : ''
+                }`}
+                title="Mavi Mürekkep"
+              />
+              <button
+                type="button"
+                onClick={() => setPenColor('#111827')}
+                className={`w-5 h-5 rounded-full bg-slate-900 transition-transform ${
+                  penColor === '#111827' ? 'ring-2 ring-slate-400 scale-110' : ''
+                }`}
+                title="Siyah Mürekkep"
+              />
+            </div>
+          </div>
+
+          {/* İmza Çizim Alanı */}
+          <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white rounded-lg overflow-hidden flex flex-col items-center justify-center">
+            <canvas
+              ref={canvasRef}
+              width={450}
+              height={180}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              className="cursor-crosshair block w-full touch-none"
+            />
+
+            {!hasDrawn && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-300 dark:text-slate-400 text-xs">
+                <Pen className="w-4 h-4 mr-1.5 opacity-40" />
+                <span>{language === 'tr' ? 'İmzanızı buraya çizin' : 'Sign here'}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Sayfa Seçimi ve Temizle */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center space-x-2">
+              <span className="text-slate-500">{language === 'tr' ? 'Hedef Sayfa:' : 'Target Page:'}</span>
+              <select
+                value={targetPage}
+                onChange={(e) => setTargetPage(parseInt(e.target.value, 10))}
+                className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none text-xs"
+              >
+                {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((p) => (
+                  <option key={p} value={p}>
+                    {language === 'tr' ? `${p}. Sayfa` : `Page ${p}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={clearCanvas}
+              disabled={!hasDrawn}
+              className="flex items-center space-x-1 px-3 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{language === 'tr' ? 'Temizle' : 'Clear'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Alt Çubuk */}
+        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+          <button
+            onClick={() => setSignatureModalOpen(false)}
+            className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
+          >
+            {language === 'tr' ? 'İptal' : 'Cancel'}
+          </button>
+          <button
+            onClick={handleApplySignature}
+            disabled={!hasDrawn || isProcessing}
+            className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>{isProcessing ? 'Ekleniyor...' : (language === 'tr' ? 'İmzayı Yerleştir' : 'Apply Signature')}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
