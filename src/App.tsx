@@ -19,6 +19,7 @@ import { InsertImageModal } from './components/modals/InsertImageModal';
 import { ExportImagesModal } from './components/modals/ExportImagesModal';
 import { ProtectPdfModal } from './components/modals/ProtectPdfModal';
 import { CompressPdfModal } from './components/modals/CompressPdfModal';
+import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -31,7 +32,9 @@ export function App() {
     setZoom,
     setCurrentPage,
     openPasswordModal,
-    annotationModeOpen
+    annotationModeOpen,
+    addRecentFile,
+    language
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -66,7 +69,7 @@ export function App() {
     return () => {
       isCancelled = true;
     };
-  }, [activeTab?.id]);
+  }, [activeTab?.id, activeTab?.data]);
 
   // Sayfaya Sığdır (Fit Page) Hesaplama Fonksiyonu
   const handleFitPage = useCallback(() => {
@@ -135,9 +138,34 @@ export function App() {
 
       // Doğrudan açılan belgeyi aktif kıl
       setActivePdfDoc(doc);
+
+      // Son açılanlar geçmişine kaydet
+      addRecentFile({ filePath, fileName });
     } catch (err: any) {
       console.error('PDF açma hatası:', err);
       alert(`PDF açılırken hata oluştu: ${err?.message || err}`);
+    }
+  };
+
+  // Son Açılan Belgeyi Açma
+  const handleOpenRecentFile = async (filePath: string, fileName: string) => {
+    if (window.electronAPI) {
+      const res = await window.electronAPI.readFile(filePath);
+      if (res.success && res.data) {
+        const binaryString = atob(res.data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        await openNewPdf(filePath, fileName, bytes);
+        return;
+      } else {
+        alert(
+          language === 'tr'
+            ? 'Dosya bulunamadı veya taşınmış olabilir:\n' + filePath
+            : 'File could not be found or may have been moved:\n' + filePath
+        );
+      }
     }
   };
 
@@ -181,6 +209,12 @@ export function App() {
   const handleSaveFile = async () => {
     if (!activeTab) return;
 
+    // Eğer geçerli bir disk dosya yolu yoksa (sürükle-bırak veya isimsiz belge), güvenle Farklı Kaydet'e yönlendir
+    if (!activeTab.filePath || activeTab.filePath === activeTab.fileName || !window.electronAPI) {
+      handleSaveFileAs();
+      return;
+    }
+
     try {
       // pdf-lib ile annotation'ları (Highlight, Text, Ink, Square vb.) PDF'e yaz
       const savedBytes = await PdfEditService.savePdfWithAnnotations(
@@ -200,7 +234,9 @@ export function App() {
         if (res.success) {
           updateTab(activeTab.id, { isModified: false, data: savedBytes });
         } else {
-          alert(`Kaydetme hatası: ${res.error}`);
+          // İzin veya kilitlenme hatası durumunda kullanıcı mağdur olmasın diye Farklı Kaydet'e yönlendir
+          console.warn('Doğrudan kaydetme başarısız, Farklı Kaydet açılıyor:', res.error);
+          handleSaveFileAs();
         }
       } else {
         // Tarayıcı Fallback (İndirme)
@@ -332,6 +368,7 @@ export function App() {
             pdfDocument={activePdfDoc}
             onOpenFile={handleOpenFile}
             onFileDrop={handleFileDrop}
+            onOpenRecentFile={handleOpenRecentFile}
             containerRef={containerRef}
           />
         </div>
@@ -358,6 +395,7 @@ export function App() {
       <ExportImagesModal />
       <ProtectPdfModal />
       <CompressPdfModal />
+      <ShortcutHelpModal />
     </div>
   );
 }
