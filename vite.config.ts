@@ -137,7 +137,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      // Tam sürüm (1.2 MB) esbuild'in geçici dosya yoluna düşüyor ve Windows'ta
+      // "Erişim engellendi" ile derlemeyi düşürüyor; min sürüm 1 MB'ın altında kalır.
+      '@pdf-lib/fontkit': path.resolve(__dirname, 'node_modules/@pdf-lib/fontkit/dist/fontkit.es.min.js')
     }
   },
   server: {
