@@ -4,6 +4,7 @@ import { PdfRenderService } from '../../services/pdfRenderService';
 import { PageDimension } from '../../types/pdf';
 import { AnnotationLayer } from '../annotations/AnnotationLayer';
 import { usePdfStore } from '../../store/usePdfStore';
+import { t } from '@/i18n';
 
 interface PdfPageProps {
   pageNumber: number;
@@ -100,7 +101,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         }
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException') {
-          console.error(`Sayfa ${pageNumber} render hatası:`, err);
+          console.error(`Page ${pageNumber} render error:`, err);
         }
       }
     };
@@ -162,7 +163,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       {/* Yükleniyor Göstergesi */}
       {isVisible && !isRendered && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-slate-500 text-xs font-medium">
-          Sayfa {pageNumber} yükleniyor...
+          {t('page_loading', [pageNumber])}
         </div>
       )}
     </div>

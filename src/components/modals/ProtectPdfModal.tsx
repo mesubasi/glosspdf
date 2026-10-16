@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
+import { t } from '@/i18n';
 import {
   X,
   Lock,
@@ -44,7 +45,7 @@ export const ProtectPdfModal: React.FC = () => {
     if (!password) {
       setStatusMessage({
         type: 'error',
-        text: language === 'tr' ? 'Lütfen bir parola belirleyin.' : 'Please enter a password.'
+        text: t('please_enter_a_password')
       });
       return;
     }
@@ -52,7 +53,7 @@ export const ProtectPdfModal: React.FC = () => {
     if (password.length < 4) {
       setStatusMessage({
         type: 'error',
-        text: language === 'tr' ? 'Parola en az 4 karakter olmalıdır.' : 'Password must be at least 4 characters.'
+        text: t('password_must_be_at_least_4_characters')
       });
       return;
     }
@@ -60,7 +61,7 @@ export const ProtectPdfModal: React.FC = () => {
     if (password !== confirmPassword) {
       setStatusMessage({
         type: 'error',
-        text: language === 'tr' ? 'Girdiğiniz parolalar birbiriyle eşleşmiyor.' : 'Passwords do not match.'
+        text: t('passwords_do_not_match')
       });
       return;
     }
@@ -85,13 +86,11 @@ export const ProtectPdfModal: React.FC = () => {
         }
         const b64 = window.btoa(binary);
 
-        const res = await window.electronAPI.savePdfAs(protectedFileName, b64);
+        const res = await window.electronAPI.savePdfAs(protectedFileName, b64, language);
         if (res.success) {
           setStatusMessage({
             type: 'success',
-            text: language === 'tr'
-              ? 'Belge başarıyla şifrelendi ve kaydedildi.'
-              : 'Document successfully encrypted and saved.'
+            text: t('document_successfully_encrypted_and_saved')
           });
           setTimeout(() => {
             handleClose();
@@ -114,19 +113,17 @@ export const ProtectPdfModal: React.FC = () => {
 
       setStatusMessage({
         type: 'success',
-        text: language === 'tr'
-          ? 'Belge başarıyla şifrelendi ve indirildi.'
-          : 'Document successfully encrypted and downloaded.'
+        text: t('document_successfully_encrypted_and_downloaded')
       });
 
       setTimeout(() => {
         handleClose();
       }, 1200);
     } catch (err: any) {
-      console.error('Şifreleme hatası:', err);
+      console.error('Encryption error:', err);
       setStatusMessage({
         type: 'error',
-        text: `${language === 'tr' ? 'Hata:' : 'Error:'} ${err.message}`
+        text: `${t('error')} ${err.message}`
       });
     } finally {
       setIsProcessing(false);
@@ -152,19 +149,17 @@ export const ProtectPdfModal: React.FC = () => {
 
       setStatusMessage({
         type: 'success',
-        text: language === 'tr'
-          ? 'Mevcut belgeye şifreleme uygulandı.'
-          : 'Encryption applied to active document.'
+        text: t('encryption_applied_to_active_document')
       });
 
       setTimeout(() => {
         handleClose();
       }, 1200);
     } catch (err: any) {
-      console.error('Şifreleme hatası:', err);
+      console.error('Encryption error:', err);
       setStatusMessage({
         type: 'error',
-        text: `${language === 'tr' ? 'Hata:' : 'Error:'} ${err.message}`
+        text: `${t('error')} ${err.message}`
       });
     } finally {
       setIsProcessing(false);
@@ -179,7 +174,7 @@ export const ProtectPdfModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Lock className="w-5 h-5 text-amber-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'Parola ile Şifrele & Koru' : 'Protect Document with Password'}
+              {t('protect_document_with_password')}
             </h2>
           </div>
           <button
@@ -195,23 +190,21 @@ export const ProtectPdfModal: React.FC = () => {
           <div className="flex items-start space-x-3 bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg text-amber-700 dark:text-amber-300">
             <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              {language === 'tr'
-                ? 'Belgeniz endüstri standardı ISO 32000 AES-256 şifreleme algoritması ile korunur. Belge açılırken bu parola sorulacaktır.'
-                : 'Your document is protected using industry-standard ISO 32000 AES-256 encryption. This password will be required to open the PDF.'}
+              {t('your_document_is_protected_using_industry_standard_iso_3')}
             </p>
           </div>
 
           {/* Parola Girişi */}
           <div>
             <label className="block font-medium text-slate-600 dark:text-slate-300 mb-1.5">
-              {language === 'tr' ? 'Belge Açılış Parolası' : 'Document Open Password'}
+              {t('document_open_password')}
             </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={language === 'tr' ? 'En az 4 karakter girin...' : 'Enter at least 4 characters...'}
+                placeholder={t('enter_at_least_4_characters')}
                 className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <button
@@ -227,21 +220,21 @@ export const ProtectPdfModal: React.FC = () => {
           {/* Parola Onayı */}
           <div>
             <label className="block font-medium text-slate-600 dark:text-slate-300 mb-1.5">
-              {language === 'tr' ? 'Parolayı Tekrar Girin' : 'Confirm Password'}
+              {t('confirm_password')}
             </label>
             <input
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder={language === 'tr' ? 'Parolayı doğrulayın...' : 'Confirm password...'}
+              placeholder={t('confirm_password_2')}
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
           {/* Güvenlik Notu */}
           <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-            <p>• {language === 'tr' ? 'AES-256 güçlü kriptografik güvenlik' : 'AES-256 robust cryptographic security'}</p>
-            <p>• {language === 'tr' ? 'Parola unutulursa içerik kurtarılamaz' : 'If forgotten, content cannot be recovered'}</p>
+            <p>• {t('aes_256_robust_cryptographic_security')}</p>
+            <p>• {t('if_forgotten_content_cannot_be_recovered')}</p>
           </div>
 
           {/* Durum Bildirimi */}
@@ -270,7 +263,7 @@ export const ProtectPdfModal: React.FC = () => {
             disabled={isProcessing}
             className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors font-medium"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleProtectAndSaveAs}
@@ -278,11 +271,11 @@ export const ProtectPdfModal: React.FC = () => {
             className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-medium shadow-md transition-colors"
           >
             {isProcessing ? (
-              <span>{language === 'tr' ? 'Şifreleniyor...' : 'Encrypting...'}</span>
+              <span>{t('encrypting')}</span>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>{language === 'tr' ? 'Farklı Şifreli Kaydet' : 'Save Protected As...'}</span>
+                <span>{t('save_protected_as')}</span>
               </>
             )}
           </button>

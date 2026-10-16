@@ -4,6 +4,7 @@ import { PdfPage } from './PdfPage';
 import { SearchBar } from './SearchBar';
 import * as pdfjsLib from 'pdfjs-dist';
 import { FileUp, UploadCloud, FileText, Clock, Trash2, FolderOpen, X } from 'lucide-react';
+import { t } from '@/i18n';
 
 interface PdfDocumentViewerProps {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
@@ -192,9 +193,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
               Gloss<span className="text-acrobat-red">PDF</span>
             </h1>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              {language === 'tr'
-                ? 'Hızlı, modern ve gizlilik odaklı masaüstü PDF iş istasyonu.'
-                : 'Fast, modern, and privacy-respecting desktop PDF workstation.'}
+              {t('fast_modern_and_privacy_respecting_desktop_pdf_workstati')}
             </p>
           </div>
 
@@ -205,9 +204,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
             </div>
 
             <p className="text-xs text-slate-300 mb-4">
-              {language === 'tr'
-                ? 'PDF dosyanızı buraya sürükleyin veya bilgisayarınızdan seçin'
-                : 'Drag and drop your PDF here, or select from your computer'}
+              {t('drag_and_drop_your_pdf_here_or_select_from_your_computer')}
             </p>
 
             <button
@@ -215,7 +212,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
               className="flex items-center space-x-2 px-6 py-2.5 bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium text-xs rounded-xl shadow-lg hover:shadow-red-500/25 transition-all active:scale-95 cursor-pointer"
             >
               <FileUp className="w-4 h-4" />
-              <span>{language === 'tr' ? 'Dosya Aç (Ctrl+O)' : 'Open File (Ctrl+O)'}</span>
+              <span>{t('open_file_ctrl_o')}</span>
             </button>
           </div>
 
@@ -225,15 +222,15 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/50">
                 <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300">
                   <Clock className="w-3.5 h-3.5 text-acrobat-red" />
-                  <span>{language === 'tr' ? 'Son Açılan Belgeler' : 'Recent Documents'}</span>
+                  <span>{t('recent_documents')}</span>
                 </div>
                 <button
                   onClick={clearRecentFiles}
                   className="flex items-center space-x-1 text-[11px] text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
-                  title={language === 'tr' ? 'Geçmişi Temizle' : 'Clear Recent List'}
+                  title={t('clear_recent_list')}
                 >
                   <Trash2 className="w-3 h-3" />
-                  <span>{language === 'tr' ? 'Temizle' : 'Clear'}</span>
+                  <span>{t('clear')}</span>
                 </button>
               </div>
 
@@ -269,7 +266,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
                           removeRecentFile(file.filePath);
                         }}
                         className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"
-                        title={language === 'tr' ? 'Listeden Kaldır' : 'Remove from List'}
+                        title={t('remove_from_list')}
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -291,7 +288,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
         <div className="flex flex-col items-center space-y-3 bg-black/20 px-8 py-6 rounded-xl backdrop-blur-xs shadow-lg">
           <div className="w-8 h-8 border-3 border-acrobat-red border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-medium text-slate-300">
-            {language === 'tr' ? 'Belge hazırlanıyor...' : 'Preparing document...'}
+            {t('preparing_document')}
           </span>
         </div>
       </div>

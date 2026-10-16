@@ -8,6 +8,107 @@ const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 
+/** Desteklenen diller (src/i18n/languages.ts ile aynı liste) */
+const SUPPORTED_LANGUAGES = ['tr', 'en', 'de', 'fr', 'es', 'ar', 'zh'] as const;
+type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+/** Yerel diyalog metinleri (işletim sistemi pencereleri için) */
+const DIALOG_TEXTS: Record<
+  SupportedLanguage,
+  { openTitle: string; saveAsTitle: string; pdfFilter: string; noWindow: string; noPath: string }
+> = {
+  tr: {
+    openTitle: 'PDF Dosyası Aç',
+    saveAsTitle: 'PDF Dosyasını Farklı Kaydet',
+    pdfFilter: 'PDF Dosyaları',
+    noWindow: 'Pencere bulunamadı',
+    noPath: 'Dosya yolu belirtilmedi'
+  },
+  en: {
+    openTitle: 'Open PDF File',
+    saveAsTitle: 'Save PDF As',
+    pdfFilter: 'PDF Files',
+    noWindow: 'Window not found',
+    noPath: 'No file path provided'
+  },
+  de: {
+    openTitle: 'PDF-Datei öffnen',
+    saveAsTitle: 'PDF speichern unter',
+    pdfFilter: 'PDF-Dateien',
+    noWindow: 'Fenster nicht gefunden',
+    noPath: 'Kein Dateipfad angegeben'
+  },
+  fr: {
+    openTitle: 'Ouvrir un fichier PDF',
+    saveAsTitle: 'Enregistrer le PDF sous',
+    pdfFilter: 'Fichiers PDF',
+    noWindow: 'Fenêtre introuvable',
+    noPath: 'Aucun chemin de fichier fourni'
+  },
+  es: {
+    openTitle: 'Abrir archivo PDF',
+    saveAsTitle: 'Guardar PDF como',
+    pdfFilter: 'Archivos PDF',
+    noWindow: 'Ventana no encontrada',
+    noPath: 'No se proporcionó ninguna ruta de archivo'
+  },
+  ar: {
+    openTitle: 'فتح ملف PDF',
+    saveAsTitle: 'حفظ PDF باسم',
+    pdfFilter: 'ملفات PDF',
+    noWindow: 'لم يتم العثور على النافذة',
+    noPath: 'لم يتم تحديد مسار الملف'
+  },
+  zh: {
+    openTitle: '打开 PDF 文件',
+    saveAsTitle: 'PDF 另存为',
+    pdfFilter: 'PDF 文件',
+    noWindow: '未找到窗口',
+    noPath: '未提供文件路径'
+  }
+};
+
+/** 'tr-TR' / 'zh_CN' gibi etiketleri desteklenen dile indirger */
+function normalizeLanguage(tag: string | null | undefined): SupportedLanguage {
+  if (!tag) return 'en';
+  const base = tag.toLowerCase().replace(/_/g, '-').split('-')[0];
+  if (base === 'zh' || base === 'ar') return base;
+  return (SUPPORTED_LANGUAGES as readonly string[]).includes(base)
+    ? (base as SupportedLanguage)
+    : 'en';
+}
+
+/**
+ * Bilgisayarın dilini algılar: önce işletim sisteminin tercih ettiği diller,
+ * sonra Electron'un yerel ayarı, en son İngilizce.
+ */
+function detectSystemLanguage(): SupportedLanguage {
+  try {
+    for (const tag of app.getPreferredSystemLanguages() ?? []) {
+      const normalized = normalizeLanguage(tag);
+      if (normalized !== 'en' || tag.toLowerCase().startsWith('en')) return normalized;
+    }
+  } catch {}
+
+  try {
+    return normalizeLanguage(app.getLocale());
+  } catch {}
+
+  return 'en';
+}
+
+/** Renderer'dan gelen dil kodunu doğrular (geçersizse sistem dili) */
+function resolveDialogLanguage(locale?: string): SupportedLanguage {
+  if (locale && (SUPPORTED_LANGUAGES as readonly string[]).includes(locale)) {
+    return locale as SupportedLanguage;
+  }
+  return detectSystemLanguage();
+}
+
+function dialogTexts(locale?: string) {
+  return DIALOG_TEXTS[resolveDialogLanguage(locale)];
+}
+
 /**
  * Preload betiğini çözer.
  *
@@ -64,10 +165,18 @@ function createWindow() {
   });
 
   // Geliştirme veya üretim ortamı yükleme yolu
+  // Sistem dili pencereye ?lang=... olarak aktarılır: renderer, kullanıcı bir
+  // tercih kaydetmemişse arayüzü bilgisayarın dilinde açar.
+  const systemLanguage = detectSystemLanguage();
+
   if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+    const url = new URL(process.env.VITE_DEV_SERVER_URL);
+    url.searchParams.set('lang', systemLanguage);
+    mainWindow.loadURL(url.toString());
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'), {
+      query: { lang: systemLanguage }
+    });
   }
 
   // Windows Başlık Çubuğu Menüsü (Standart sade menü)
@@ -92,12 +201,13 @@ app.on('window-all-closed', () => {
 });
 
 // IPC: Dosya Açma Diyaloğu
-ipcMain.handle('dialog:openPdf', async () => {
-  if (!mainWindow) return { success: false, error: 'Pencere bulunamadı' };
+ipcMain.handle('dialog:openPdf', async (_event, locale?: string) => {
+  const texts = dialogTexts(locale);
+  if (!mainWindow) return { success: false, error: texts.noWindow };
 
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-    title: 'PDF Dosyası Aç',
-    filters: [{ name: 'PDF Dosyaları (*.pdf)', extensions: ['pdf'] }],
+    title: texts.openTitle,
+    filters: [{ name: `${texts.pdfFilter} (*.pdf)`, extensions: ['pdf'] }],
     properties: ['openFile']
   });
 
@@ -175,7 +285,7 @@ ipcMain.handle('fs:readFile', async (_event, targetPath: string) => {
       data: fileBuffer.toString('base64')
     };
   } catch (error: any) {
-    console.error('fs:readFile hatası:', error);
+    console.error('fs:readFile failed:', error);
     return { success: false, error: error.message };
   }
 });
@@ -192,14 +302,17 @@ ipcMain.handle('dialog:savePdf', async (_event, { filePath, base64Data }: { file
 });
 
 // IPC: Farklı Kaydet Diyaloğu
-ipcMain.handle('dialog:savePdfAs', async (_event, { defaultName, base64Data }: { defaultName: string; base64Data: string }) => {
-  if (!mainWindow) return { success: false, error: 'Pencere bulunamadı' };
+ipcMain.handle(
+  'dialog:savePdfAs',
+  async (_event, { defaultName, base64Data, locale }: { defaultName: string; base64Data: string; locale?: string }) => {
+    const texts = dialogTexts(locale);
+    if (!mainWindow) return { success: false, error: texts.noWindow };
 
-  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
-    title: 'PDF Dosyasını Farklı Kaydet',
-    defaultPath: defaultName || 'Belge.pdf',
-    filters: [{ name: 'PDF Dosyaları (*.pdf)', extensions: ['pdf'] }]
-  });
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: texts.saveAsTitle,
+      defaultPath: defaultName || 'Document.pdf',
+      filters: [{ name: `${texts.pdfFilter} (*.pdf)`, extensions: ['pdf'] }]
+    });
 
   if (canceled || !filePath) {
     return { success: false, canceled: true };
@@ -223,7 +336,7 @@ ipcMain.handle('app:print', async () => {
       { silent: false, printBackground: true },
       (success, failureReason) => {
         if (!success) {
-          console.error('Yazdırma hatası:', failureReason);
+          console.error('Print failed:', failureReason);
         }
         resolve(success);
       }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { t } from '@/i18n';
 import {
   X,
   FileImage,
@@ -66,8 +67,8 @@ export const ExportImagesModal: React.FC = () => {
 
       setExportImagesModalOpen(false);
     } catch (err: any) {
-      console.error('Dışa aktarma hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Export error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -81,7 +82,7 @@ export const ExportImagesModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <FileImage className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'Sayfaları Resim Olarak Dışa Aktar' : 'Export Pages as Images'}
+              {t('export_pages_as_images')}
             </h2>
           </div>
           <button
@@ -97,7 +98,7 @@ export const ExportImagesModal: React.FC = () => {
           {/* Kapsam Seçimi */}
           <div>
             <span className="block font-medium text-slate-600 dark:text-slate-300 mb-1.5">
-              {language === 'tr' ? 'Dışa Aktarılacak Sayfalar:' : 'Pages to Export:'}
+              {t('pages_to_export')}
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -109,8 +110,8 @@ export const ExportImagesModal: React.FC = () => {
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                <div>{language === 'tr' ? 'Mevcut Sayfa' : 'Current Page'}</div>
-                <div className="text-[10px] text-slate-400">({activeTab.currentPage}. sayfa)</div>
+                <div>{t('current_page')}</div>
+                <div className="text-[10px] text-slate-400">{t('current_page_count', [activeTab.currentPage])}</div>
               </button>
 
               <button
@@ -122,8 +123,8 @@ export const ExportImagesModal: React.FC = () => {
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                <div>{language === 'tr' ? 'Tüm Sayfalar' : 'All Pages'}</div>
-                <div className="text-[10px] text-slate-400">({activeTab.numPages} sayfa)</div>
+                <div>{t('all_pages')}</div>
+                <div className="text-[10px] text-slate-400">{t('total_pages_count', [activeTab.numPages])}</div>
               </button>
             </div>
           </div>
@@ -131,7 +132,7 @@ export const ExportImagesModal: React.FC = () => {
           {/* Format Seçimi */}
           <div>
             <span className="block font-medium text-slate-600 dark:text-slate-300 mb-1.5">
-              {language === 'tr' ? 'Resim Formatı:' : 'Image Format:'}
+              {t('image_format')}
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -143,7 +144,7 @@ export const ExportImagesModal: React.FC = () => {
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                PNG (Kayıpsız & Keskin)
+                {t('png_lossless')}
               </button>
               <button
                 type="button"
@@ -154,7 +155,7 @@ export const ExportImagesModal: React.FC = () => {
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                JPEG (Küçük Boyut)
+                {t('jpeg_small')}
               </button>
             </div>
           </div>
@@ -162,7 +163,7 @@ export const ExportImagesModal: React.FC = () => {
           {/* Çözünürlük Kalitesi */}
           <div>
             <span className="block font-medium text-slate-600 dark:text-slate-300 mb-1.5">
-              {language === 'tr' ? 'Çözünürlük / Kalite:' : 'Resolution / Quality:'}
+              {t('resolution_quality')}
             </span>
             <div className="grid grid-cols-3 gap-1.5">
               {[
@@ -190,9 +191,7 @@ export const ExportImagesModal: React.FC = () => {
           {isProcessing && (
             <div className="p-3 bg-slate-50 dark:bg-[#252526] rounded-lg border border-slate-200 dark:border-slate-700 text-center">
               <span className="font-semibold text-red-500">
-                {language === 'tr'
-                  ? `Sayfalar dönüştürülüyor (${progress.current} / ${progress.total})...`
-                  : `Exporting pages (${progress.current} / ${progress.total})...`}
+                {t('exporting_pages', [progress.current, progress.total])}
               </span>
             </div>
           )}
@@ -204,7 +203,7 @@ export const ExportImagesModal: React.FC = () => {
             onClick={() => setExportImagesModalOpen(false)}
             className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleExport}
@@ -212,7 +211,7 @@ export const ExportImagesModal: React.FC = () => {
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Dışa Aktarılıyor...' : (language === 'tr' ? 'Dışa Aktar' : 'Export')}</span>
+            <span>{isProcessing ? t('exporting') : (t('export'))}</span>
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { BookmarkItem, LeftSidebarTab, AnnotationItem } from '../../types/pdf';
 import * as pdfjsLib from 'pdfjs-dist';
+import { t } from '@/i18n';
 import {
   Image,
   Bookmark,
@@ -69,19 +70,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
   const getAnnotationTypeName = (type: string) => {
     switch (type) {
       case 'highlight':
-        return language === 'tr' ? 'Vurgu' : 'Highlight';
+        return t('highlight_2');
       case 'underline':
-        return language === 'tr' ? 'Altı Çizili' : 'Underline';
+        return t('underline_2');
       case 'strikeout':
-        return language === 'tr' ? 'Üstü Çizili' : 'Strikeout';
+        return t('strikeout_2');
       case 'note':
-        return language === 'tr' ? 'Not' : 'Note';
+        return t('note');
       case 'draw':
-        return language === 'tr' ? 'Çizim' : 'Drawing';
+        return t('drawing');
       case 'rect':
-        return language === 'tr' ? 'Dikdörtgen' : 'Rectangle';
+        return t('rectangle');
       case 'text':
-        return language === 'tr' ? 'Metin' : 'Text Box';
+        return t('text_box');
       default:
         return type;
     }
@@ -96,7 +97,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
             leftSidebarTab === 'thumbnails' ? 'bg-acrobat-red text-white' : 'text-slate-500'
           }`}
-          title={language === 'tr' ? 'Sayfa Küçük Resimleri' : 'Page Thumbnails'}
+          title={t('page_thumbnails')}
         >
           <Image className="w-4 h-4" />
         </button>
@@ -106,7 +107,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
             leftSidebarTab === 'bookmarks' ? 'bg-acrobat-red text-white' : 'text-slate-500'
           }`}
-          title={language === 'tr' ? 'Yer İmleri / İçindekiler' : 'Bookmarks'}
+          title={t('bookmarks')}
         >
           <Bookmark className="w-4 h-4" />
         </button>
@@ -116,7 +117,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
             leftSidebarTab === 'annotations' ? 'bg-acrobat-red text-white' : 'text-slate-500'
           }`}
-          title={language === 'tr' ? 'İşaretlemeler ve Notlar' : 'Annotations & Comments'}
+          title={t('annotations_comments')}
         >
           <MessageSquare className="w-4 h-4" />
         </button>
@@ -126,7 +127,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
             leftSidebarTab === 'search' ? 'bg-acrobat-red text-white' : 'text-slate-500'
           }`}
-          title={language === 'tr' ? 'Arama Sonuçları' : 'Search Results'}
+          title={t('search_results')}
         >
           <Search className="w-4 h-4" />
         </button>
@@ -137,13 +138,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
         {/* Başlık ve Kapat Butonu */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-acrobat-border dark:border-acrobat-darkBorder text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           <span>
-            {leftSidebarTab === 'thumbnails' && (language === 'tr' ? 'Sayfalar' : 'Thumbnails')}
-            {leftSidebarTab === 'bookmarks' && (language === 'tr' ? 'İçindekiler' : 'Bookmarks')}
+            {leftSidebarTab === 'thumbnails' && (t('thumbnails'))}
+            {leftSidebarTab === 'bookmarks' && (t('bookmarks_2'))}
             {leftSidebarTab === 'annotations' &&
-              (language === 'tr'
-                ? `İşaretlemeler (${annotations.length})`
-                : `Annotations (${annotations.length})`)}
-            {leftSidebarTab === 'search' && (language === 'tr' ? 'Arama Sonuçları' : 'Search Results')}
+              (t('annotations', [annotations.length]))}
+            {leftSidebarTab === 'search' && (t('search_results'))}
           </span>
           <button
             onClick={() => setLeftSidebarTab(null)}
@@ -174,7 +173,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           <div className="flex-1 overflow-y-auto p-2 text-xs">
             {activeTab.outline.length === 0 ? (
               <div className="text-center text-slate-400 py-6">
-                {language === 'tr' ? 'Belgede içindekiler tablosu yok.' : 'No bookmarks in document.'}
+                {t('no_bookmarks_in_document')}
               </div>
             ) : (
               activeTab.outline.map((item, idx) => (
@@ -191,14 +190,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
               <div className="text-center text-slate-400 py-8 px-4">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
                 <p className="font-medium">
-                  {language === 'tr'
-                    ? 'Henüz işaretleme eklenmedi.'
-                    : 'No annotations yet.'}
+                  {t('no_annotations_yet')}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  {language === 'tr'
-                    ? 'Üstteki "İşaretle" butonuna basarak metin vurgulayabilir veya not ekleyebilirsiniz.'
-                    : 'Click "Annotate" above to highlight text or add notes.'}
+                  {t('click_annotate_above_to_highlight_text_or_add_notes')}
                 </p>
               </div>
             ) : (
@@ -254,7 +249,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                     )}
 
                     <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
-                      <span>{annot.author || 'Kullanıcı'}</span>
+                      <span>{annot.author || t('annotation_author_default')}</span>
                       <span>
                         {new Date(annot.createdAt).toLocaleTimeString([], {
                           hour: '2-digit',
@@ -274,7 +269,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           <div className="flex-1 overflow-y-auto p-2 text-xs">
             {searchResults.length === 0 ? (
               <div className="text-center text-slate-400 py-6">
-                {language === 'tr' ? 'Eşleşen sonuç bulunamadı.' : 'No matches found.'}
+                {t('no_matches_found')}
               </div>
             ) : (
               <div className="space-y-1">
@@ -292,7 +287,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                     }`}
                   >
                     <div className="text-[10px] text-slate-400 mb-0.5">
-                      {language === 'tr' ? `Sayfa ${match.pageIndex}` : `Page ${match.pageIndex}`}
+                      {t('page', [match.pageIndex])}
                     </div>
                     <div className="truncate">{match.text}</div>
                   </div>
@@ -331,7 +326,7 @@ const ThumbnailItem: React.FC<{
       if (ctx) {
         page.render({ canvasContext: ctx, viewport }).promise.catch((err) => {
           if (err?.name !== 'RenderingCancelledException') {
-            console.error('Küçük resim çizim hatası:', err);
+            console.error('Thumbnail render error:', err);
           }
         });
       }

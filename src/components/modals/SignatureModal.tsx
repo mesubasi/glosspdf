@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { t } from '@/i18n';
+import type { MessageKey } from '@/i18n';
 import {
   X,
   FileCheck,
@@ -178,8 +180,8 @@ export const SignatureModal: React.FC = () => {
       setCurrentPage(targetPage);
       setSignatureModalOpen(false);
     } catch (err: any) {
-      console.error('İmza ekleme hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Signature error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -193,7 +195,7 @@ export const SignatureModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <FileCheck className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'Islak İmza Ekle' : 'Add Hand-drawn Signature'}
+              {t('add_hand_drawn_signature')}
             </h2>
           </div>
           <button
@@ -208,15 +210,15 @@ export const SignatureModal: React.FC = () => {
         <div className="p-5 flex-1 flex flex-col space-y-4 text-xs">
           <div className="flex items-center justify-between">
             <span className="text-slate-500 font-medium">
-              {language === 'tr' ? 'Aşağıdaki kutucuğa imzanızı çizin:' : 'Draw your signature in the box below:'}
+              {t('draw_your_signature_in_the_box_below')}
             </span>
 
             {/* Kalem Renkleri */}
             <div className="flex items-center space-x-1.5">
               {[
-                { label: 'Mavi', hex: '#0d47a1' },
-                { label: 'Siyah', hex: '#111827' },
-                { label: 'Kırmızı', hex: '#b91c1c' }
+                { labelKey: 'color_blue' as MessageKey, hex: '#0d47a1' },
+                { labelKey: 'color_black' as MessageKey, hex: '#111827' },
+                { labelKey: 'color_red' as MessageKey, hex: '#b91c1c' }
               ].map((c) => (
                 <button
                   key={c.hex}
@@ -226,7 +228,7 @@ export const SignatureModal: React.FC = () => {
                   className={`w-5 h-5 rounded-full border-2 transition-transform ${
                     penColor === c.hex ? 'border-white scale-110 shadow-sm ring-2 ring-red-500' : 'border-transparent'
                   }`}
-                  title={c.label}
+                  title={t(c.labelKey)}
                 />
               ))}
             </div>
@@ -248,7 +250,7 @@ export const SignatureModal: React.FC = () => {
             {!hasDrawn && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-300 dark:text-slate-400 text-xs">
                 <Pen className="w-4 h-4 mr-1.5 opacity-40" />
-                <span>{language === 'tr' ? 'İmzanızı buraya çizin (Fare veya Dokunmatik)' : 'Sign here (Mouse or Touch)'}</span>
+                <span>{t('sign_here_mouse_or_touch')}</span>
               </div>
             )}
           </div>
@@ -258,7 +260,7 @@ export const SignatureModal: React.FC = () => {
             {/* Hedef Sayfa */}
             <div>
               <label className="block text-slate-500 mb-1 font-medium">
-                {language === 'tr' ? 'Hedef Sayfa:' : 'Target Page:'}
+                {t('target_page')}
               </label>
               <select
                 value={targetPage}
@@ -267,7 +269,7 @@ export const SignatureModal: React.FC = () => {
               >
                 {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((p) => (
                   <option key={p} value={p}>
-                    {language === 'tr' ? `${p}. Sayfa` : `Page ${p}`}
+                    {t('page_2', [p])}
                   </option>
                 ))}
               </select>
@@ -276,17 +278,17 @@ export const SignatureModal: React.FC = () => {
             {/* İmza Konumu */}
             <div>
               <label className="block text-slate-500 mb-1 font-medium">
-                {language === 'tr' ? 'İmza Konumu:' : 'Placement Position:'}
+                {t('placement_position')}
               </label>
               <select
                 value={position}
                 onChange={(e) => setPosition(e.target.value as any)}
                 className="w-full px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none text-xs"
               >
-                <option value="bottom-right">{language === 'tr' ? 'Sağ Alt Köşe (Önerilen)' : 'Bottom-Right (Default)'}</option>
-                <option value="bottom-left">{language === 'tr' ? 'Sol Alt Köşe' : 'Bottom-Left'}</option>
-                <option value="bottom-center">{language === 'tr' ? 'Orta Alt' : 'Bottom-Center'}</option>
-                <option value="center">{language === 'tr' ? 'Sayfa Ortası' : 'Page Center'}</option>
+                <option value="bottom-right">{t('bottom_right_default')}</option>
+                <option value="bottom-left">{t('bottom_left_2')}</option>
+                <option value="bottom-center">{t('bottom_center')}</option>
+                <option value="center">{t('page_center')}</option>
               </select>
             </div>
           </div>
@@ -300,7 +302,7 @@ export const SignatureModal: React.FC = () => {
               className="flex items-center space-x-1 px-3 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>{language === 'tr' ? 'Çizimi Temizle' : 'Clear Drawing'}</span>
+              <span>{t('clear_drawing')}</span>
             </button>
           </div>
         </div>
@@ -311,7 +313,7 @@ export const SignatureModal: React.FC = () => {
             onClick={() => setSignatureModalOpen(false)}
             className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleApplySignature}
@@ -319,7 +321,7 @@ export const SignatureModal: React.FC = () => {
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40 cursor-pointer"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Ekleniyor...' : (language === 'tr' ? 'İmzayı Belgeye Ekle' : 'Apply Signature')}</span>
+            <span>{isProcessing ? 'Ekleniyor...' : (t('apply_signature'))}</span>
           </button>
         </div>
       </div>

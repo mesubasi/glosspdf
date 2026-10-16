@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { Lock, Eye, EyeOff } from 'lucide-react';
+import { t } from '@/i18n';
 
 export const PasswordModal: React.FC = () => {
   const { passwordModalOpen, passwordCallback, closePasswordModal, language } = usePdfStore();
@@ -27,12 +28,10 @@ export const PasswordModal: React.FC = () => {
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              {language === 'tr' ? 'Parola Korumalı Belge' : 'Password Protected Document'}
+              {t('password_protected_document')}
             </h3>
             <p className="text-xs text-slate-400">
-              {language === 'tr'
-                ? 'Bu PDF dosyasını açmak için parola gereklidir.'
-                : 'A password is required to open this PDF.'}
+              {t('a_password_is_required_to_open_this_pdf')}
             </p>
           </div>
         </div>
@@ -43,7 +42,7 @@ export const PasswordModal: React.FC = () => {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={language === 'tr' ? 'Parolayı girin...' : 'Enter password...'}
+              placeholder={t('enter_password')}
               autoFocus
               className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 rounded-md outline-none focus:border-acrobat-red text-slate-800 dark:text-slate-100 pr-9"
             />
@@ -62,13 +61,13 @@ export const PasswordModal: React.FC = () => {
               onClick={closePasswordModal}
               className="px-3 py-1.5 text-xs rounded hover:bg-black/5 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300"
             >
-              {language === 'tr' ? 'İptal' : 'Cancel'}
+              {t('cancel')}
             </button>
             <button
               type="submit"
               className="px-4 py-1.5 text-xs bg-acrobat-red hover:bg-acrobat-darkRed text-white rounded font-medium shadow-md transition-colors"
             >
-              {language === 'tr' ? 'Aç' : 'Open'}
+              {t('open')}
             </button>
           </div>
         </form>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { t } from '@/i18n';
 import {
   X,
   Image as ImageIcon,
@@ -121,8 +122,8 @@ export const InsertImageModal: React.FC = () => {
       setImageBytes(null);
       setImagePreview(null);
     } catch (err: any) {
-      console.error('Görsel ekleme hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Image insert error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -136,7 +137,7 @@ export const InsertImageModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <ImageIcon className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'Resim / Logo Ekle' : 'Insert Image / Logo'}
+              {t('insert_image_logo')}
             </h2>
           </div>
           <button
@@ -154,10 +155,10 @@ export const InsertImageModal: React.FC = () => {
             <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-red-500 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-50 dark:bg-[#252526]/50">
               <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
               <span className="font-semibold text-slate-700 dark:text-slate-200">
-                {language === 'tr' ? 'Resim Seçin (PNG veya JPG)' : 'Select Image (PNG or JPG)'}
+                {t('select_image_png_or_jpg')}
               </span>
               <span className="text-[11px] text-slate-400 mt-1">
-                {language === 'tr' ? 'Şirket logosu, kaşe veya görsel' : 'Company logo, stamp or photo'}
+                {t('company_logo_stamp_or_photo')}
               </span>
               <input
                 type="file"
@@ -170,7 +171,7 @@ export const InsertImageModal: React.FC = () => {
             <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-[#252526] flex flex-col items-center">
               <img
                 src={imagePreview}
-                alt="Önizleme"
+                alt={t('preview')}
                 className="max-h-40 max-w-full object-contain rounded"
               />
               <button
@@ -181,7 +182,7 @@ export const InsertImageModal: React.FC = () => {
                 }}
                 className="mt-2 text-[11px] text-red-500 hover:underline"
               >
-                {language === 'tr' ? 'Farklı Bir Resim Seç' : 'Choose Another Image'}
+                {t('choose_another_image')}
               </button>
             </div>
           )}
@@ -189,7 +190,7 @@ export const InsertImageModal: React.FC = () => {
           {/* Hedef Sayfa */}
           <div className="flex items-center justify-between">
             <span className="font-medium text-slate-600 dark:text-slate-300">
-              {language === 'tr' ? 'Hedef Sayfa:' : 'Target Page:'}
+              {t('target_page')}
             </span>
             <select
               value={targetPage}
@@ -198,7 +199,7 @@ export const InsertImageModal: React.FC = () => {
             >
               {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((p) => (
                 <option key={p} value={p}>
-                  {language === 'tr' ? `${p}. Sayfa` : `Page ${p}`}
+                  {t('page_2', [p])}
                 </option>
               ))}
             </select>
@@ -207,15 +208,15 @@ export const InsertImageModal: React.FC = () => {
           {/* Konum */}
           <div>
             <span className="block font-medium text-slate-600 dark:text-slate-300 mb-1.5">
-              {language === 'tr' ? 'Sayfadaki Konum:' : 'Position on Page:'}
+              {t('position_on_page')}
             </span>
             <div className="grid grid-cols-3 gap-1.5">
               {[
-                { id: 'top-left', label: language === 'tr' ? 'Sol Üst' : 'Top-Left' },
-                { id: 'center', label: language === 'tr' ? 'Orta' : 'Center' },
-                { id: 'top-right', label: language === 'tr' ? 'Sağ Üst' : 'Top-Right' },
-                { id: 'bottom-left', label: language === 'tr' ? 'Sol Alt' : 'Bottom-Left' },
-                { id: 'bottom-right', label: language === 'tr' ? 'Sağ Alt' : 'Bottom-Right' }
+                { id: 'top-left', label: t('top_left') },
+                { id: 'center', label: t('center') },
+                { id: 'top-right', label: t('top_right') },
+                { id: 'bottom-left', label: t('bottom_left') },
+                { id: 'bottom-right', label: t('bottom_right') }
               ].map((pos) => (
                 <button
                   key={pos.id}
@@ -236,7 +237,7 @@ export const InsertImageModal: React.FC = () => {
           {/* Boyutlar */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-500 mb-1">{language === 'tr' ? 'Genişlik (pt):' : 'Width (pt):'}</label>
+              <label className="block text-slate-500 mb-1">{t('width_pt')}</label>
               <input
                 type="number"
                 value={imgWidth}
@@ -245,7 +246,7 @@ export const InsertImageModal: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-slate-500 mb-1">{language === 'tr' ? 'Yükseklik (pt):' : 'Height (pt):'}</label>
+              <label className="block text-slate-500 mb-1">{t('height_pt')}</label>
               <input
                 type="number"
                 value={imgHeight}
@@ -262,7 +263,7 @@ export const InsertImageModal: React.FC = () => {
             onClick={() => setInsertImageModalOpen(false)}
             className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleInsert}
@@ -270,7 +271,7 @@ export const InsertImageModal: React.FC = () => {
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Ekleniyor...' : (language === 'tr' ? 'Resmi Ekle' : 'Insert Image')}</span>
+            <span>{isProcessing ? 'Ekleniyor...' : (t('insert_image_2'))}</span>
           </button>
         </div>
       </div>

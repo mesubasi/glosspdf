@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { t } from '@/i18n';
 import {
   X,
   Stamp,
@@ -23,12 +24,12 @@ export const WatermarkModal: React.FC = () => {
   const [tabType, setTabType] = useState<'watermark' | 'stamp'>('watermark');
 
   // Filigran Ayarları
-  const [watermarkText, setWatermarkText] = useState('GİZLİ & CONFIDENTIAL');
+  const [watermarkText, setWatermarkText] = useState(t('confidential_proprietary'));
   const [opacity, setOpacity] = useState(20);
   const [watermarkColor, setWatermarkColor] = useState('#d32f2f');
 
   // Damga Ayarları
-  const [stampText, setStampText] = useState('ONAYLANDI');
+  const [stampText, setStampText] = useState(t('approved'));
   const [stampColor, setStampColor] = useState('#2e7d32');
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -72,8 +73,8 @@ export const WatermarkModal: React.FC = () => {
 
       setWatermarkModalOpen(false);
     } catch (err: any) {
-      console.error('Damga/Filigran hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Watermark/stamp error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -81,9 +82,9 @@ export const WatermarkModal: React.FC = () => {
 
   const quickStamps = [
     { text: 'ONAYLANDI', color: '#2e7d32' },
-    { text: 'GİZLİ', color: '#d32f2f' },
+    { text: t('confidential'), color: '#d32f2f' },
     { text: 'TASLAK', color: '#f57c00' },
-    { text: 'İPTAL EDİLDİ', color: '#7b1fa2' },
+    { text: t('cancelled'), color: '#7b1fa2' },
     { text: 'APPROVED', color: '#2e7d32' },
     { text: 'CONFIDENTIAL', color: '#d32f2f' }
   ];
@@ -96,7 +97,7 @@ export const WatermarkModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Stamp className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'Damga & Filigran Ekle' : 'Add Stamp & Watermark'}
+              {t('add_stamp_watermark')}
             </h2>
           </div>
           <button
@@ -118,7 +119,7 @@ export const WatermarkModal: React.FC = () => {
             }`}
           >
             <Droplet className="w-3.5 h-3.5" />
-            <span>{language === 'tr' ? 'Çapraz Filigran' : 'Diagonal Watermark'}</span>
+            <span>{t('diagonal_watermark')}</span>
           </button>
           <button
             onClick={() => setTabType('stamp')}
@@ -129,7 +130,7 @@ export const WatermarkModal: React.FC = () => {
             }`}
           >
             <Stamp className="w-3.5 h-3.5" />
-            <span>{language === 'tr' ? 'Resmi Damga' : 'Official Stamp'}</span>
+            <span>{t('official_stamp')}</span>
           </button>
         </div>
 
@@ -139,7 +140,7 @@ export const WatermarkModal: React.FC = () => {
             <>
               <div>
                 <label className="block text-slate-600 dark:text-slate-300 font-medium mb-1">
-                  {language === 'tr' ? 'Filigran Metni:' : 'Watermark Text:'}
+                  {t('watermark_text')}
                 </label>
                 <input
                   type="text"
@@ -151,7 +152,7 @@ export const WatermarkModal: React.FC = () => {
 
               {/* Hızlı Şablonlar */}
               <div className="flex flex-wrap gap-1.5">
-                {['GİZLİ', 'TASLAK', 'KOPYA', 'CONFIDENTIAL', 'DRAFT'].map((txt) => (
+                {[t('confidential'), 'TASLAK', 'KOPYA', 'CONFIDENTIAL', 'DRAFT'].map((txt) => (
                   <button
                     key={txt}
                     type="button"
@@ -166,7 +167,7 @@ export const WatermarkModal: React.FC = () => {
               {/* Opaklık Ayarı */}
               <div>
                 <div className="flex justify-between text-[11px] text-slate-500 mb-1">
-                  <span>{language === 'tr' ? 'Saydamlık / Opaklık:' : 'Opacity:'}</span>
+                  <span>{t('opacity')}</span>
                   <span>%{opacity}</span>
                 </div>
                 <input
@@ -182,7 +183,7 @@ export const WatermarkModal: React.FC = () => {
               {/* Renk */}
               <div>
                 <label className="block text-slate-600 dark:text-slate-300 font-medium mb-1">
-                  {language === 'tr' ? 'Renk:' : 'Color:'}
+                  {t('color')}
                 </label>
                 <div className="flex items-center space-x-2">
                   {['#d32f2f', '#1976d2', '#388e3c', '#555555'].map((color) => (
@@ -204,7 +205,7 @@ export const WatermarkModal: React.FC = () => {
               {/* Damga Seçimi */}
               <div>
                 <label className="block text-slate-600 dark:text-slate-300 font-medium mb-1.5">
-                  {language === 'tr' ? 'Hazır Damga Seçin:' : 'Select Predefined Stamp:'}
+                  {t('select_predefined_stamp')}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {quickStamps.map((st) => (
@@ -232,9 +233,7 @@ export const WatermarkModal: React.FC = () => {
               </div>
 
               <div className="p-2.5 rounded bg-slate-50 dark:bg-[#252526] border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500">
-                {language === 'tr'
-                  ? `Damga, aktif sayfanın (${activeTab.currentPage}. sayfa) sağ üst köşesine tarih ile birlikte yerleştirilecektir.`
-                  : `Stamp will be placed on the top right of the current page (${activeTab.currentPage}) with date.`}
+                {t('stamp_will_be_placed_on_the_top_right_of_the_current_pag', [activeTab.currentPage])}
               </div>
             </>
           )}
@@ -246,7 +245,7 @@ export const WatermarkModal: React.FC = () => {
             onClick={() => setWatermarkModalOpen(false)}
             className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleApply}
@@ -254,7 +253,7 @@ export const WatermarkModal: React.FC = () => {
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Ekleniyor...' : (language === 'tr' ? 'Belgeye Ekle' : 'Apply to Document')}</span>
+            <span>{isProcessing ? 'Ekleniyor...' : (t('apply_to_document_2'))}</span>
           </button>
         </div>
       </div>

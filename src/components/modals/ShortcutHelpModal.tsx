@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { X, Keyboard, HelpCircle } from 'lucide-react';
+import { t } from '@/i18n';
 
 export const ShortcutHelpModal: React.FC = () => {
   const { shortcutHelpModalOpen, setShortcutHelpModalOpen, language } = usePdfStore();
@@ -9,44 +10,44 @@ export const ShortcutHelpModal: React.FC = () => {
 
   const categories = [
     {
-      title: language === 'tr' ? 'Dosya İşlemleri' : 'File Operations',
+      title: t('file_operations'),
       shortcuts: [
-        { keys: ['Ctrl', 'O'], desc: language === 'tr' ? 'PDF Dosyası Aç' : 'Open PDF File' },
-        { keys: ['Ctrl', 'S'], desc: language === 'tr' ? 'Belgeyi Kaydet' : 'Save Document' },
-        { keys: ['Ctrl', 'Shift', 'S'], desc: language === 'tr' ? 'Farklı Kaydet' : 'Save As...' },
-        { keys: ['Ctrl', 'P'], desc: language === 'tr' ? 'Yazdır' : 'Print Document' },
-        { keys: ['Ctrl', 'W'], desc: language === 'tr' ? 'Aktif Sekmeyi Kapat' : 'Close Active Tab' }
+        { keys: ['Ctrl', 'O'], desc: t('open_pdf_file') },
+        { keys: ['Ctrl', 'S'], desc: t('save_document') },
+        { keys: ['Ctrl', 'Shift', 'S'], desc: t('save_as') },
+        { keys: ['Ctrl', 'P'], desc: t('print_document') },
+        { keys: ['Ctrl', 'W'], desc: t('close_active_tab') }
       ]
     },
     {
-      title: language === 'tr' ? 'Gezinme & Zoom' : 'Navigation & Zoom',
+      title: t('navigation_zoom'),
       shortcuts: [
-        { keys: ['Ctrl', '+'], desc: language === 'tr' ? 'Yakınlaştır (Zoom In)' : 'Zoom In' },
-        { keys: ['Ctrl', '-'], desc: language === 'tr' ? 'Uzaklaştır (Zoom Out)' : 'Zoom Out' },
-        { keys: ['Ctrl', '0'], desc: language === 'tr' ? 'Sayfaya Sığdır (Fit Page)' : 'Fit Page' },
-        { keys: ['Ctrl', '1'], desc: language === 'tr' ? '%100 Gerçek Boyut' : 'Actual Size (100%)' },
-        { keys: ['Ctrl', '2'], desc: language === 'tr' ? 'Genişliğe Sığdır (Fit Width)' : 'Fit Width' },
-        { keys: ['F11 / Ctrl+L'], desc: language === 'tr' ? 'Tam Ekran Modu' : 'Full Screen Mode' }
+        { keys: ['Ctrl', '+'], desc: t('zoom_in_2') },
+        { keys: ['Ctrl', '-'], desc: t('zoom_out_2') },
+        { keys: ['Ctrl', '0'], desc: t('fit_page') },
+        { keys: ['Ctrl', '1'], desc: t('actual_size_100') },
+        { keys: ['Ctrl', '2'], desc: t('fit_width') },
+        { keys: ['F11 / Ctrl+L'], desc: t('full_screen_mode') }
       ]
     },
     {
-      title: language === 'tr' ? 'Düzenleme & Döndürme' : 'Editing & Rotation',
+      title: t('editing_rotation'),
       shortcuts: [
-        { keys: ['Ctrl', 'Z'], desc: language === 'tr' ? 'Geri Al (Undo)' : 'Undo Action' },
-        { keys: ['Ctrl', 'Y'], desc: language === 'tr' ? 'İleri Al (Redo)' : 'Redo Action' },
-        { keys: ['Delete'], desc: language === 'tr' ? 'Seçili İşareti Sil' : 'Delete Selected Annotation' },
-        { keys: ['Ctrl', 'Shift', 'R'], desc: language === 'tr' ? 'Sağa 90° Döndür' : 'Rotate 90° Clockwise' },
-        { keys: ['Ctrl', 'Shift', 'L'], desc: language === 'tr' ? 'Sola 90° Döndür' : 'Rotate 90° Counter-Clockwise' }
+        { keys: ['Ctrl', 'Z'], desc: t('undo_action') },
+        { keys: ['Ctrl', 'Y'], desc: t('redo_action') },
+        { keys: ['Delete'], desc: t('delete_selected_annotation_2') },
+        { keys: ['Ctrl', 'Shift', 'R'], desc: t('rotate_90_clockwise') },
+        { keys: ['Ctrl', 'Shift', 'L'], desc: t('rotate_90_counter_clockwise') }
       ]
     },
     {
-      title: language === 'tr' ? 'Arama & Kısayollar' : 'Search & Help',
+      title: t('search_help'),
       shortcuts: [
-        { keys: ['Ctrl', 'F'], desc: language === 'tr' ? 'Belgede Ara' : 'Find in Document' },
-        { keys: ['F3 / Enter'], desc: language === 'tr' ? 'Sonraki Eşleşme' : 'Next Search Match' },
-        { keys: ['Shift', 'F3'], desc: language === 'tr' ? 'Önceki Eşleşme' : 'Previous Search Match' },
-        { keys: ['Esc'], desc: language === 'tr' ? 'Aramayı Kapat' : 'Close Search Bar' },
-        { keys: ['F1'], desc: language === 'tr' ? 'Kısayol Kılavuzu' : 'Keyboard Shortcuts Cheat Sheet' }
+        { keys: ['Ctrl', 'F'], desc: t('find_in_document') },
+        { keys: ['F3 / Enter'], desc: t('next_search_match') },
+        { keys: ['Shift', 'F3'], desc: t('previous_search_match') },
+        { keys: ['Esc'], desc: t('close_search_bar') },
+        { keys: ['F1'], desc: t('keyboard_shortcuts_cheat_sheet') }
       ]
     }
   ];
@@ -59,7 +60,7 @@ export const ShortcutHelpModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Keyboard className="w-5 h-5 text-acrobat-red" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'Klavye Kısayolları Kılavuzu' : 'Keyboard Shortcuts Reference'}
+              {t('keyboard_shortcuts_reference')}
             </h2>
           </div>
           <button
@@ -104,13 +105,13 @@ export const ShortcutHelpModal: React.FC = () => {
         {/* Alt Bilgi */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
           <span className="text-[11px] text-slate-400">
-            {language === 'tr' ? 'Bu pencereyi kapatmak için Esc tuşuna basabilirsiniz.' : 'Press Esc to close.'}
+            {t('press_esc_to_close')}
           </span>
           <button
             onClick={() => setShortcutHelpModalOpen(false)}
             className="px-4 py-1.5 rounded-lg bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium transition-colors"
           >
-            {language === 'tr' ? 'Anladım' : 'Got it'}
+            {t('got_it')}
           </button>
         </div>
       </div>

@@ -1,5 +1,15 @@
 import { create } from 'zustand';
 import { ActiveTool, AnnotationItem, LeftSidebarTab, PdfTab, SearchMatch } from '../types/pdf';
+import {
+  LANGUAGES,
+  getLanguage,
+  persistLanguagePreference,
+  readLanguagePreference,
+  resolveLanguage,
+  setCurrentLanguage,
+  type Language,
+  type LanguagePreference
+} from '../i18n/languages';
 
 // Acrobat standardı zoom kademeleri
 export const ZOOM_LEVELS = [
@@ -13,7 +23,10 @@ interface PdfStoreState {
   leftSidebarTab: LeftSidebarTab;
   rightPanelOpen: boolean;
   theme: 'light' | 'dark';
-  language: 'tr' | 'en';
+  /** Etkin dil (sistem dili algılaması veya kullanıcı tercihi ile çözülür) */
+  language: Language;
+  /** Kullanıcı tercihi: 'system' = bilgisayarın dilini izle */
+  languagePreference: LanguagePreference;
   searchBarOpen: boolean;
   searchQuery: string;
   searchResults: SearchMatch[];
@@ -58,6 +71,7 @@ interface PdfStoreState {
   toggleRightPanel: () => void;
   toggleTheme: () => void;
   toggleLanguage: () => void;
+  setLanguagePreference: (preference: LanguagePreference) => void;
   setSearchBarOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   setSearchResults: (results: SearchMatch[]) => void;
@@ -101,27 +115,6 @@ interface PdfStoreState {
   setShortcutHelpModalOpen: (open: boolean) => void;
 }
 
-// Bilgisayar / İşletim sistemi dilini tespit etme fonksiyonu
-function getInitialLanguage(): 'tr' | 'en' {
-  try {
-    const saved = localStorage.getItem('glosspdf_lang');
-    if (saved === 'tr' || saved === 'en') return saved;
-
-    const sysLang = (
-      navigator.language ||
-      (navigator as any).userLanguage ||
-      ''
-    ).toLowerCase();
-
-    if (sysLang.startsWith('tr')) {
-      return 'tr';
-    }
-  } catch {
-    // SSR veya localStorage engeli durumunda fallback
-  }
-  return 'en';
-}
-
 // Tema başlangıç durumunu tespit etme
 function getInitialTheme(): 'light' | 'dark' {
   try {
@@ -160,7 +153,8 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   leftSidebarTab: 'thumbnails',
   rightPanelOpen: false,
   theme: getInitialTheme(),
-  language: getInitialLanguage(),
+  language: getLanguage(),
+  languagePreference: readLanguagePreference(),
   searchBarOpen: false,
   searchQuery: '',
   searchResults: [],
@@ -310,13 +304,23 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
       return { theme: nextTheme };
     }),
 
+  // Sıradaki dile geç (kısayol / hızlı değiştirme için)
   toggleLanguage: () =>
     set((state) => {
-      const nextLang = state.language === 'tr' ? 'en' : 'tr';
-      try {
-        localStorage.setItem('glosspdf_lang', nextLang);
-      } catch {}
-      return { language: nextLang };
+      const currentIndex = LANGUAGES.findIndex((l) => l.code === state.language);
+      const nextLang = LANGUAGES[(currentIndex + 1) % LANGUAGES.length].code;
+      persistLanguagePreference(nextLang);
+      setCurrentLanguage(nextLang);
+      return { language: nextLang, languagePreference: nextLang };
+    }),
+
+  // Dil tercihini ayarla ('system' = bilgisayarın dilini izle)
+  setLanguagePreference: (preference) =>
+    set(() => {
+      const resolved = resolveLanguage(preference);
+      persistLanguagePreference(preference);
+      setCurrentLanguage(resolved);
+      return { language: resolved, languagePreference: preference };
     }),
 
   setSearchBarOpen: (open) =>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { ActiveTool } from '../../types/pdf';
+import { t } from '@/i18n';
+import type { MessageKey } from '@/i18n';
 import {
   Highlighter,
   Underline,
@@ -16,14 +18,14 @@ import {
   X
 } from 'lucide-react';
 
-const PALETTE_COLORS = [
-  { name: 'Sarı', hex: '#ffeb3b' },
-  { name: 'Yeşil', hex: '#4caf50' },
-  { name: 'Mavi', hex: '#2196f3' },
-  { name: 'Pembe', hex: '#e91e63' },
-  { name: 'Turuncu', hex: '#ff9800' },
-  { name: 'Mor', hex: '#9c27b0' },
-  { name: 'Kırmızı', hex: '#f44336' }
+const PALETTE_COLORS: { nameKey: MessageKey; hex: string }[] = [
+  { nameKey: 'color_yellow', hex: '#ffeb3b' },
+  { nameKey: 'color_green', hex: '#4caf50' },
+  { nameKey: 'color_blue', hex: '#2196f3' },
+  { nameKey: 'color_pink', hex: '#e91e63' },
+  { nameKey: 'color_orange', hex: '#ff9800' },
+  { nameKey: 'color_purple', hex: '#9c27b0' },
+  { nameKey: 'color_red', hex: '#f44336' }
 ];
 
 const STROKE_WIDTHS = [1, 2, 4, 8];
@@ -54,14 +56,14 @@ export const AnnotationToolbar: React.FC = () => {
   const canRedo = (activeTab?.redoStack?.length || 0) > 0;
 
   const tools: { id: ActiveTool; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'select', label: language === 'tr' ? 'Seç' : 'Select', icon: MousePointer },
-    { id: 'highlight', label: language === 'tr' ? 'Vurgula' : 'Highlight', icon: Highlighter },
-    { id: 'underline', label: language === 'tr' ? 'Altı Çiz' : 'Underline', icon: Underline },
-    { id: 'strikeout', label: language === 'tr' ? 'Üstü Çiz' : 'Strikeout', icon: Strikethrough },
-    { id: 'note', label: language === 'tr' ? 'Not Ekle' : 'Sticky Note', icon: MessageSquare },
-    { id: 'draw', label: language === 'tr' ? 'Kalem' : 'Pen', icon: PenTool },
-    { id: 'rect', label: language === 'tr' ? 'Dikdörtgen' : 'Rectangle', icon: Square },
-    { id: 'text', label: language === 'tr' ? 'Metin' : 'Text Box', icon: Type }
+    { id: 'select', label: t('select'), icon: MousePointer },
+    { id: 'highlight', label: t('highlight'), icon: Highlighter },
+    { id: 'underline', label: t('underline'), icon: Underline },
+    { id: 'strikeout', label: t('strikeout'), icon: Strikethrough },
+    { id: 'note', label: t('sticky_note'), icon: MessageSquare },
+    { id: 'draw', label: t('pen'), icon: PenTool },
+    { id: 'rect', label: t('rectangle'), icon: Square },
+    { id: 'text', label: t('text_box'), icon: Type }
   ];
 
   return (
@@ -69,7 +71,7 @@ export const AnnotationToolbar: React.FC = () => {
       {/* Sol Grup: Araçlar */}
       <div className="flex items-center space-x-1">
         <span className="font-semibold text-slate-500 dark:text-slate-400 mr-2 uppercase tracking-wider text-[11px]">
-          {language === 'tr' ? 'İşaretle' : 'Annotate'}:
+          {t('annotate')}:
         </span>
 
         {tools.map((t) => {
@@ -109,7 +111,7 @@ export const AnnotationToolbar: React.FC = () => {
                   ? 'ring-2 ring-slate-800 dark:ring-white scale-125 z-10'
                   : 'hover:scale-110'
               }`}
-              title={c.name}
+              title={t(c.nameKey)}
             />
           ))}
         </div>
@@ -117,7 +119,7 @@ export const AnnotationToolbar: React.FC = () => {
         {/* Çizgi Kalınlığı (Kalem ve Dikdörtgen için) */}
         {(activeTool === 'draw' || activeTool === 'rect') && (
           <div className="flex items-center space-x-1">
-            <span className="text-[10px] text-slate-500">Kalınlık:</span>
+            <span className="text-[10px] text-slate-500">{t('thickness')}</span>
             <select
               value={annotationStrokeWidth}
               onChange={(e) => setAnnotationStrokeWidth(parseInt(e.target.value, 10))}
@@ -135,7 +137,7 @@ export const AnnotationToolbar: React.FC = () => {
         {/* Yazı Boyutu (Metin Kutusu için) */}
         {activeTool === 'text' && (
           <div className="flex items-center space-x-1">
-            <span className="text-[10px] text-slate-500">Boyut:</span>
+            <span className="text-[10px] text-slate-500">{t('font_size')}</span>
             <select
               value={annotationFontSize}
               onChange={(e) => setAnnotationFontSize(parseInt(e.target.value, 10))}
@@ -157,7 +159,7 @@ export const AnnotationToolbar: React.FC = () => {
           onClick={undo}
           disabled={!canUndo}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Geri Al (Ctrl+Z)' : 'Undo (Ctrl+Z)'}
+          title={t('undo_ctrl_z')}
         >
           <Undo2 className="w-4 h-4" />
         </button>
@@ -167,7 +169,7 @@ export const AnnotationToolbar: React.FC = () => {
           onClick={redo}
           disabled={!canRedo}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'İleri Al (Ctrl+Y)' : 'Redo (Ctrl+Y)'}
+          title={t('redo_ctrl_y')}
         >
           <Redo2 className="w-4 h-4" />
         </button>
@@ -177,10 +179,10 @@ export const AnnotationToolbar: React.FC = () => {
           <button
             onClick={() => deleteAnnotation(selectedAnnotationId)}
             className="flex items-center space-x-1 px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white transition-colors"
-            title={language === 'tr' ? 'Seçili İşaretlemeyi Sil (Del)' : 'Delete Selected Annotation'}
+            title={t('delete_selected_annotation')}
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span className="text-[11px]">{language === 'tr' ? 'Sil' : 'Delete'}</span>
+            <span className="text-[11px]">{t('delete')}</span>
           </button>
         )}
       </div>
@@ -193,7 +195,7 @@ export const AnnotationToolbar: React.FC = () => {
             setActiveTool('select');
           }}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-          title={language === 'tr' ? 'İşaretleme Araç Çubuğunu Kapat' : 'Close Annotation Toolbar'}
+          title={t('close_annotation_toolbar')}
         >
           <X className="w-4 h-4" />
         </button>

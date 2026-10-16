@@ -1,6 +1,13 @@
 import React from 'react';
 import { usePdfStore, ZOOM_LEVELS } from '../../store/usePdfStore';
 import {
+  t,
+  LANGUAGES,
+  detectSystemLanguage,
+  getLanguageInfo,
+  type LanguagePreference
+} from '@/i18n';
+import {
   FolderOpen,
   Save,
   Printer,
@@ -53,6 +60,8 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     theme,
     toggleTheme,
     language,
+    languagePreference,
+    setLanguagePreference,
     toggleLanguage,
     leftSidebarTab,
     setLeftSidebarTab,
@@ -96,7 +105,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
             leftSidebarTab ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : ''
           }`}
-          title={language === 'tr' ? 'Gezinme Paneli' : 'Navigation Panel'}
+          title={t('navigation_panel')}
         >
           <Layout className="w-4 h-4" />
         </button>
@@ -107,7 +116,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={onOpenFile}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={language === 'tr' ? 'Dosya Aç (Ctrl+O)' : 'Open File (Ctrl+O)'}
+          title={t('open_file_ctrl_o')}
         >
           <FolderOpen className="w-4 h-4" />
         </button>
@@ -117,7 +126,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={onSaveFile}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Kaydet (Ctrl+S)' : 'Save (Ctrl+S)'}
+          title={t('save_ctrl_s')}
         >
           <Save className="w-4 h-4" />
         </button>
@@ -127,7 +136,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={onPrint}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Yazdır (Ctrl+P)' : 'Print (Ctrl+P)'}
+          title={t('print_ctrl_p')}
         >
           <Printer className="w-4 h-4" />
         </button>
@@ -140,7 +149,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
             activeTool === 'select' ? 'bg-black/15 dark:bg-white/15 text-blue-500 font-bold' : ''
           }`}
-          title={language === 'tr' ? 'Metin ve Nesne Seçimi' : 'Select Tool'}
+          title={t('select_tool')}
         >
           <MousePointer className="w-4 h-4" />
         </button>
@@ -151,7 +160,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
             activeTool === 'hand' ? 'bg-black/15 dark:bg-white/15 text-blue-500 font-bold' : ''
           }`}
-          title={language === 'tr' ? 'El Aracı (Kaydırma)' : 'Hand Tool'}
+          title={t('hand_tool')}
         >
           <Hand className="w-4 h-4" />
         </button>
@@ -167,10 +176,10 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
               ? 'bg-acrobat-red text-white font-medium shadow-sm'
               : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
           }`}
-          title={language === 'tr' ? 'İşaretleme ve Not Araç Çubuğu' : 'Annotation Toolbar'}
+          title={t('annotation_toolbar')}
         >
           <Highlighter className="w-3.5 h-3.5" />
-          <span className="font-medium text-[11px]">{language === 'tr' ? 'İşaretle' : 'Annotate'}</span>
+          <span className="font-medium text-[11px]">{t('annotate')}</span>
         </button>
       </div>
 
@@ -181,7 +190,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={zoomOut}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Uzaklaştır (Ctrl+-)' : 'Zoom Out (Ctrl+-)'}
+          title={t('zoom_out_ctrl')}
         >
           <ZoomOut className="w-4 h-4" />
         </button>
@@ -208,7 +217,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={zoomIn}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Yakınlaştır (Ctrl++)' : 'Zoom In (Ctrl++)'}
+          title={t('zoom_in_ctrl')}
         >
           <ZoomIn className="w-4 h-4" />
         </button>
@@ -220,7 +229,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={onFitPage}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Sayfaya Sığdır (Ctrl+0)' : 'Fit Page (Ctrl+0)'}
+          title={t('fit_page_ctrl_0')}
         >
           <Expand className="w-4 h-4" />
         </button>
@@ -230,7 +239,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={onFitWidth}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Genişliğe Sığdır (Ctrl+2)' : 'Fit Width (Ctrl+2)'}
+          title={t('fit_width_ctrl_2')}
         >
           <span className="font-semibold text-[11px] px-0.5 border border-current rounded">↔</span>
         </button>
@@ -242,7 +251,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={rotateClockwise}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Saat Yönünde Döndür (Ctrl+Shift+R)' : 'Rotate Clockwise (Ctrl+Shift+R)'}
+          title={t('rotate_clockwise_ctrl_shift_r')}
         >
           <RotateCw className="w-4 h-4" />
         </button>
@@ -252,7 +261,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onClick={rotateCounterClockwise}
           disabled={!activeTab}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Ters Yönde Döndür (Ctrl+Shift+L)' : 'Rotate Counter-Clockwise (Ctrl+Shift+L)'}
+          title={t('rotate_counter_clockwise_ctrl_shift_l')}
         >
           <RotateCcw className="w-4 h-4" />
         </button>
@@ -267,7 +276,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors ${
             searchBarOpen ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : ''
           }`}
-          title={language === 'tr' ? 'Belgede Ara (Ctrl+F)' : 'Find in Document (Ctrl+F)'}
+          title={t('find_in_document_ctrl_f')}
         >
           <Search className="w-4 h-4" />
         </button>
@@ -276,25 +285,34 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={toggleTheme}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={theme === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
+          title={t(theme === 'dark' ? 'switch_to_light_theme' : 'switch_to_dark_theme')}
         >
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        {/* Dil Değiştir */}
-        <button
-          onClick={toggleLanguage}
-          className="px-2 py-1 rounded hover:bg-black/10 dark:hover:bg-white/10 font-bold uppercase transition-colors"
-          title="Dil / Language"
+        {/* Dil Seçici (Sistem dili + desteklenen diller) */}
+        <select
+          value={languagePreference}
+          onChange={(e) => setLanguagePreference(e.target.value as LanguagePreference)}
+          title={t('language')}
+          aria-label={t('language')}
+          className="px-1.5 py-1 rounded text-[11px] bg-transparent hover:bg-black/10 dark:hover:bg-white/10 border border-slate-300/60 dark:border-slate-600/60 outline-none cursor-pointer max-w-[150px] truncate"
         >
-          {language}
-        </button>
+          <option value="system">
+            {t('system_language')} ({getLanguageInfo(detectSystemLanguage()).nativeLabel})
+          </option>
+          {LANGUAGES.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.nativeLabel}
+            </option>
+          ))}
+        </select>
 
         {/* Tam Ekran */}
         <button
           onClick={toggleFullScreen}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={language === 'tr' ? 'Tam Ekran (F11 / Ctrl+L)' : 'Full Screen (F11 / Ctrl+L)'}
+          title={t('full_screen_f11_ctrl_l')}
         >
           {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
@@ -303,7 +321,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={() => setShortcutHelpModalOpen(true)}
           className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={language === 'tr' ? 'Klavye Kısayolları (F1)' : 'Keyboard Shortcuts (F1)'}
+          title={t('keyboard_shortcuts_f1')}
         >
           <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
         </button>
@@ -316,9 +334,9 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           className={`px-2 py-1 rounded hover:bg-black/10 dark:hover:bg-white/10 font-medium transition-colors ${
             rightPanelOpen ? 'bg-acrobat-red text-white' : ''
           }`}
-          title={language === 'tr' ? 'Araçlar Paneli' : 'Tools Panel'}
+          title={t('tools_panel')}
         >
-          {language === 'tr' ? 'Araçlar' : 'Tools'}
+          {t('tools')}
         </button>
       </div>
     </div>

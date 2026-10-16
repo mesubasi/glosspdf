@@ -11,6 +11,7 @@ import {
 } from 'pdf-lib';
 import { configure, lock } from 'pdf-lib-encrypt';
 import { AnnotationItem } from '../types/pdf';
+import { t } from '@/i18n';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   let clean = hex.replace('#', '');
@@ -117,7 +118,7 @@ export class PdfEditService {
               QuadPoints: [llx, ury, urx, ury, llx, lly, urx, lly],
               C: [r, g, b],
               F: 4,
-              Contents: PDFString.of(item.contents || 'Altı Çizili')
+              Contents: PDFString.of(item.contents || t('annotation_underline'))
             });
             (annots as any).push(context.register(annotDict));
 
@@ -144,7 +145,7 @@ export class PdfEditService {
               QuadPoints: [llx, midY, urx, midY, llx, midY, urx, midY],
               C: [r, g, b],
               F: 4,
-              Contents: PDFString.of(item.contents || 'Üstü Çizili')
+              Contents: PDFString.of(item.contents || t('annotation_strikeout'))
             });
             (annots as any).push(context.register(annotDict));
 
@@ -170,7 +171,7 @@ export class PdfEditService {
               Name: 'Comment',
               C: [r, g, b],
               Contents: PDFString.of(item.contents || ''),
-              T: PDFString.of(item.author || 'Kullanıcı')
+              T: PDFString.of(item.author || t('annotation_author_default'))
             });
             (annots as any).push(context.register(annotDict));
 

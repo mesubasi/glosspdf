@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { t } from '@/i18n';
 import {
   X,
   FilePlus,
@@ -50,7 +51,7 @@ export const MergePdfModal: React.FC = () => {
             }
           ]);
         } catch (err) {
-          console.error('PDF yüklenirken hata:', err);
+          console.error('Failed to load PDF:', err);
         }
       }
     }
@@ -84,7 +85,7 @@ export const MergePdfModal: React.FC = () => {
   // Birleştirme İşlemini Başlat
   const handleMerge = async () => {
     if (files.length < 2) {
-      alert(language === 'tr' ? 'Lütfen birleştirmek için en az 2 PDF dosyası ekleyin.' : 'Please add at least 2 PDF files to merge.');
+      alert(t('please_add_at_least_2_pdf_files_to_merge'));
       return;
     }
 
@@ -119,8 +120,8 @@ export const MergePdfModal: React.FC = () => {
       setFiles([]);
       setMergeModalOpen(false);
     } catch (err: any) {
-      console.error('Birleştirme hatası:', err);
-      alert(`Birleştirme hatası: ${err.message}`);
+      console.error('Merge error:', err);
+      alert(t('error_merge', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -136,7 +137,7 @@ export const MergePdfModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Layers className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'PDF Dosyalarını Birleştir' : 'Merge PDF Files'}
+              {t('merge_pdf_files')}
             </h2>
           </div>
           <button
@@ -153,10 +154,10 @@ export const MergePdfModal: React.FC = () => {
           <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-red-500 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-50 dark:bg-[#252526]/50">
             <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-              {language === 'tr' ? 'PDF Dosyaları Seçin veya Buraya Sürükleyin' : 'Select PDF Files or Drag & Drop'}
+              {t('select_pdf_files_or_drag_drop')}
             </span>
             <span className="text-[11px] text-slate-400 mt-0.5">
-              {language === 'tr' ? 'Birden fazla dosya seçebilirsiniz' : 'You can select multiple files'}
+              {t('you_can_select_multiple_files')}
             </span>
             <input
               type="file"
@@ -171,7 +172,7 @@ export const MergePdfModal: React.FC = () => {
           {files.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-slate-500 font-medium px-1">
-                <span>{language === 'tr' ? 'Sıralama (Yukarıdan Aşağıya)' : 'Order (Top to Bottom)'}</span>
+                <span>{t('order_top_to_bottom')}</span>
                 <span>{files.length} dosya • {totalPages} sayfa</span>
               </div>
 
@@ -199,7 +200,7 @@ export const MergePdfModal: React.FC = () => {
                         onClick={() => moveUp(idx)}
                         disabled={idx === 0}
                         className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
-                        title="Yukarı Taşı"
+                        title={t('move_up')}
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
                       </button>
@@ -207,14 +208,14 @@ export const MergePdfModal: React.FC = () => {
                         onClick={() => moveDown(idx)}
                         disabled={idx === files.length - 1}
                         className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
-                        title="Aşağı Taşı"
+                        title={t('move_down')}
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => removeFile(idx)}
                         className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/40 text-red-500 transition-colors ml-1"
-                        title="Listeden Çıkar"
+                        title={t('remove_from_list_3')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -232,7 +233,7 @@ export const MergePdfModal: React.FC = () => {
             onClick={() => setMergeModalOpen(false)}
             className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleMerge}
@@ -240,7 +241,7 @@ export const MergePdfModal: React.FC = () => {
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Birleştiriliyor...' : (language === 'tr' ? 'Birleştir ve Aç' : 'Merge & Open')}</span>
+            <span>{isProcessing ? t('merging') : (t('merge_open'))}</span>
           </button>
         </div>
       </div>
