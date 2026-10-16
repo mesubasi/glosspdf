@@ -7,6 +7,12 @@
   color-scheme: dark;
 }
 
+/* Şeffaf arka planlı select'lerde açılan liste beyaz kalıyordu; renkleri açıkça ver */
+.dark option {
+  background-color: #1e1e1e;
+  color: #e2e8f0;
+}
+
 /* Standart Kaydırma Çubuğu Stilleri */
 ::-webkit-scrollbar {
   width: 10px;
