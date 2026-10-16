@@ -1,6 +1,6 @@
 {
   "name": "glosspdf",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Sleek, modern and open-source desktop PDF workstation",
   "author": "GlossPDF Team",
   "main": "dist-electron/main.js",
