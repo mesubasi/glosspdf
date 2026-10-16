@@ -25,7 +25,9 @@ import {
   Moon,
   Layout,
   Expand,
-  HelpCircle
+  HelpCircle,
+  TextCursorInput,
+  FileSignature
 } from 'lucide-react';
 
 interface HeaderToolbarProps {
@@ -71,6 +73,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     setIsFullScreen,
     annotationModeOpen,
     setAnnotationModeOpen,
+    setSignatureModalOpen,
     setShortcutHelpModalOpen
   } = usePdfStore();
 
@@ -180,6 +183,36 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         >
           <Highlighter className="w-3.5 h-3.5" />
           <span className="font-medium text-[11px]">{t('annotate')}</span>
+        </button>
+
+        {/* Mevcut PDF metnini düzenle */}
+        <button
+          onClick={() => setActiveTool(activeTool === 'edittext' ? 'select' : 'edittext')}
+          disabled={!activeTab}
+          className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
+            activeTool === 'edittext'
+              ? 'bg-acrobat-red text-white font-medium shadow-sm'
+              : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
+          }`}
+          title={t('edit_text')}
+        >
+          <TextCursorInput className="w-3.5 h-3.5" />
+          <span className="font-medium text-[11px]">{t('edit_text')}</span>
+        </button>
+
+        {/* İmza oluştur ve sayfaya yerleştir */}
+        <button
+          onClick={() => setSignatureModalOpen(true)}
+          disabled={!activeTab}
+          className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
+            activeTool === 'signature'
+              ? 'bg-acrobat-red text-white font-medium shadow-sm'
+              : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
+          }`}
+          title={t('sign')}
+        >
+          <FileSignature className="w-3.5 h-3.5" />
+          <span className="font-medium text-[11px]">{t('sign')}</span>
         </button>
       </div>
 

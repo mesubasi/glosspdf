@@ -1,191 +1,263 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { PdfEditService } from '../../services/pdfEditService';
-import { PdfRenderService } from '../../services/pdfRenderService';
 import { t } from '@/i18n';
 import type { MessageKey } from '@/i18n';
-import {
-  X,
-  FileCheck,
-  RotateCcw,
-  Check,
-  Pen
-} from 'lucide-react';
+import { X, FileSignature, RotateCcw, Check, Pen, Type, ImageUp } from 'lucide-react';
+
+type SignatureResult = { dataUrl: string; aspect: number };
+type SavedSignature = SignatureResult & { id: string };
+type SignatureTab = 'draw' | 'type' | 'image';
+
+const STORAGE_KEY = 'glosspdf_signatures';
+const MAX_SAVED = 6;
+
+const PEN_COLORS: { labelKey: MessageKey; hex: string }[] = [
+  { labelKey: 'color_blue', hex: '#0d47a1' },
+  { labelKey: 'color_black', hex: '#111827' },
+  { labelKey: 'color_red', hex: '#b91c1c' }
+];
+
+// Elle yazılmış hissi veren, işletim sistemlerinde yaygın yazı tipi yığınları
+const SCRIPT_FONTS = [
+  "'Segoe Script', 'Brush Script MT', 'Snell Roundhand', cursive",
+  "'Lucida Handwriting', 'Apple Chancery', 'URW Chancery L', cursive",
+  "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive"
+];
+
+function loadSaved(): SavedSignature[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSaved(list: SavedSignature[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch {}
+}
+
+/** Şeffaf kenar boşluklarını kırpar; imza sayfaya sıkı sınırlarla yerleşsin */
+function trimToContent(src: HTMLCanvasElement, pad = 6): SignatureResult | null {
+  const ctx = src.getContext('2d');
+  if (!ctx) return null;
+  const { width, height } = src;
+  const px = ctx.getImageData(0, 0, width, height).data;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (px[(y * width + x) * 4 + 3] > 8) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null;
+
+  const w = maxX - minX + 1;
+  const h = maxY - minY + 1;
+  const out = document.createElement('canvas');
+  out.width = w + pad * 2;
+  out.height = h + pad * 2;
+  out.getContext('2d')!.drawImage(src, minX, minY, w, h, pad, pad, w, h);
+  return { dataUrl: out.toDataURL('image/png'), aspect: out.width / out.height };
+}
 
 export const SignatureModal: React.FC = () => {
   const {
     signatureModalOpen,
     setSignatureModalOpen,
-    tabs,
+    setPendingSignature,
+    setActiveTool,
     activeTabId,
-    updateTab,
-    setCurrentPage,
     language
   } = usePdfStore();
 
-  const activeTab = tabs.find((t) => t.id === activeTabId);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [tab, setTab] = useState<SignatureTab>('draw');
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
-  const [penColor, setPenColor] = useState('#0d47a1'); // Klasik mavi tükenmez kalem rengi
-  const [targetPage, setTargetPage] = useState<number>(1);
-  const [position, setPosition] = useState<'bottom-right' | 'bottom-left' | 'bottom-center' | 'center'>('bottom-right');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [penColor, setPenColor] = useState(PEN_COLORS[0].hex);
+  const [typedName, setTypedName] = useState('');
+  const [fontIndex, setFontIndex] = useState(0);
+  const [imageResult, setImageResult] = useState<SignatureResult | null>(null);
+  const [rawImage, setRawImage] = useState<HTMLImageElement | null>(null);
+  const [removeWhite, setRemoveWhite] = useState(true);
+  const [saveForLater, setSaveForLater] = useState(true);
+  const [saved, setSaved] = useState<SavedSignature[]>([]);
 
+  // Modal her açıldığında temiz başla
   useEffect(() => {
-    if (!signatureModalOpen || !activeTab) return;
-    setTargetPage(activeTab.currentPage);
+    if (!signatureModalOpen) return;
+    setSaved(loadSaved());
+    setTab('draw');
     setHasDrawn(false);
+    setTypedName('');
+    setImageResult(null);
+    setRawImage(null);
+  }, [signatureModalOpen]);
 
-    // Canvas'ı temizle ve hazırla
-    setTimeout(() => {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          ctx.lineWidth = 2.5;
-        }
+  // Yüklenen görseli (isteğe bağlı beyaz arka plan temizleme ile) imzaya dönüştür
+  useEffect(() => {
+    if (!rawImage) return;
+    const scale = Math.min(1, 800 / Math.max(rawImage.width, rawImage.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(rawImage.width * scale));
+    canvas.height = Math.max(1, Math.round(rawImage.height * scale));
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(rawImage, 0, 0, canvas.width, canvas.height);
+    if (removeWhite) {
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < img.data.length; i += 4) {
+        // Parlaklığa göre yumuşak geçişli alfa: beyaza yakın = saydam
+        const lum = 0.299 * img.data[i] + 0.587 * img.data[i + 1] + 0.114 * img.data[i + 2];
+        img.data[i + 3] = Math.min(img.data[i + 3], Math.max(0, Math.min(255, ((235 - lum) / 60) * 255)));
       }
-    }, 50);
-  }, [signatureModalOpen, activeTab?.id]);
+      ctx.putImageData(img, 0, 0);
+    }
+    setImageResult(trimToContent(canvas));
+  }, [rawImage, removeWhite]);
 
-  if (!signatureModalOpen || !activeTab) return null;
+  if (!signatureModalOpen || !activeTabId) return null;
 
-  // Çizim Başlangıcı (Fare, Dokunmatik ve Kalem Desteği)
-  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    try {
-      canvas.setPointerCapture(e.pointerId);
-    } catch {}
-
+  const pointerPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
 
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    try {
+      canvasRef.current!.setPointerCapture(e.pointerId);
+    } catch {}
+    const { x, y } = pointerPos(e);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = penColor;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(x, y);
+    ctx.lineTo(x + 0.01, y); // tek tıklamada nokta bırak
+    ctx.stroke();
     setIsDrawing(true);
     setHasDrawn(true);
   };
 
-  // Çizim Hareketi
   const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-
+    const { x, y } = pointerPos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
   };
 
-  // Çizim Bitişi
   const stopDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (isDrawing) {
-      setIsDrawing(false);
-      try {
-        canvasRef.current?.releasePointerCapture(e.pointerId);
-      } catch {}
-    }
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    try {
+      canvasRef.current?.releasePointerCapture(e.pointerId);
+    } catch {}
   };
 
-  // Canvas'ı Temizle
   const clearCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      setHasDrawn(false);
-    }
+    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
   };
 
-  // İmzayı Belgeye Ekle
-  const handleApplySignature = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !hasDrawn) return;
-
-    try {
-      setIsProcessing(true);
-
-      // Canvas'tan PNG data URL al
-      const dataUrl = canvas.toDataURL('image/png');
-      const base64Data = dataUrl.split(',')[1];
-      const binaryString = atob(base64Data);
-      const len = binaryString.length;
-      const pngBytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        pngBytes[i] = binaryString.charCodeAt(i);
-      }
-
-      const currentDim = activeTab.pageDimensions[targetPage - 1] || activeTab.pageDimensions[0];
-      const pageW = currentDim.originalWidth;
-      const pageH = currentDim.originalHeight;
-      const sigWidth = 160;
-      const sigHeight = 70;
-
-      // Konum koordinatları hesaplama (PDF koordinat dönüşümü ile)
-      let posX = pageW - sigWidth - 40;
-      let posY = pageH - sigHeight - 50; // Alttan 50pt pay
-
-      if (position === 'bottom-left') {
-        posX = 40;
-        posY = pageH - sigHeight - 50;
-      } else if (position === 'bottom-center') {
-        posX = (pageW - sigWidth) / 2;
-        posY = pageH - sigHeight - 50;
-      } else if (position === 'center') {
-        posX = (pageW - sigWidth) / 2;
-        posY = (pageH - sigHeight) / 2;
-      }
-
-      const updatedBytes = await PdfEditService.addSignature(
-        activeTab.data.slice(),
-        targetPage,
-        pngBytes,
-        posX,
-        posY,
-        sigWidth,
-        sigHeight
-      );
-
-      const doc = await PdfRenderService.loadDocument(updatedBytes.slice());
-      const dims = await PdfRenderService.getAllPageDimensions(doc);
-
-      updateTab(activeTab.id, {
-        data: updatedBytes,
-        pageDimensions: dims,
-        currentPage: targetPage,
-        isModified: true
-      });
-
-      setCurrentPage(targetPage);
-      setSignatureModalOpen(false);
-    } catch (err: any) {
-      console.error('Signature error:', err);
-      alert(t('error_generic', { message: err.message }));
-    } finally {
-      setIsProcessing(false);
-    }
+  const renderTyped = (name: string, font: string, color: string): SignatureResult | null => {
+    if (!name.trim()) return null;
+    const size = 96;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    ctx.font = `${size}px ${font}`;
+    canvas.width = Math.ceil(ctx.measureText(name).width) + 60;
+    canvas.height = Math.ceil(size * 1.8);
+    ctx.font = `${size}px ${font}`; // canvas boyutu değişince bağlam sıfırlanır
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(name, 30, size * 1.2);
+    return trimToContent(canvas);
   };
+
+  const handleImageFile = (file: File | undefined) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      setRawImage(img);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  };
+
+  const currentResult = (): SignatureResult | null => {
+    if (tab === 'draw') return hasDrawn && canvasRef.current ? trimToContent(canvasRef.current) : null;
+    if (tab === 'type') return renderTyped(typedName, SCRIPT_FONTS[fontIndex], penColor);
+    return imageResult;
+  };
+
+  const canApply =
+    (tab === 'draw' && hasDrawn) || (tab === 'type' && typedName.trim().length > 0) || (tab === 'image' && !!imageResult);
+
+  const beginPlacing = (sig: SignatureResult) => {
+    setPendingSignature(sig);
+    setActiveTool('signature');
+    setSignatureModalOpen(false);
+  };
+
+  const handleApply = () => {
+    const sig = currentResult();
+    if (!sig) return;
+    if (saveForLater) {
+      const next = [{ ...sig, id: `sig-${Date.now()}` }, ...saved].slice(0, MAX_SAVED);
+      persistSaved(next);
+    }
+    beginPlacing(sig);
+  };
+
+  const removeSaved = (id: string) => {
+    const next = saved.filter((s) => s.id !== id);
+    persistSaved(next);
+    setSaved(next);
+  };
+
+  const tabs: { id: SignatureTab; label: MessageKey; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'draw', label: 'signature_tab_draw', icon: Pen },
+    { id: 'type', label: 'signature_tab_type', icon: Type },
+    { id: 'image', label: 'signature_tab_image', icon: ImageUp }
+  ];
+
+  const penPicker = (
+    <div className="flex items-center space-x-1.5">
+      {PEN_COLORS.map((c) => (
+        <button
+          key={c.hex}
+          type="button"
+          onClick={() => setPenColor(c.hex)}
+          style={{ backgroundColor: c.hex }}
+          className={`w-5 h-5 rounded-full border-2 transition-transform ${
+            penColor === c.hex ? 'border-white scale-110 shadow-sm ring-2 ring-red-500' : 'border-transparent'
+          }`}
+          title={t(c.labelKey)}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
@@ -193,10 +265,8 @@ export const SignatureModal: React.FC = () => {
         {/* Başlık */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
           <div className="flex items-center space-x-2">
-            <FileCheck className="w-5 h-5 text-red-500" />
-            <h2 className="font-semibold text-sm">
-              {t('add_hand_drawn_signature')}
-            </h2>
+            <FileSignature className="w-5 h-5 text-red-500" />
+            <h2 className="font-semibold text-sm">{t('create_signature')}</h2>
           </div>
           <button
             onClick={() => setSignatureModalOpen(false)}
@@ -206,123 +276,176 @@ export const SignatureModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Gövde */}
-        <div className="p-5 flex-1 flex flex-col space-y-4 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-slate-500 font-medium">
-              {t('draw_your_signature_in_the_box_below')}
-            </span>
-
-            {/* Kalem Renkleri */}
-            <div className="flex items-center space-x-1.5">
-              {[
-                { labelKey: 'color_blue' as MessageKey, hex: '#0d47a1' },
-                { labelKey: 'color_black' as MessageKey, hex: '#111827' },
-                { labelKey: 'color_red' as MessageKey, hex: '#b91c1c' }
-              ].map((c) => (
-                <button
-                  key={c.hex}
-                  type="button"
-                  onClick={() => setPenColor(c.hex)}
-                  style={{ backgroundColor: c.hex }}
-                  className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                    penColor === c.hex ? 'border-white scale-110 shadow-sm ring-2 ring-red-500' : 'border-transparent'
-                  }`}
-                  title={t(c.labelKey)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* İmza Çizim Alanı (Pointer Events) */}
-          <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white rounded-lg overflow-hidden flex flex-col items-center justify-center">
-            <canvas
-              ref={canvasRef}
-              width={450}
-              height={180}
-              onPointerDown={startDrawing}
-              onPointerMove={draw}
-              onPointerUp={stopDrawing}
-              onPointerCancel={stopDrawing}
-              className="cursor-crosshair block w-full touch-none select-none"
-            />
-
-            {!hasDrawn && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-300 dark:text-slate-400 text-xs">
-                <Pen className="w-4 h-4 mr-1.5 opacity-40" />
-                <span>{t('sign_here_mouse_or_touch')}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Konum ve Sayfa Seçimi */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            {/* Hedef Sayfa */}
+        <div className="p-5 flex flex-col space-y-4 text-xs">
+          {/* Kayıtlı imzalar: tek tıkla kullan */}
+          {saved.length > 0 && (
             <div>
-              <label className="block text-slate-500 mb-1 font-medium">
-                {t('target_page')}
-              </label>
-              <select
-                value={targetPage}
-                onChange={(e) => setTargetPage(parseInt(e.target.value, 10))}
-                className="w-full px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none text-xs"
-              >
-                {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((p) => (
-                  <option key={p} value={p}>
-                    {t('page_2', [p])}
-                  </option>
+              <div className="text-slate-500 font-medium mb-1.5">{t('saved_signatures')}</div>
+              <div className="flex flex-wrap gap-2">
+                {saved.map((s) => (
+                  <div
+                    key={s.id}
+                    className="group relative h-12 px-3 flex items-center rounded border border-slate-300 dark:border-slate-600 bg-white hover:border-red-500 cursor-pointer"
+                    onClick={() => beginPlacing(s)}
+                    title={t('place_signature')}
+                  >
+                    <img src={s.dataUrl} alt="" className="max-h-9 max-w-[120px] object-contain" draggable={false} />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeSaved(s.id);
+                      }}
+                      className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-slate-600 hover:bg-red-500 text-white items-center justify-center hidden group-hover:flex"
+                      title={t('delete')}
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
                 ))}
-              </select>
+              </div>
             </div>
+          )}
 
-            {/* İmza Konumu */}
-            <div>
-              <label className="block text-slate-500 mb-1 font-medium">
-                {t('placement_position')}
+          {/* Sekmeler */}
+          <div className="flex border-b border-slate-200 dark:border-slate-700">
+            {tabs.map((tb) => {
+              const Icon = tb.icon;
+              return (
+                <button
+                  key={tb.id}
+                  type="button"
+                  onClick={() => setTab(tb.id)}
+                  className={`flex items-center space-x-1.5 px-4 py-2 -mb-px border-b-2 font-medium transition-colors ${
+                    tab === tb.id
+                      ? 'border-red-500 text-red-600 dark:text-red-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{t(tb.label)}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Çizim sekmesi gizlenir ama bağlı kalır; sekme değişince çizim kaybolmasın */}
+          {
+            <div className={`space-y-2 ${tab === 'draw' ? '' : 'hidden'}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">{t('draw_your_signature_in_the_box_below')}</span>
+                {penPicker}
+              </div>
+              <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white rounded-lg overflow-hidden">
+                <canvas
+                  ref={canvasRef}
+                  width={450}
+                  height={180}
+                  onPointerDown={startDrawing}
+                  onPointerMove={draw}
+                  onPointerUp={stopDrawing}
+                  onPointerCancel={stopDrawing}
+                  className="cursor-crosshair block w-full touch-none select-none"
+                />
+                {!hasDrawn && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-300 text-xs">
+                    <Pen className="w-4 h-4 mr-1.5 opacity-40" />
+                    <span>{t('sign_here_mouse_or_touch')}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={clearCanvas}
+                  disabled={!hasDrawn}
+                  className="flex items-center space-x-1 px-3 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{t('clear_drawing')}</span>
+                </button>
+              </div>
+            </div>
+          }
+
+          {tab === 'type' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">{t('type_your_name')}</span>
+                {penPicker}
+              </div>
+              <input
+                value={typedName}
+                onChange={(e) => setTypedName(e.target.value)}
+                autoFocus
+                className="w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none focus:border-red-500 text-sm"
+              />
+              <div className="grid gap-2">
+                {SCRIPT_FONTS.map((font, i) => (
+                  <button
+                    key={font}
+                    type="button"
+                    onClick={() => setFontIndex(i)}
+                    style={{ fontFamily: font, color: penColor }}
+                    className={`h-14 px-4 rounded border text-2xl text-left truncate bg-white ${
+                      fontIndex === i ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 dark:border-slate-600'
+                    }`}
+                  >
+                    {typedName.trim() || t('signature')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tab === 'image' && (
+            <div className="space-y-3">
+              <label className="flex items-center justify-center h-28 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer hover:border-red-500 bg-white overflow-hidden">
+                {imageResult ? (
+                  <img src={imageResult.dataUrl} alt="" className="max-h-24 max-w-full object-contain" />
+                ) : (
+                  <span className="flex items-center text-slate-400">
+                    <ImageUp className="w-4 h-4 mr-1.5" />
+                    {t('choose_image')}
+                  </span>
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  className="hidden"
+                  onChange={(e) => handleImageFile(e.target.files?.[0])}
+                />
               </label>
-              <select
-                value={position}
-                onChange={(e) => setPosition(e.target.value as any)}
-                className="w-full px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none text-xs"
-              >
-                <option value="bottom-right">{t('bottom_right_default')}</option>
-                <option value="bottom-left">{t('bottom_left_2')}</option>
-                <option value="bottom-center">{t('bottom_center')}</option>
-                <option value="center">{t('page_center')}</option>
-              </select>
+              <label className="flex items-center space-x-2 text-slate-600 dark:text-slate-300 cursor-pointer">
+                <input type="checkbox" checked={removeWhite} onChange={(e) => setRemoveWhite(e.target.checked)} />
+                <span>{t('remove_white_background')}</span>
+              </label>
             </div>
-          </div>
-
-          {/* Temizle Butonu */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={clearCanvas}
-              disabled={!hasDrawn}
-              className="flex items-center space-x-1 px-3 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>{t('clear_drawing')}</span>
-            </button>
-          </div>
+          )}
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
-          <button
-            onClick={() => setSignatureModalOpen(false)}
-            className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
-          >
-            {t('cancel')}
-          </button>
-          <button
-            onClick={handleApplySignature}
-            disabled={!hasDrawn || isProcessing}
-            className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40 cursor-pointer"
-          >
-            <Check className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Ekleniyor...' : (t('apply_signature'))}</span>
-          </button>
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+          <label className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+            <input type="checkbox" checked={saveForLater} onChange={(e) => setSaveForLater(e.target.checked)} />
+            <span>{t('save_signature_for_later')}</span>
+          </label>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setSignatureModalOpen(false)}
+              className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              onClick={handleApply}
+              disabled={!canApply}
+              className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>{t('place_signature')}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

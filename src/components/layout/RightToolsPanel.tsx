@@ -16,7 +16,8 @@ import {
   Image as ImageIcon,
   FileImage,
   Lock,
-  Minimize2
+  Minimize2,
+  TextCursorInput
 } from 'lucide-react';
 
 export const RightToolsPanel: React.FC = () => {
@@ -76,6 +77,12 @@ export const RightToolsPanel: React.FC = () => {
       action: () => selectAnnotationTool('text')
     },
     {
+      id: 'edittext',
+      name: t('edit_text'),
+      icon: TextCursorInput,
+      action: () => setActiveTool('edittext')
+    },
+    {
       id: 'organize',
       name: t('organize_pages'),
       icon: Layers,
@@ -101,7 +108,7 @@ export const RightToolsPanel: React.FC = () => {
     },
     {
       id: 'sign',
-      name: t('handwritten_signature'),
+      name: t('sign'),
       icon: FileCheck,
       action: () => setSignatureModalOpen(true)
     },
