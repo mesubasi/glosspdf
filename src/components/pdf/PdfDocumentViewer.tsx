@@ -194,7 +194,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
         <div className="max-w-xl w-full flex flex-col items-center space-y-6">
           {/* Logo & Başlık Alanı */}
           <div className="flex flex-col items-center text-center">
-            <img src="/logo.png" alt="GlossPDF" className="w-16 h-16 rounded-2xl shadow-xl mb-3" />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="GlossPDF" className="w-16 h-16 rounded-2xl shadow-xl mb-3" />
             <h1 className="text-2xl font-bold text-white tracking-tight">
               Gloss<span className="text-acrobat-red">PDF</span>
             </h1>

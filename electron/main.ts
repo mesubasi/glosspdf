@@ -172,9 +172,13 @@ function resolvePreloadPath(): string {
 }
 
 function createWindow() {
-  const iconPath = fs.existsSync(path.join(__dirname, '../build/icon.ico'))
-    ? path.join(__dirname, '../build/icon.ico')
-    : path.join(__dirname, '../public/logo.png');
+  // Paketli uygulamada public/ içeriği dist/'e kopyalanır; build/ ise pakete girmez.
+  // Windows çok boyutlu .ico'yu, Linux/macOS .png'yi ister.
+  const iconPath = path.join(
+    __dirname,
+    app.isPackaged ? '../dist' : '../public',
+    process.platform === 'win32' ? 'favicon.ico' : 'logo.png'
+  );
 
   const preloadPath = resolvePreloadPath();
 
@@ -310,6 +314,10 @@ ipcMain.handle('updater:install', () => {
 ipcMain.handle('updater:openReleases', () => shell.openExternal('https://github.com/mesubasi/glosspdf/releases/latest'));
 
 // Uygulama hazır olduğunda pencere oluştur
+// Windows görev çubuğu ve bildirimler kısayoldaki kimliği (package.json build.appId) kullanmalı;
+// yoksa bildirimler Electron adı/ikonuyla görünür
+if (process.platform === 'win32') app.setAppUserModelId('io.github.glosspdf');
+
 app.whenReady().then(() => {
   createWindow();
   setupUpdater();

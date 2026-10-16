@@ -14,7 +14,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onOpenFile }) => {
     <div className="flex items-center bg-[#1c1d1f] text-slate-300 text-xs px-2 pt-1.5 select-none border-b border-black/40 overflow-x-auto no-scrollbar">
       {/* GlossPDF Marka Başlığı */}
       <div className="flex items-center space-x-2 px-2 py-1 mr-2 text-white font-bold tracking-tight text-xs border-r border-slate-700/60 pr-3">
-        <img src="/logo.png" alt="GlossPDF" className="w-5 h-5 rounded object-contain shadow-sm" />
+        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="GlossPDF" className="w-5 h-5 rounded object-contain shadow-sm" />
         <span className="tracking-wide font-semibold text-slate-100">
           Gloss<span className="text-red-500 font-bold">PDF</span>
         </span>
