@@ -67,6 +67,7 @@
     "linux": {
       "icon": "build/icon.png",
       "category": "Office",
+      "maintainer": "GlossPDF <88106043+mesubasi@users.noreply.github.com>",
       "target": [
         "AppImage",
         "deb"
