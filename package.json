@@ -41,6 +41,12 @@
   "build": {
     "appId": "io.github.glosspdf",
     "productName": "GlossPDF",
+    "npmRebuild": false,
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "!node_modules"
+    ],
     "directories": {
       "output": "release"
     },
