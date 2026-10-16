@@ -1,65 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="GlossPDF">
   <defs>
-    <!-- Arka Plan Gradyanı -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1f2430" />
-      <stop offset="100%" stop-color="#0f1218" />
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4a4d"/>
+      <stop offset="1" stop-color="#bd1319"/>
     </linearGradient>
-
-    <!-- Kırmızı Belge Gradyanı -->
-    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff4d4d" />
-      <stop offset="50%" stop-color="#e62e2e" />
-      <stop offset="100%" stop-color="#b31212" />
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
     </linearGradient>
-
-    <!-- Katlanma Köşesi Gradyanı -->
-    <linearGradient id="foldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ff8080" />
-      <stop offset="100%" stop-color="#d92626" />
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f1f2f6"/>
     </linearGradient>
-
-    <!-- Parlaklık (Gloss) Gradyanı -->
-    <linearGradient id="glossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd9da"/>
+      <stop offset="1" stop-color="#f4a3a6"/>
     </linearGradient>
-
-    <!-- Gölgeler -->
-    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.5" />
-    </filter>
-    <filter id="docShadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#b31212" flood-opacity="0.4" />
+    <clipPath id="tile"><rect x="64" y="64" width="896" height="896" rx="224"/></clipPath>
+    <filter id="drop" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#5b0306" flood-opacity=".38"/>
     </filter>
   </defs>
 
-  <!-- Dış Squircle Kasa -->
-  <rect x="32" y="32" width="448" height="448" rx="100" fill="url(#bgGrad)" filter="url(#shadow)" stroke="#333a4d" stroke-width="4" />
-
-  <!-- İç Parlaklık Yansıması -->
-  <path d="M 32 132 C 32 76 76 32 132 32 L 380 32 C 436 32 480 76 480 132 L 480 220 Q 256 260 32 220 Z" fill="url(#glossGrad)" />
-
-  <!-- PDF Belge Gövdesi -->
-  <g filter="url(#docShadow)">
-    <!-- Katlanmış Köşeli Kağıt Formu -->
-    <path d="M 144 116 L 312 116 L 368 172 L 368 396 C 368 405 361 412 352 412 L 144 412 C 135 412 128 405 128 396 L 128 132 C 128 123 135 116 144 116 Z" fill="url(#redGrad)" />
-
-    <!-- Katlanmış Köşe Parçası -->
-    <path d="M 312 116 L 312 164 C 312 168 316 172 320 172 L 368 172 Z" fill="url(#foldGrad)" />
+  <!-- tile -->
+  <rect x="64" y="64" width="896" height="896" rx="224" fill="url(#bg)"/>
+  <!-- gloss sweep -->
+  <g clip-path="url(#tile)">
+    <path d="M64 64H960V400C760 500 330 520 64 400Z" fill="url(#gloss)"/>
   </g>
 
-  <!-- Belge İçi Beyaz Minimal Çizgiler (PDF Sayfa İçeriğini Temsilen) -->
-  <!-- Başlık Çizgisi -->
-  <rect x="176" y="216" width="160" height="14" rx="7" fill="#ffffff" fill-opacity="0.9" />
-  
-  <!-- Gövde Çizgileri -->
-  <rect x="176" y="250" width="160" height="10" rx="5" fill="#ffffff" fill-opacity="0.75" />
-  <rect x="176" y="276" width="130" height="10" rx="5" fill="#ffffff" fill-opacity="0.75" />
-  <rect x="176" y="302" width="160" height="10" rx="5" fill="#ffffff" fill-opacity="0.75" />
-  <rect x="176" y="328" width="90" height="10" rx="5" fill="#ffffff" fill-opacity="0.75" />
+  <!-- page with folded corner -->
+  <g filter="url(#drop)">
+    <path d="M338 206H578L728 356V776A40 40 0 0 1 688 816H338A40 40 0 0 1 298 776V246A40 40 0 0 1 338 206Z" fill="url(#page)"/>
+  </g>
+  <path d="M578 206V326A30 30 0 0 0 608 356H728Z" fill="url(#fold)"/>
 
-  <!-- Şık Kırmızı Vurgu Noktası (Gloss Dot) -->
-  <circle cx="330" cy="358" r="14" fill="#ffffff" fill-opacity="0.95" />
-  <circle cx="330" cy="358" r="8" fill="#e62e2e" />
+  <!-- text lines with a highlighter stroke -->
+  <rect x="338" y="396" width="300" height="52" rx="12" fill="#ffd60a" opacity=".85"/>
+  <rect x="352" y="300" width="200" height="26" rx="13" fill="#3a3f4b"/>
+  <rect x="352" y="410" width="270" height="26" rx="13" fill="#3a3f4b"/>
+  <rect x="352" y="356" width="150" height="26" rx="13" fill="#3a3f4b" opacity=".45"/>
+
+  <!-- signature -->
+  <g fill="none" stroke="#d81e24" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M352 650C384 566 420 556 424 614C428 676 460 700 488 626C504 584 530 582 540 628C548 662 580 668 640 604"/>
+    <path d="M352 724H654" stroke-width="14" opacity=".55"/>
+  </g>
 </svg>
