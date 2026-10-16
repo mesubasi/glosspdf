@@ -139,6 +139,12 @@ npm run dev
 npm run build
 ```
 
+```bash
+# Publish a new version: bumps the patch version, commits, tags and pushes.
+# The tag triggers the release workflow; installed apps pick up the update on next launch.
+npm run release
+```
+
 > **Windows note:** if `vite build` fails with `remove ...\esbuild-... Access denied`, your antivirus is locking esbuild's temporary file for bundles larger than 1 MB. Add the project folder and your temp folder to the antivirus exclusions and rebuild.
 
 ## 🗂️ Project structure
