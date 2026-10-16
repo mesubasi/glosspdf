@@ -109,9 +109,17 @@ Download the installer for your platform from the **[Releases](https://github.co
 
 | Platform | Package |
 |---|---|
-| Windows | `GlossPDF Setup x.y.z.exe` (NSIS installer) |
+| Windows | `GlossPDF.Setup.x.y.z.exe` (NSIS installer) |
 | macOS | `.dmg` / `.zip` (x64 and arm64) |
 | Linux | `.AppImage` / `.deb` |
+
+### First launch on an unsigned build
+
+The installers are not code-signed yet, so Windows and macOS show a warning the first time you open GlossPDF. The app is open source and the releases are built by [GitHub Actions](.github/workflows/release.yml) from this repository.
+
+- **Windows (SmartScreen):** click **More info → Run anyway**.
+- **macOS (Gatekeeper):** right-click the app and choose **Open**, then confirm. If macOS says the app is damaged, run `xattr -cr /Applications/GlossPDF.app` and open it again.
+- **Linux:** no warning. Make the AppImage executable first (`chmod +x GlossPDF-*.AppImage`) or install the `.deb` with `sudo apt install ./glosspdf_*_amd64.deb`.
 
 ## 🧑‍💻 Development
 
