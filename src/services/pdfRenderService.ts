@@ -1,9 +1,26 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { BookmarkItem, PageDimension } from '../types/pdf';
 
+/**
+ * Uygulama varlıklarının (worker, yazı tipleri) mutlak adresi.
+ * Paketlenmiş Electron uygulaması file:// altında çalıştığı için "/..." kökü yerine
+ * sayfanın kendi adresine göre çözülür.
+ */
+function assetUrl(path: string): string {
+  return new URL(`${import.meta.env.BASE_URL}${path}`, document.baseURI).href;
+}
+
 // PDF.js Web Worker yapılandırması
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = assetUrl('pdf.worker.min.js');
+}
+
+/**
+ * Sayfanın kendi /Rotate değeri + kullanıcının görünüm döndürmesi.
+ * (getViewport'a rotation verildiğinde sayfanın doğal döndürmesi EZİLİR; bu yüzden toplanmalıdır.)
+ */
+export function viewportFor(page: pdfjsLib.PDFPageProxy, scale: number, viewRotation = 0) {
+  return page.getViewport({ scale, rotation: (page.rotate + viewRotation) % 360 });
 }
 
 export interface RenderResult {
@@ -63,7 +80,7 @@ export class PdfRenderService {
     scale: number,
     rotation: number = 0
   ): RenderResult {
-    const viewport = page.getViewport({ scale, rotation });
+    const viewport = viewportFor(page, scale, rotation);
     const context = canvas.getContext('2d');
 
     // Retina / Yüksek DPI Ekran Desteği
@@ -99,7 +116,7 @@ export class PdfRenderService {
     rotation: number = 0
   ): Promise<void> {
     container.innerHTML = '';
-    const viewport = page.getViewport({ scale, rotation });
+    const viewport = viewportFor(page, scale, rotation);
     container.style.width = `${Math.floor(viewport.width)}px`;
     container.style.height = `${Math.floor(viewport.height)}px`;
     container.style.setProperty('--scale-factor', `${viewport.scale}`);
@@ -130,7 +147,7 @@ export class PdfRenderService {
     onFieldChange?: (name: string, value: string | boolean) => void
   ): Promise<void> {
     container.innerHTML = '';
-    const viewport = page.getViewport({ scale, rotation });
+    const viewport = viewportFor(page, scale, rotation);
 
     try {
       const annotations = await page.getAnnotations({ intent: 'display' });

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+import { PdfEditService } from '../services/pdfEditService';
 import { ActiveTool, AnnotationItem, LeftSidebarTab, PdfTab, SearchMatch } from '../types/pdf';
+import { t } from '../i18n';
 import {
   LANGUAGES,
   getLanguage,
@@ -16,6 +18,8 @@ export const ZOOM_LEVELS = [
   0.0833, 0.125, 0.25, 0.3333, 0.5, 0.6667, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0
 ];
 
+export const MAX_ZOOM = 8.0;
+
 interface PdfStoreState {
   tabs: PdfTab[];
   activeTabId: string | null;
@@ -29,9 +33,16 @@ interface PdfStoreState {
   languagePreference: LanguagePreference;
   searchBarOpen: boolean;
   searchQuery: string;
+  searchMatchCase: boolean;
+  setSearchMatchCase: (matchCase: boolean) => void;
   searchResults: SearchMatch[];
   currentSearchIndex: number;
   isFullScreen: boolean;
+  /** Yerleştirilmeyi bekleyen imza (Adobe "Fill & Sign" tarzı: önce oluştur, sonra sayfada tıkla) */
+  pendingSignature: { dataUrl: string; aspect: number } | null;
+  setPendingSignature: (sig: { dataUrl: string; aspect: number } | null) => void;
+  /** Geri alınabilir bir değişiklik öncesi anlık görüntü al (sürükleme gibi sürekli düzenlemeler için) */
+  pushUndoSnapshot: () => void;
   passwordModalOpen: boolean;
   passwordCallback: ((pw: string) => void) | null;
 
@@ -146,6 +157,44 @@ function getInitialRecentFiles(): { filePath: string; fileName: string; lastOpen
   return [];
 }
 
+let isRotating = false;
+
+/**
+ * Döndürme gerçek bir belge düzenlemesidir: bekleyen işaretlemeler önce sayfaya yazılır,
+ * sonra tüm sayfaların /Rotate değeri değişir. (Eskiden yalnızca görünüm döndürülüyor ve
+ * kayıtta kayboluyordu; işaretlemeler de döndürülmüş görünümde yanlış yere biniyordu.)
+ */
+async function rotateActiveDocument(clockwise: boolean) {
+  const { activeTabId, tabs, updateTab } = usePdfStore.getState();
+  const tab = tabs.find((t) => t.id === activeTabId);
+  if (!tab || isRotating) return;
+  isRotating = true;
+  try {
+    const baked = await PdfEditService.savePdfWithAnnotations(tab.data.slice(), tab.annotations || []);
+    const data = await PdfEditService.rotateAllPages(baked, clockwise);
+    updateTab(tab.id, {
+      data,
+      rotation: 0,
+      annotations: [],
+      undoStack: [],
+      redoStack: [],
+      isModified: true,
+      pageDimensions: tab.pageDimensions.map((d) => ({
+        ...d,
+        width: d.height,
+        height: d.width,
+        originalWidth: d.originalHeight,
+        originalHeight: d.originalWidth
+      }))
+    });
+  } catch (err: any) {
+    console.error('Rotate failed:', err);
+    alert(t('error_generic', { message: err?.message || String(err) }));
+  } finally {
+    isRotating = false;
+  }
+}
+
 export const usePdfStore = create<PdfStoreState>((set, get) => ({
   tabs: [],
   activeTabId: null,
@@ -157,9 +206,11 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   languagePreference: readLanguagePreference(),
   searchBarOpen: false,
   searchQuery: '',
+  searchMatchCase: false,
   searchResults: [],
   currentSearchIndex: 0,
   isFullScreen: false,
+  pendingSignature: null,
   passwordModalOpen: false,
   passwordCallback: null,
 
@@ -230,8 +281,8 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   setZoom: (zoom) => {
     const { activeTabId, updateTab } = get();
     if (!activeTabId) return;
-    // Min %8.33, Max %6400 (Acrobat standart sınırları)
-    const clampedZoom = Math.max(0.0833, Math.min(64.0, zoom));
+    // Min %8.33, Max %800 (daha büyüğünde canvas bellek sınırını aşar ve sayfa boş kalır)
+    const clampedZoom = Math.max(0.0833, Math.min(MAX_ZOOM, zoom));
     updateTab(activeTabId, { zoom: clampedZoom });
   },
 
@@ -246,7 +297,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
     if (nextLevel) {
       setZoom(nextLevel);
     } else {
-      setZoom(Math.min(64.0, currentZoom * 1.25));
+      setZoom(Math.min(MAX_ZOOM, currentZoom * 1.25));
     }
   },
 
@@ -265,25 +316,27 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
     }
   },
 
-  rotateClockwise: () => {
+  rotateClockwise: () => void rotateActiveDocument(true),
+
+  rotateCounterClockwise: () => void rotateActiveDocument(false),
+
+  setActiveTool: (tool) =>
+    set((state) => ({
+      activeTool: tool,
+      pendingSignature: tool === 'signature' ? state.pendingSignature : null
+    })),
+
+  setPendingSignature: (sig) => set({ pendingSignature: sig }),
+
+  pushUndoSnapshot: () => {
     const { activeTabId, tabs, updateTab } = get();
-    if (!activeTabId) return;
     const tab = tabs.find((t) => t.id === activeTabId);
     if (!tab) return;
-    const nextRotation = (tab.rotation + 90) % 360;
-    updateTab(activeTabId, { rotation: nextRotation, isModified: true });
+    updateTab(tab.id, {
+      undoStack: [...(tab.undoStack || []), tab.annotations || []],
+      redoStack: []
+    });
   },
-
-  rotateCounterClockwise: () => {
-    const { activeTabId, tabs, updateTab } = get();
-    if (!activeTabId) return;
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab) return;
-    const nextRotation = (tab.rotation - 90 + 360) % 360;
-    updateTab(activeTabId, { rotation: nextRotation, isModified: true });
-  },
-
-  setActiveTool: (tool) => set({ activeTool: tool }),
 
   setLeftSidebarTab: (tab) => set({ leftSidebarTab: tab }),
 
@@ -331,6 +384,8 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
     }),
 
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  setSearchMatchCase: (matchCase) => set({ searchMatchCase: matchCase }),
 
   setSearchResults: (results) => set({ searchResults: results, currentSearchIndex: 0 }),
 

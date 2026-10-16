@@ -26,11 +26,14 @@ export type AnnotationType =
   | 'note'
   | 'draw'
   | 'rect'
-  | 'text';
+  | 'text'
+  | 'signature' // Yerleştirilmiş imza görseli (Adobe "Fill & Sign" tarzı)
+  | 'textedit'; // Mevcut PDF metninin üzerine yazılan düzenleme
 
 export type ActiveTool =
   | 'select'
   | 'hand'
+  | 'edittext' // Mevcut PDF metnini düzenleme aracı
   | AnnotationType;
 
 export interface AnnotationItem {
@@ -42,6 +45,9 @@ export interface AnnotationItem {
   strokeWidth?: number; // Çizgi ve kenarlık kalınlığı
   fontSize?: number; // Metin boyutu
   contents?: string; // Not/yorum veya metin kutusu içeriği
+  imageData?: string; // İmza PNG'si (data URL)
+  originalText?: string; // 'textedit': düzenlenmeden önceki metin
+  bgColor?: string; // 'textedit': eski metni örten arka plan rengi
   rect?: [number, number, number, number]; // [x, y, width, height] (72 DPI PDF noktası cinsinden)
   points?: { x: number; y: number }[]; // Serbest çizim için nokta koordinatları (72 DPI)
   createdAt: string;

@@ -22,6 +22,7 @@ import { CompressPdfModal } from './components/modals/CompressPdfModal';
 import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import * as pdfjsLib from 'pdfjs-dist';
+import type { PdfTab } from './types/pdf';
 import { t } from '@/i18n';
 
 /**
@@ -55,6 +56,12 @@ function base64ToBytes(base64Data: string): Uint8Array {
   }
   return bytes;
 }
+
+/**
+ * Kaydedilen baytlar işaretlemeleri zaten içerir. Bekleyen listeyi temizlemezsek bir sonraki
+ * kayıtta aynı işaretlemeler dosyaya ikinci kez yazılır ve ekranda çift görünür.
+ */
+const SAVED_STATE: Partial<PdfTab> = { annotations: [], undoStack: [], redoStack: [] };
 
 export function App() {
   const {
@@ -331,7 +338,7 @@ export function App() {
 
         const res = await window.electronAPI.savePdf(activeTab.filePath, base64Data);
         if (res.success) {
-          updateTab(activeTab.id, { isModified: false, data: savedBytes });
+          updateTab(activeTab.id, { isModified: false, data: savedBytes, ...SAVED_STATE });
         } else {
           // İzin veya kilitlenme hatası durumunda kullanıcı mağdur olmasın diye Farklı Kaydet'e yönlendir
           console.warn('Direct save failed, opening Save As:', res.error);
@@ -346,7 +353,7 @@ export function App() {
         a.download = activeTab.fileName || 'belge.pdf';
         a.click();
         URL.revokeObjectURL(url);
-        updateTab(activeTab.id, { isModified: false, data: savedBytes });
+        updateTab(activeTab.id, { isModified: false, data: savedBytes, ...SAVED_STATE });
       }
     } catch (err: any) {
       console.error('Save failed:', err);
@@ -378,7 +385,8 @@ export function App() {
             filePath: res.filePath,
             fileName: res.fileName,
             isModified: false,
-            data: savedBytes
+            data: savedBytes,
+            ...SAVED_STATE
           });
         }
       } else {
@@ -389,7 +397,7 @@ export function App() {
         a.download = activeTab.fileName || 'belge.pdf';
         a.click();
         URL.revokeObjectURL(url);
-        updateTab(activeTab.id, { isModified: false, data: savedBytes });
+        updateTab(activeTab.id, { isModified: false, data: savedBytes, ...SAVED_STATE });
       }
     } catch (err: any) {
       console.error('Save As failed:', err);
