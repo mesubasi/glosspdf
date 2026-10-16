@@ -31,6 +31,7 @@ View, annotate, edit text, sign, organize and protect PDFs — entirely on your 
 - [How editing works](#-how-editing-works)
 - [Known limitations](#-known-limitations)
 - [Contributing](#-contributing)
+- [Code signing policy](#-code-signing-policy)
 - [License](#-license)
 
 ## ✨ Why GlossPDF
@@ -115,7 +116,7 @@ Download the installer for your platform from the **[Releases](https://github.co
 
 ### First launch on an unsigned build
 
-The installers are not code-signed yet, so Windows and macOS show a warning the first time you open GlossPDF. The app is open source and the releases are built by [GitHub Actions](.github/workflows/release.yml) from this repository.
+The installers are not code-signed yet, so Windows and macOS show a warning the first time you open GlossPDF. The app is open source and the releases are built by [GitHub Actions](.github/workflows/release.yml) from this repository. See the [Code signing policy](#-code-signing-policy).
 
 - **Windows (SmartScreen):** click **More info → Run anyway**.
 - **macOS (Gatekeeper):** right-click the app and choose **Open**, then confirm. If macOS says the app is damaged, run `xattr -cr /Applications/GlossPDF.app` and open it again.
@@ -193,6 +194,28 @@ Issues and pull requests are welcome.
 2. Run `npx tsc --noEmit` before committing — the project must type-check.
 3. When you add a UI string, add the same key to **every** file in `src/i18n/locales/`.
 4. Open a pull request describing the change and how you tested it.
+
+## 🔏 Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+Only Windows release binaries built by the [release workflow](.github/workflows/release.yml) from a tagged commit of this repository are signed.
+
+**Team roles**
+
+- Committers and reviewers: [@mesubasi](https://github.com/mesubasi)
+- Approvers: [@mesubasi](https://github.com/mesubasi)
+
+Changes from outside contributors are reviewed by a reviewer before they are merged. Every signing request is approved manually by an approver.
+
+**Privacy policy**
+
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The only network connections it makes are:
+
+- **Update checks:** on launch and when you click *Check for updates*, the app reads the latest release information from [GitHub Releases](https://github.com/mesubasi/glosspdf/releases) and, if allowed, downloads the update from there. See [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
+- **PDF font data:** pdf.js downloads CMap and standard-font files from the [jsDelivr CDN](https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net) when a document needs them (mainly CJK and non-embedded-font PDFs).
+
+Your documents are never uploaded anywhere.
 
 ## 📄 License
 
