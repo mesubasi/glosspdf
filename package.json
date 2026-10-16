@@ -53,8 +53,12 @@
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        "nsis"
+        "nsis",
+        "portable"
       ]
+    },
+    "portable": {
+      "artifactName": "GlossPDF-${version}-portable.${ext}"
     },
     "nsis": {
       "oneClick": false,
