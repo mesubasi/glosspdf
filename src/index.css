@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Açılır listeler (select/option) gibi yerel kontroller temaya uysun */
+.dark {
+  color-scheme: dark;
+}
+
 /* Standart Kaydırma Çubuğu Stilleri */
 ::-webkit-scrollbar {
   width: 10px;
