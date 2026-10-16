@@ -109,7 +109,7 @@ Download the installer for your platform from the **[Releases](https://github.co
 
 | Platform | Package |
 |---|---|
-| Windows | `GlossPDF.Setup.x.y.z.exe` (NSIS installer) |
+| Windows | `GlossPDF-Setup-x.y.z.exe` (NSIS installer) |
 | macOS | `.dmg` / `.zip` (x64 and arm64) |
 | Linux | `.AppImage` / `.deb` |
 
