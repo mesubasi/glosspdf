@@ -27,7 +27,8 @@ import {
   Expand,
   HelpCircle,
   TextCursorInput,
-  FileSignature
+  FileSignature,
+  RefreshCw
 } from 'lucide-react';
 
 interface HeaderToolbarProps {
@@ -74,7 +75,8 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     annotationModeOpen,
     setAnnotationModeOpen,
     setSignatureModalOpen,
-    setShortcutHelpModalOpen
+    setShortcutHelpModalOpen,
+    setUpdateModalOpen
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -357,6 +359,15 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           title={t('keyboard_shortcuts_f1')}
         >
           <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+        </button>
+
+        {/* Sürüm ve Güncellemeler */}
+        <button
+          onClick={() => setUpdateModalOpen(true)}
+          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          title={t('check_for_updates')}
+        >
+          <RefreshCw className="w-4 h-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
         </button>
 
         <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />

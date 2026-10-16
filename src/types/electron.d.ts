@@ -23,6 +23,20 @@ export interface IElectronAPI {
   savePdf: (filePath: string, base64Data: string) => Promise<SavePdfResult>;
   savePdfAs: (defaultName: string, base64Data: string, locale?: string) => Promise<SavePdfResult>;
   print: () => Promise<boolean>;
+  getVersion: () => Promise<string>;
+  getUpdateState: () => Promise<UpdateState & { autoDownload: boolean }>;
+  setAutoDownload: (autoDownload: boolean) => Promise<void>;
+  checkForUpdates: () => Promise<void>;
+  downloadUpdate: () => Promise<void>;
+  installUpdate: () => Promise<void>;
+  openReleases: () => Promise<void>;
+  onUpdateState: (callback: (state: UpdateState) => void) => () => void;
+}
+
+export interface UpdateState {
+  status: 'unsupported' | 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  version?: string;
+  percent?: number;
 }
 
 declare global {

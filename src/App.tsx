@@ -20,6 +20,7 @@ import { ExportImagesModal } from './components/modals/ExportImagesModal';
 import { ProtectPdfModal } from './components/modals/ProtectPdfModal';
 import { CompressPdfModal } from './components/modals/CompressPdfModal';
 import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
+import { UpdateModal } from './components/modals/UpdateModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PdfTab } from './types/pdf';
@@ -503,6 +504,7 @@ export function App() {
       <ProtectPdfModal />
       <CompressPdfModal />
       <ShortcutHelpModal />
+      <UpdateModal />
     </div>
   );
 }

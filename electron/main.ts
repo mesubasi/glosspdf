@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Notification, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -24,6 +24,8 @@ const DIALOG_TEXTS: Record<
     noPath: string;
     updateTitle: string;
     updateBody: string;
+    updateAvailableTitle: string;
+    updateAvailableBody: string;
   }
 > = {
   tr: {
@@ -33,7 +35,9 @@ const DIALOG_TEXTS: Record<
     noWindow: 'Pencere bulunamadı',
     noPath: 'Dosya yolu belirtilmedi',
     updateTitle: 'Güncelleme hazır',
-    updateBody: '{appName} {version} indirildi; uygulama kapanınca kurulacak.'
+    updateBody: '{appName} {version} indirildi; uygulama kapanınca kurulacak.',
+    updateAvailableTitle: 'Güncelleme mevcut',
+    updateAvailableBody: '{version} sürümü indirilmeye hazır. İndirmek için Güncellemeleri kontrol et düğmesini kullanın.'
   },
   en: {
     openTitle: 'Open PDF File',
@@ -42,7 +46,9 @@ const DIALOG_TEXTS: Record<
     noWindow: 'Window not found',
     noPath: 'No file path provided',
     updateTitle: 'Update ready',
-    updateBody: '{appName} {version} has been downloaded and will be installed when you quit.'
+    updateBody: '{appName} {version} has been downloaded and will be installed when you quit.',
+    updateAvailableTitle: 'Update available',
+    updateAvailableBody: 'Version {version} is ready to download. Use the Check for updates button to get it.'
   },
   de: {
     openTitle: 'PDF-Datei öffnen',
@@ -51,7 +57,9 @@ const DIALOG_TEXTS: Record<
     noWindow: 'Fenster nicht gefunden',
     noPath: 'Kein Dateipfad angegeben',
     updateTitle: 'Update bereit',
-    updateBody: '{appName} {version} wurde heruntergeladen und wird beim Beenden installiert.'
+    updateBody: '{appName} {version} wurde heruntergeladen und wird beim Beenden installiert.',
+    updateAvailableTitle: 'Update verfügbar',
+    updateAvailableBody: 'Version {version} kann heruntergeladen werden. Verwenden Sie dazu „Nach Updates suchen“.'
   },
   fr: {
     openTitle: 'Ouvrir un fichier PDF',
@@ -60,7 +68,9 @@ const DIALOG_TEXTS: Record<
     noWindow: 'Fenêtre introuvable',
     noPath: 'Aucun chemin de fichier fourni',
     updateTitle: 'Mise à jour prête',
-    updateBody: '{appName} {version} a été téléchargé et sera installé à la fermeture.'
+    updateBody: '{appName} {version} a été téléchargé et sera installé à la fermeture.',
+    updateAvailableTitle: 'Mise à jour disponible',
+    updateAvailableBody: 'La version {version} est prête à être téléchargée. Utilisez le bouton Rechercher des mises à jour.'
   },
   es: {
     openTitle: 'Abrir archivo PDF',
@@ -69,7 +79,9 @@ const DIALOG_TEXTS: Record<
     noWindow: 'Ventana no encontrada',
     noPath: 'No se proporcionó ninguna ruta de archivo',
     updateTitle: 'Actualización lista',
-    updateBody: '{appName} {version} se ha descargado y se instalará al cerrar.'
+    updateBody: '{appName} {version} se ha descargado y se instalará al cerrar.',
+    updateAvailableTitle: 'Actualización disponible',
+    updateAvailableBody: 'La versión {version} está lista para descargarse. Usa el botón Buscar actualizaciones.'
   },
   ar: {
     openTitle: 'فتح ملف PDF',
@@ -78,7 +90,9 @@ const DIALOG_TEXTS: Record<
     noWindow: 'لم يتم العثور على النافذة',
     noPath: 'لم يتم تحديد مسار الملف',
     updateTitle: 'التحديث جاهز',
-    updateBody: 'تم تنزيل {appName} {version} وسيتم تثبيته عند الإغلاق.'
+    updateBody: 'تم تنزيل {appName} {version} وسيتم تثبيته عند الإغلاق.',
+    updateAvailableTitle: 'يتوفر تحديث',
+    updateAvailableBody: 'الإصدار {version} جاهز للتنزيل. استخدم زر التحقق من التحديثات.'
   },
   zh: {
     openTitle: '打开 PDF 文件',
@@ -87,7 +101,9 @@ const DIALOG_TEXTS: Record<
     noWindow: '未找到窗口',
     noPath: '未提供文件路径',
     updateTitle: '更新已就绪',
-    updateBody: '{appName} {version} 已下载，将在退出时安装。'
+    updateBody: '{appName} {version} 已下载，将在退出时安装。',
+    updateAvailableTitle: '有可用更新',
+    updateAvailableBody: '版本 {version} 可供下载。请使用“检查更新”按钮获取。'
   }
 };
 
@@ -207,26 +223,96 @@ function createWindow() {
 }
 
 /**
- * GitHub Releases'ten güncelleme arar; bulursa arka planda indirir ve uygulama
- * kapanınca kurar. Geliştirme modunda ve portable sürümde (yerinde güncellenemez) çalışmaz.
+ * GitHub Releases üzerinden güncelleme. Kullanıcı "otomatik indir" (varsayılan) ile
+ * "sorarak indir" arasında seçim yapar; tercih userData/update-settings.json'da tutulur.
+ * Geliştirme modunda ve portable sürümde (yerinde güncellenemez) devre dışıdır.
  */
-function checkForUpdates() {
-  if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_DIR) return;
+const { autoUpdater } = updater;
+const updatesSupported = () => app.isPackaged && !process.env.PORTABLE_EXECUTABLE_DIR;
+const updateSettingsPath = () => path.join(app.getPath('userData'), 'update-settings.json');
 
-  const { autoUpdater } = updater;
+type UpdateState = {
+  status: 'unsupported' | 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  version?: string;
+  percent?: number;
+};
+let updateState: UpdateState = { status: 'idle' };
+
+function setUpdateState(state: UpdateState) {
+  updateState = state;
+  mainWindow?.webContents.send('updater:state', state);
+}
+
+function readAutoDownload(): boolean {
+  try {
+    return JSON.parse(fs.readFileSync(updateSettingsPath(), 'utf8')).autoDownload !== false;
+  } catch {
+    return true;
+  }
+}
+
+function setupUpdater() {
+  if (!updatesSupported()) {
+    updateState = { status: 'unsupported' };
+    return;
+  }
+
+  autoUpdater.autoDownload = readAutoDownload();
+  autoUpdater.on('checking-for-update', () => setUpdateState({ status: 'checking' }));
+  autoUpdater.on('update-not-available', () => setUpdateState({ status: 'not-available' }));
+  autoUpdater.on('update-available', (info) =>
+    setUpdateState({ status: autoUpdater.autoDownload ? 'downloading' : 'available', version: info.version })
+  );
+  autoUpdater.on('download-progress', (progress) =>
+    setUpdateState({ status: 'downloading', version: updateState.version, percent: Math.round(progress.percent) })
+  );
+  autoUpdater.on('update-downloaded', (info) => setUpdateState({ status: 'downloaded', version: info.version }));
   // Dinleyicisiz 'error' olayı süreci çökertir; ağ yokken veya imzasız macOS'ta sadece logla
-  autoUpdater.on('error', (error) => console.error('[GlossPDF] Güncelleme hatası:', error));
+  autoUpdater.on('error', (error) => {
+    console.error('[GlossPDF] Güncelleme hatası:', error);
+    setUpdateState({ status: 'error' });
+  });
 
+  // Açılışta sessiz kontrol: otomatik modda indirip bildirir, sorarak modda yalnızca haber verir
   const texts = dialogTexts();
   autoUpdater
     .checkForUpdatesAndNotify({ title: texts.updateTitle, body: texts.updateBody })
+    .then((result) => {
+      if (result?.isUpdateAvailable && !autoUpdater.autoDownload && Notification.isSupported()) {
+        new Notification({
+          title: texts.updateAvailableTitle,
+          body: texts.updateAvailableBody.replace('{version}', result.updateInfo.version)
+        }).show();
+      }
+    })
     .catch((error) => console.error('[GlossPDF] Güncelleme kontrolü başarısız:', error));
 }
+
+ipcMain.handle('app:getVersion', () => app.getVersion());
+ipcMain.handle('updater:getState', () => ({ ...updateState, autoDownload: readAutoDownload() }));
+ipcMain.handle('updater:setAutoDownload', async (_event, autoDownload: boolean) => {
+  await fs.promises.writeFile(updateSettingsPath(), JSON.stringify({ autoDownload: autoDownload === true }));
+  autoUpdater.autoDownload = autoDownload === true;
+});
+ipcMain.handle('updater:check', async () => {
+  if (!updatesSupported()) return;
+  // Hata 'error' olayıyla duruma yansır; burada yutulur
+  await autoUpdater.checkForUpdates().catch(() => {});
+});
+ipcMain.handle('updater:download', async () => {
+  if (updateState.status !== 'available') return;
+  setUpdateState({ status: 'downloading', version: updateState.version, percent: 0 });
+  await autoUpdater.downloadUpdate().catch(() => {});
+});
+ipcMain.handle('updater:install', () => {
+  if (updateState.status === 'downloaded') autoUpdater.quitAndInstall();
+});
+ipcMain.handle('updater:openReleases', () => shell.openExternal('https://github.com/mesubasi/glosspdf/releases/latest'));
 
 // Uygulama hazır olduğunda pencere oluştur
 app.whenReady().then(() => {
   createWindow();
-  checkForUpdates();
+  setupUpdater();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

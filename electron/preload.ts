@@ -29,7 +29,22 @@ const electronAPI = {
     ipcRenderer.invoke('dialog:savePdfAs', { defaultName, base64Data, locale }),
 
   // Belgeyi Yazdırma
-  print: () => ipcRenderer.invoke('app:print')
+  print: () => ipcRenderer.invoke('app:print'),
+
+  // Sürüm ve Güncellemeler
+  getVersion: () => ipcRenderer.invoke('app:getVersion'),
+  getUpdateState: () => ipcRenderer.invoke('updater:getState'),
+  setAutoDownload: (autoDownload: boolean) => ipcRenderer.invoke('updater:setAutoDownload', autoDownload),
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  downloadUpdate: () => ipcRenderer.invoke('updater:download'),
+  installUpdate: () => ipcRenderer.invoke('updater:install'),
+  openReleases: () => ipcRenderer.invoke('updater:openReleases'),
+  // Durum değişikliklerini dinler; aboneliği bırakan fonksiyon döner
+  onUpdateState: (callback: (state: unknown) => void) => {
+    const listener = (_event: unknown, state: unknown) => callback(state);
+    ipcRenderer.on('updater:state', listener);
+    return () => ipcRenderer.removeListener('updater:state', listener);
+  }
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
