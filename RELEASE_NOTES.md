@@ -11,7 +11,7 @@ GlossPDF is designed from the ground up to deliver a clean, fast, and independen
 
 ### 📖 High-Performance Viewing & Navigation
 - **Virtual Page Rendering:** Fast scrolling through large documents with minimal memory footprint.
-- **Precision Zoom Engine:** 15 discrete zoom steps from **8.33% up to 6400%**, plus instant **Fit Page** and **Fit Width** modes.
+- **Precision Zoom Engine:** 15 discrete zoom steps from **8.33% up to 800%**, plus instant **Fit Page** and **Fit Width** modes.
 - **Multi-Tab Interface:** Work on multiple PDF documents seamlessly.
 - **Thumbnails & Bookmarks:** Quick navigation with visual page thumbnails and hierarchical bookmarks outline.
 - **Full-Text Search:** In-document keyword search with match counting and highlighting (`Ctrl+F`).
