@@ -102,13 +102,18 @@ export const OrganizePagesModal: React.FC = () => {
   const insertBlank = async () => {
     try {
       setIsProcessing(true);
-      const newBytes = await PdfEditService.insertBlankPage(activeTab.data.slice(), pages.length);
+      // Sayfa yapısı değişeceği için bekleyen işaretlemeler önce sayfalara yazılır
+      const baked = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || []);
+      const newBytes = await PdfEditService.insertBlankPage(baked, pages.length);
       const newDoc = await PdfRenderService.loadDocument(newBytes.slice());
       const dims = await PdfRenderService.getAllPageDimensions(newDoc);
       updateTab(activeTab.id, {
         data: newBytes,
         numPages: newDoc.numPages,
         pageDimensions: dims,
+        annotations: [],
+        undoStack: [],
+        redoStack: [],
         isModified: true
       });
       setPdfDoc(newDoc);
@@ -130,7 +135,9 @@ export const OrganizePagesModal: React.FC = () => {
 
       // 1. Sıralamayı uygula (reorder)
       const pageOrder = pages.map((p) => p.originalPageNumber);
-      let updatedBytes = await PdfEditService.reorderPages(activeTab.data.slice(), pageOrder);
+      // Sayfa sırası/sayısı değişeceği için bekleyen işaretlemeler önce sayfalara yazılır
+      const baked = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || []);
+      let updatedBytes = await PdfEditService.reorderPages(baked, pageOrder);
 
       // 2. Döndürmeleri uygula
       for (let i = 0; i < pages.length; i++) {
@@ -151,6 +158,9 @@ export const OrganizePagesModal: React.FC = () => {
         data: updatedBytes,
         numPages: newDoc.numPages,
         pageDimensions: dims,
+        annotations: [],
+        undoStack: [],
+        redoStack: [],
         isModified: true,
         currentPage: 1
       });

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { usePdfStore } from '../../store/usePdfStore';
+import { usePdfStore, MAX_ZOOM } from '../../store/usePdfStore';
 import { PdfPage } from './PdfPage';
 import { SearchBar } from './SearchBar';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -27,6 +27,8 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     activeTool,
     setZoom,
     setCurrentPage,
+    setSelectedAnnotationId,
+    pendingSignature,
     language,
     recentFiles,
     clearRecentFiles,
@@ -124,12 +126,16 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     e.preventDefault();
 
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-    const newZoom = Math.max(0.0833, Math.min(activeTab.zoom * zoomFactor, 64.0));
+    const newZoom = Math.max(0.0833, Math.min(activeTab.zoom * zoomFactor, MAX_ZOOM));
     setZoom(parseFloat(newZoom.toFixed(3)));
   };
 
   // El Aracı (Pan) Mouse Event İşleyicileri
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Boş alana tıklamak seçimi kaldırır (imza/metin nesneleri data-annot ile işaretlidir)
+    if (activeTool === 'select' && !(e.target as HTMLElement).closest('[data-annot]')) {
+      setSelectedAnnotationId(null);
+    }
     if (activeTool !== 'hand' || !containerRef.current) return;
     isPanningRef.current = true;
     startPanPosRef.current = {
@@ -310,6 +316,15 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
         activeTool === 'hand' ? 'cursor-grab active:cursor-grabbing select-none' : 'cursor-default'
       }`}
     >
+      {/* Araç ipucu: imza yerleştirme / metin düzenleme */}
+      {((activeTool === 'signature' && pendingSignature) || activeTool === 'edittext') && (
+        <div className="sticky top-2 z-40 flex justify-center pointer-events-none">
+          <div className="px-4 py-1.5 rounded-full bg-black/80 text-white text-xs shadow-lg">
+            {t(activeTool === 'edittext' ? 'edit_text_hint' : 'place_signature_hint')}
+          </div>
+        </div>
+      )}
+
       {/* Kayan Arama Çubuğu */}
       <SearchBar
         pdfDocument={pdfDocument}

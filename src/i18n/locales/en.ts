@@ -262,6 +262,22 @@ export const en = {
   "zoom_out": "Zoom Out",
   "zoom_out_2": "Zoom Out",
   "zoom_out_ctrl": "Zoom Out (Ctrl+-)",
+  "signature_tab_draw": "Draw",
+  "signature_tab_type": "Type",
+  "signature_tab_image": "Image",
+  "create_signature": "Create Signature",
+  "saved_signatures": "Saved signatures",
+  "place_signature": "Place Signature",
+  "type_your_name": "Type your name",
+  "signature": "Signature",
+  "choose_image": "Choose an image (PNG or JPEG)…",
+  "remove_white_background": "Remove white background",
+  "save_signature_for_later": "Save for future use",
+  "edit_text": "Edit Text",
+  "edit_text_hint": "Click any text on the page to edit it · Esc to finish",
+  "sign": "Sign",
+  "place_signature_hint": "Click where you want to place your signature · Esc to cancel",
+  "text_edit": "Text edit",
 };
 
 /** Sözlükteki tüm anahtarların birleşimi (tip güvenliği için). */

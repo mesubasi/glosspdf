@@ -37,7 +37,9 @@ export function useKeyboardShortcuts({
     selectedAnnotationId,
     deleteAnnotation,
     shortcutHelpModalOpen,
-    setShortcutHelpModalOpen
+    setShortcutHelpModalOpen,
+    activeTool,
+    setActiveTool
   } = usePdfStore();
 
   useEffect(() => {
@@ -192,6 +194,13 @@ export function useKeyboardShortcuts({
         return;
       }
 
+      // Escape: imza yerleştirme / metin düzenleme aracından çık
+      if (e.key === 'Escape' && (activeTool === 'signature' || activeTool === 'edittext')) {
+        e.preventDefault();
+        setActiveTool('select');
+        return;
+      }
+
       // Escape: Kısayol Yardımını Kapat
       if (e.key === 'Escape' && shortcutHelpModalOpen) {
         e.preventDefault();
@@ -225,6 +234,10 @@ export function useKeyboardShortcuts({
     undo,
     redo,
     selectedAnnotationId,
-    deleteAnnotation
+    deleteAnnotation,
+    activeTool,
+    setActiveTool,
+    shortcutHelpModalOpen,
+    setShortcutHelpModalOpen
   ]);
 }

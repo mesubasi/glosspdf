@@ -16,6 +16,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
     setSearchBarOpen,
     searchQuery,
     setSearchQuery,
+    searchMatchCase: matchCase,
+    setSearchMatchCase: setMatchCase,
     searchResults,
     setSearchResults,
     currentSearchIndex,
@@ -24,7 +26,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
     language
   } = usePdfStore();
 
-  const [matchCase, setMatchCase] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 

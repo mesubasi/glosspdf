@@ -4,11 +4,12 @@ import {
   PDFName,
   PDFArray,
   PDFString,
-  PDFNumber,
+  PDFPage,
+  PDFFont,
   degrees,
-  rgb,
-  StandardFonts
+  rgb
 } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import { configure, lock } from 'pdf-lib-encrypt';
 import { AnnotationItem } from '../types/pdf';
 import { t } from '@/i18n';
@@ -26,6 +27,81 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   };
 }
 
+/** XHR kullanılır: Electron'da file:// altında fetch() engellenir, XHR çalışır (status 0). */
+function loadBinary(url: string): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = () =>
+      xhr.status === 200 || xhr.status === 0
+        ? resolve(new Uint8Array(xhr.response as ArrayBuffer))
+        : reject(new Error(`${url}: HTTP ${xhr.status}`));
+    xhr.onerror = () => reject(new Error(`${url}: could not be loaded`));
+    xhr.send();
+  });
+}
+
+const fontBytesCache = new Map<string, Promise<Uint8Array>>();
+
+/**
+ * Unicode destekli (Latin genişletilmiş: ş ğ ı İ ö ü ç, Kiril, Yunanca) font gömer.
+ * Standart Helvetica yalnızca WinAnsi'yi bilir; "ş/ğ/İ" yazan metin kaydı çökertirdi.
+ */
+async function embedUnicodeFont(doc: PDFDocument, bold = false): Promise<PDFFont> {
+  const file = bold ? 'LiberationSans-Bold.ttf' : 'LiberationSans-Regular.ttf';
+  if (!fontBytesCache.has(file)) {
+    fontBytesCache.set(file, loadBinary(`${import.meta.env.BASE_URL}fonts/${file}`));
+  }
+  doc.registerFontkit(fontkit);
+  return doc.embedFont(await fontBytesCache.get(file)!, { subset: true });
+}
+
+/** Önizleme (DOM) ve kayıt aynı satır tabanını kullansın diye ortak oran */
+export const BASELINE_RATIO = 0.85;
+
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const bin = atob(dataUrl.split(',')[1] || '');
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * Sayfa-ekran koordinatlarını (sol üst başlangıç, /Rotate uygulanmış, 72 DPI) PDF kullanıcı
+ * uzayına çevirir. /Rotate'li ve CropBox'ı sıfırdan başlamayan sayfalarda da doğru konum verir.
+ */
+function pageMapper(page: PDFPage) {
+  const { x: x0, y: y0, width: W, height: H } = page.getCropBox();
+  const rot = (((page.getRotation().angle % 360) + 360) % 360) as 0 | 90 | 180 | 270;
+  const pt = (dx: number, dy: number) => {
+    switch (rot) {
+      case 90:
+        return { x: x0 + dy, y: y0 + dx };
+      case 180:
+        return { x: x0 + W - dx, y: y0 + dy };
+      case 270:
+        return { x: x0 + W - dy, y: y0 + H - dx };
+      default:
+        return { x: x0 + dx, y: y0 + H - dy };
+    }
+  };
+  /** Ekran dikdörtgeni [x,y,w,h] → PDF'te eksen hizalı dikdörtgen */
+  const rect = (x: number, y: number, w: number, h: number) => {
+    const a = pt(x, y);
+    const b = pt(x + w, y + h);
+    return {
+      x: Math.min(a.x, b.x),
+      y: Math.min(a.y, b.y),
+      width: Math.abs(a.x - b.x),
+      height: Math.abs(a.y - b.y)
+    };
+  };
+  return { rot, pt, rect };
+}
+
+const num = (n: number) => Number(n.toFixed(3));
+
 export class PdfEditService {
   /**
    * PDF belgesini yükler
@@ -35,244 +111,218 @@ export class PdfEditService {
   }
 
   /**
-   * İşaretlemeleri (Annotations) hem ISO 32000 sözlükleri hem de görsel katman olarak PDF'e yazar
+   * Bekleyen düzenlemeleri (işaretleme, imza, metin düzenleme) PDF'e yazar.
+   *
+   * - Vurgu/altı çizili/üstü çizili/not/kalem/dikdörtgen: ISO 32000 annotation + görünüm akışı (/AP).
+   *   (Görsel ayrıca çizilmez; aksi halde çoğu okuyucuda iki kez görünür.)
+   * - Metin kutusu, metin düzenleme ve imza: sayfa içeriğine gömülür.
    */
   static async savePdfWithAnnotations(
     data: Uint8Array,
     annotations: AnnotationItem[]
   ): Promise<Uint8Array> {
+    // Hiçbir değişiklik yoksa baytlara dokunma (şifreli belgeyi bozmamak için de gerekli)
+    if (annotations.length === 0) return data;
+
     const doc = await this.loadPdf(data);
     const context = doc.context;
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-
-    // Her sayfa için işaretlemeleri grupla
     const pages = doc.getPages();
+    const needsFont = annotations.some((a) => a.type === 'text' || a.type === 'textedit');
+    const font = needsFont ? await embedUnicodeFont(doc) : null;
+    const images = new Map<string, Awaited<ReturnType<PDFDocument['embedPng']>>>();
 
     for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
-      const pageNum = pageIdx + 1;
-      const pageAnnots = annotations.filter((a) => a.pageNumber === pageNum);
+      const pageAnnots = annotations.filter((a) => a.pageNumber === pageIdx + 1);
       if (pageAnnots.length === 0) continue;
 
       const page = pages[pageIdx];
-      const pageHeight = page.getHeight();
+      const map = pageMapper(page);
 
-      // /Annots dizisini hazırla
-      let annots = page.node.get(PDFName.of('Annots'));
-      if (!annots) {
-        const newAnnots = context.obj([]);
-        page.node.set(PDFName.of('Annots'), newAnnots);
-        annots = newAnnots;
-      } else {
-        annots = context.lookup(annots);
-      }
+      const annots = (() => {
+        const existing = page.node.lookup(PDFName.of('Annots'));
+        if (existing instanceof PDFArray) return existing;
+        const created = context.obj([]);
+        page.node.set(PDFName.of('Annots'), created);
+        return created;
+      })();
+
+      /** /AP içeren bir annotation kaydeder; Rect = BBox */
+      const addMarkup = (
+        subtype: string,
+        box: { x: number; y: number; width: number; height: number },
+        ap: string,
+        extra: Record<string, any>,
+        resources: Record<string, any> = {}
+      ) => {
+        const bbox = [box.x, box.y, box.x + box.width, box.y + box.height].map(num);
+        const stream = context.stream(ap, {
+          Type: 'XObject',
+          Subtype: 'Form',
+          BBox: bbox,
+          Resources: resources
+        });
+        annots.push(
+          context.register(
+            context.obj({
+              Type: 'Annot',
+              Subtype: subtype,
+              Rect: bbox,
+              F: 4,
+              AP: { N: context.register(stream) },
+              ...extra
+            })
+          )
+        );
+      };
 
       for (const item of pageAnnots) {
         const { r, g, b } = hexToRgb(item.color);
-        const rgbColor = rgb(r, g, b);
+        const col = `${num(r)} ${num(g)} ${num(b)}`;
+        const author = PDFString.of(item.author || t('annotation_author_default'));
 
         switch (item.type) {
-          case 'highlight': {
-            if (!item.rect) break;
-            const [x, y, w, h] = item.rect;
-            const llx = x;
-            const urx = x + w;
-            const lly = pageHeight - (y + h);
-            const ury = pageHeight - y;
-
-            // 1. ISO 32000 /Highlight nesnesi
-            const annotDict = context.obj({
-              Type: 'Annot',
-              Subtype: 'Highlight',
-              Rect: [llx, lly, urx, ury],
-              QuadPoints: [llx, ury, urx, ury, llx, lly, urx, lly],
-              C: [r, g, b],
-              F: 4,
-              Contents: PDFString.of(item.contents || 'Vurgu')
-            });
-            (annots as any).push(context.register(annotDict));
-
-            // 2. Kalıcı görsel yarı-saydam dikdörtgen
-            page.drawRectangle({
-              x: llx,
-              y: lly,
-              width: w,
-              height: h,
-              color: rgbColor,
-              opacity: 0.35
-            });
-            break;
-          }
-
-          case 'underline': {
-            if (!item.rect) break;
-            const [x, y, w, h] = item.rect;
-            const llx = x;
-            const urx = x + w;
-            const lly = pageHeight - (y + h);
-            const ury = pageHeight - y;
-
-            const annotDict = context.obj({
-              Type: 'Annot',
-              Subtype: 'Underline',
-              Rect: [llx, lly, urx, ury],
-              QuadPoints: [llx, ury, urx, ury, llx, lly, urx, lly],
-              C: [r, g, b],
-              F: 4,
-              Contents: PDFString.of(item.contents || t('annotation_underline'))
-            });
-            (annots as any).push(context.register(annotDict));
-
-            page.drawLine({
-              start: { x: llx, y: lly },
-              end: { x: urx, y: lly },
-              thickness: 1.5,
-              color: rgbColor
-            });
-            break;
-          }
-
+          case 'highlight':
+          case 'underline':
           case 'strikeout': {
             if (!item.rect) break;
-            const [x, y, w, h] = item.rect;
-            const llx = x;
-            const urx = x + w;
-            const midY = pageHeight - (y + h / 2);
-
-            const annotDict = context.obj({
-              Type: 'Annot',
-              Subtype: 'StrikeOut',
-              Rect: [llx, pageHeight - (y + h), urx, pageHeight - y],
-              QuadPoints: [llx, midY, urx, midY, llx, midY, urx, midY],
+            const box = map.rect(...item.rect);
+            const q = [
+              box.x, box.y + box.height, box.x + box.width, box.y + box.height,
+              box.x, box.y, box.x + box.width, box.y
+            ].map(num);
+            const common = {
+              QuadPoints: q,
               C: [r, g, b],
-              F: 4,
-              Contents: PDFString.of(item.contents || t('annotation_strikeout'))
-            });
-            (annots as any).push(context.register(annotDict));
-
-            page.drawLine({
-              start: { x: llx, y: midY },
-              end: { x: urx, y: midY },
-              thickness: 1.5,
-              color: rgbColor
-            });
+              T: author,
+              Contents: PDFString.of(item.contents || '')
+            };
+            if (item.type === 'highlight') {
+              addMarkup(
+                'Highlight',
+                box,
+                `/GS0 gs ${col} rg ${num(box.x)} ${num(box.y)} ${num(box.width)} ${num(box.height)} re f`,
+                common,
+                { ExtGState: { GS0: { Type: 'ExtGState', ca: 0.35, CA: 0.35, BM: 'Multiply' } } }
+              );
+            } else {
+              const ly = item.type === 'underline' ? box.y + 1 : box.y + box.height / 2;
+              addMarkup(
+                item.type === 'underline' ? 'Underline' : 'StrikeOut',
+                box,
+                `${col} RG 1.5 w ${num(box.x)} ${num(ly)} m ${num(box.x + box.width)} ${num(ly)} l S`,
+                common
+              );
+            }
             break;
           }
 
           case 'note': {
             if (!item.rect) break;
-            const [x, y] = item.rect;
-            const llx = x;
-            const lly = pageHeight - y - 24;
-
-            const annotDict = context.obj({
-              Type: 'Annot',
-              Subtype: 'Text',
-              Rect: [llx, lly, llx + 24, lly + 24],
-              Name: 'Comment',
-              C: [r, g, b],
-              Contents: PDFString.of(item.contents || ''),
-              T: PDFString.of(item.author || t('annotation_author_default'))
-            });
-            (annots as any).push(context.register(annotDict));
-
-            // Görsel not simgesi
-            page.drawRectangle({
-              x: llx,
-              y: lly,
-              width: 18,
-              height: 18,
-              color: rgbColor,
-              borderColor: rgb(0.2, 0.2, 0.2),
-              borderWidth: 1
-            });
+            const box = map.rect(item.rect[0], item.rect[1], 24, 24);
+            const x = num(box.x);
+            const y = num(box.y);
+            addMarkup(
+              'Text',
+              box,
+              `${col} rg 0.2 0.2 0.2 RG 1 w ${x + 1} ${y + 1} 22 22 re B ` +
+                `0.15 0.15 0.15 RG ${x + 5} ${y + 16} m ${x + 19} ${y + 16} l ` +
+                `${x + 5} ${y + 12} m ${x + 19} ${y + 12} l ${x + 5} ${y + 8} m ${x + 14} ${y + 8} l S`,
+              { Name: 'Comment', C: [r, g, b], Contents: PDFString.of(item.contents || ''), T: author }
+            );
             break;
           }
 
           case 'draw': {
             if (!item.points || item.points.length < 2) break;
-            const strokeWidth = item.strokeWidth || 2;
-
-            // Ink Listesi (PDF koordinatları)
-            const inkList: number[] = [];
-            const convertedPoints: { x: number; y: number }[] = [];
-
-            for (const pt of item.points) {
-              const pyX = pt.x;
-              const pyY = pageHeight - pt.y;
-              inkList.push(pyX, pyY);
-              convertedPoints.push({ x: pyX, y: pyY });
-            }
-
-            const annotDict = context.obj({
-              Type: 'Annot',
-              Subtype: 'Ink',
-              Rect: [0, 0, page.getWidth(), pageHeight],
-              InkList: [inkList],
-              C: [r, g, b]
+            const sw = item.strokeWidth || 2;
+            const pts = item.points.map((p) => map.pt(p.x, p.y));
+            const xs = pts.map((p) => p.x);
+            const ys = pts.map((p) => p.y);
+            const box = {
+              x: Math.min(...xs) - sw,
+              y: Math.min(...ys) - sw,
+              width: Math.max(...xs) - Math.min(...xs) + sw * 2,
+              height: Math.max(...ys) - Math.min(...ys) + sw * 2
+            };
+            const path = pts.map((p, i) => `${num(p.x)} ${num(p.y)} ${i === 0 ? 'm' : 'l'}`).join(' ');
+            addMarkup('Ink', box, `${col} RG ${sw} w 1 J 1 j ${path} S`, {
+              InkList: [pts.flatMap((p) => [num(p.x), num(p.y)])],
+              C: [r, g, b],
+              BS: { W: sw },
+              T: author
             });
-            (annots as any).push(context.register(annotDict));
-
-            // Görsel çizgi segmentleri
-            for (let i = 0; i < convertedPoints.length - 1; i++) {
-              page.drawLine({
-                start: convertedPoints[i],
-                end: convertedPoints[i + 1],
-                thickness: strokeWidth,
-                color: rgbColor
-              });
-            }
             break;
           }
 
           case 'rect': {
             if (!item.rect) break;
-            const [x, y, w, h] = item.rect;
-            const llx = x;
-            const lly = pageHeight - (y + h);
-            const strokeWidth = item.strokeWidth || 2;
-
-            const annotDict = context.obj({
-              Type: 'Annot',
-              Subtype: 'Square',
-              Rect: [llx, lly, llx + w, lly + h],
-              C: [r, g, b],
-              BS: context.obj({ W: strokeWidth })
-            });
-            (annots as any).push(context.register(annotDict));
-
-            page.drawRectangle({
-              x: llx,
-              y: lly,
-              width: w,
-              height: h,
-              borderWidth: strokeWidth,
-              borderColor: rgbColor
-            });
+            const sw = item.strokeWidth || 2;
+            const inner = map.rect(...item.rect);
+            const box = {
+              x: inner.x - sw / 2,
+              y: inner.y - sw / 2,
+              width: inner.width + sw,
+              height: inner.height + sw
+            };
+            addMarkup(
+              'Square',
+              box,
+              `${col} RG ${sw} w ${num(inner.x)} ${num(inner.y)} ${num(inner.width)} ${num(inner.height)} re S`,
+              { C: [r, g, b], BS: { W: sw }, T: author }
+            );
             break;
           }
 
           case 'text': {
-            if (!item.rect || !item.contents) break;
-            const [x, y, w, h] = item.rect;
-            const llx = x;
-            const lly = pageHeight - (y + h);
-            const fSize = item.fontSize || 14;
-
-            const annotDict = context.obj({
-              Type: 'Annot',
-              Subtype: 'FreeText',
-              Rect: [llx, lly, llx + w, lly + h],
-              Contents: PDFString.of(item.contents),
-              DA: PDFString.of(`/Helv ${fSize} Tf ${r} ${g} ${b} rg`)
-            });
-            (annots as any).push(context.register(annotDict));
-
+            if (!item.rect || !item.contents || !font) break;
+            const fs = item.fontSize || 14;
+            const origin = map.pt(item.rect[0], item.rect[1] + fs * BASELINE_RATIO);
             page.drawText(item.contents, {
-              x: llx,
-              y: pageHeight - y - fSize,
-              size: fSize,
+              x: origin.x,
+              y: origin.y,
+              size: fs,
               font,
-              color: rgbColor
+              color: rgb(r, g, b),
+              rotate: degrees(map.rot)
+            });
+            break;
+          }
+
+          case 'textedit': {
+            if (!item.rect || !font) break;
+            const [x, y, w, h] = item.rect;
+            const pad = Math.max(1, (item.fontSize || 12) * 0.1);
+            const cover = map.rect(x - pad, y - pad, w + pad * 2, h + pad * 2);
+            const bg = hexToRgb(item.bgColor || '#ffffff');
+            page.drawRectangle({ ...cover, color: rgb(bg.r, bg.g, bg.b), borderWidth: 0 });
+            if (item.contents) {
+              const fs = item.fontSize || 12;
+              const origin = map.pt(x, y + fs * BASELINE_RATIO);
+              page.drawText(item.contents, {
+                x: origin.x,
+                y: origin.y,
+                size: fs,
+                font,
+                color: rgb(r, g, b),
+                rotate: degrees(map.rot)
+              });
+            }
+            break;
+          }
+
+          case 'signature': {
+            if (!item.rect || !item.imageData) break;
+            const [x, y, w, h] = item.rect;
+            if (!images.has(item.imageData)) {
+              images.set(item.imageData, await doc.embedPng(dataUrlToBytes(item.imageData)));
+            }
+            const origin = map.pt(x, y + h);
+            page.drawImage(images.get(item.imageData)!, {
+              x: origin.x,
+              y: origin.y,
+              width: w,
+              height: h,
+              rotate: degrees(map.rot)
             });
             break;
           }
@@ -385,7 +435,7 @@ export class PdfEditService {
     options?: { colorHex?: string; opacity?: number; size?: number }
   ): Promise<Uint8Array> {
     const doc = await this.loadPdf(data);
-    const font = await doc.embedFont(StandardFonts.HelveticaBold);
+    const font = await embedUnicodeFont(doc, true);
     const pages = doc.getPages();
 
     const opacity = options?.opacity ?? 0.22;
@@ -427,8 +477,8 @@ export class PdfEditService {
 
     const page = pages[targetIdx];
     const { width, height } = page.getSize();
-    const font = await doc.embedFont(StandardFonts.HelveticaBold);
-    const subFont = await doc.embedFont(StandardFonts.Helvetica);
+    const font = await embedUnicodeFont(doc, true);
+    const subFont = await embedUnicodeFont(doc);
     const { r, g, b } = hexToRgb(colorHex);
     const stampColor = rgb(r, g, b);
 
@@ -471,7 +521,7 @@ export class PdfEditService {
     });
 
     // Tarih damgası
-    const dateStr = new Date().toLocaleDateString('tr-TR');
+    const dateStr = new Date().toISOString().slice(0, 10);
     const dateW = subFont.widthOfTextAtSize(dateStr, 10);
     page.drawText(dateStr, {
       x: boxX + (boxW - dateW) / 2,
@@ -479,40 +529,6 @@ export class PdfEditService {
       size: 10,
       font: subFont,
       color: stampColor
-    });
-
-    return await doc.save({ useObjectStreams: true });
-  }
-
-  /**
-   * Sayfaya PNG el yazısı imza (Signature) ekler
-   */
-  static async addSignature(
-    data: Uint8Array,
-    pageNumber: number,
-    pngBytes: Uint8Array,
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ): Promise<Uint8Array> {
-    const doc = await this.loadPdf(data);
-    const pages = doc.getPages();
-    const targetIdx = pageNumber - 1;
-    if (targetIdx < 0 || targetIdx >= pages.length) return data;
-
-    const page = pages[targetIdx];
-    const pageH = page.getHeight();
-    const pngImage = await doc.embedPng(pngBytes);
-
-    // 72 DPI PDF koordinatına yerleştir (y sol alttan başlar)
-    const lly = pageH - (y + height);
-
-    page.drawImage(pngImage, {
-      x,
-      y: lly,
-      width,
-      height
     });
 
     return await doc.save({ useObjectStreams: true });
@@ -598,37 +614,6 @@ export class PdfEditService {
       width,
       height
     });
-
-    return await doc.save({ useObjectStreams: true });
-  }
-
-  /**
-   * Sayfada belirtilen koordinatları kalıcı olarak siyah bantla karartır (Redact)
-   */
-  static async applyRedaction(
-    data: Uint8Array,
-    pageNumber: number,
-    rects: [number, number, number, number][] // [x, y, w, h] (72 DPI)
-  ): Promise<Uint8Array> {
-    const doc = await this.loadPdf(data);
-    const pages = doc.getPages();
-    const targetIdx = pageNumber - 1;
-    if (targetIdx < 0 || targetIdx >= pages.length) return data;
-
-    const page = pages[targetIdx];
-    const pageH = page.getHeight();
-
-    for (const [x, y, w, h] of rects) {
-      const lly = pageH - (y + h);
-      page.drawRectangle({
-        x,
-        y: lly,
-        width: w,
-        height: h,
-        color: rgb(0, 0, 0),
-        borderColor: rgb(0, 0, 0)
-      });
-    }
 
     return await doc.save({ useObjectStreams: true });
   }

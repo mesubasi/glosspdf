@@ -71,10 +71,14 @@ export const ProtectPdfModal: React.FC = () => {
       setStatusMessage(null);
 
       // AES-256 Şifreleme uygula
-      const encryptedBytes = await PdfEditService.encryptPdf(activeTab.data.slice(), password);
+      // Bekleyen düzenlemeler şifrelemeden ÖNCE yazılmalı (şifreli PDF sonradan yeniden düzenlenemez)
+      const encryptedBytes = await PdfEditService.encryptPdf(
+        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || []),
+        password
+      );
 
       const baseName = activeTab.fileName.replace(/\.pdf$/i, '');
-      const protectedFileName = `${baseName}_korumali.pdf`;
+      const protectedFileName = `${baseName}_protected.pdf`;
 
       // Electron ortamı varsa farklı kaydet diyaloğu aç
       if (window.electronAPI) {
@@ -140,10 +144,17 @@ export const ProtectPdfModal: React.FC = () => {
       setIsProcessing(true);
       setStatusMessage(null);
 
-      const encryptedBytes = await PdfEditService.encryptPdf(activeTab.data.slice(), password);
+      // Bekleyen düzenlemeler şifrelemeden ÖNCE yazılmalı (şifreli PDF sonradan yeniden düzenlenemez)
+      const encryptedBytes = await PdfEditService.encryptPdf(
+        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || []),
+        password
+      );
 
       updateTab(activeTab.id, {
         data: encryptedBytes,
+        annotations: [],
+        undoStack: [],
+        redoStack: [],
         isModified: true
       });
 

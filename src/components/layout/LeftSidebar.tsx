@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { BookmarkItem, LeftSidebarTab, AnnotationItem } from '../../types/pdf';
 import * as pdfjsLib from 'pdfjs-dist';
+import { viewportFor } from '../../services/pdfRenderService';
 import { t } from '@/i18n';
 import {
   Image,
@@ -14,6 +15,7 @@ import {
   PenTool,
   Square,
   Type,
+  FileSignature,
   ChevronRight,
   ChevronDown,
   Trash2,
@@ -61,7 +63,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
       case 'rect':
         return Square;
       case 'text':
+      case 'textedit':
         return Type;
+      case 'signature':
+        return FileSignature;
       default:
         return MessageSquare;
     }
@@ -83,6 +88,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
         return t('rectangle');
       case 'text':
         return t('text_box');
+      case 'textedit':
+        return t('text_edit');
+      case 'signature':
+        return t('signature');
       default:
         return type;
     }
@@ -227,7 +236,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                       </div>
                       <div className="flex items-center space-x-1">
                         <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 font-mono">
-                          Sayfa {annot.pageNumber}
+                          {t('page_2', [annot.pageNumber])}
                         </span>
                         <button
                           onClick={(e) => {
@@ -315,16 +324,20 @@ const ThumbnailItem: React.FC<{
     if (!pdfDocument || !canvasRef.current) return;
 
     let isCancelled = false;
+    let renderTask: pdfjsLib.RenderTask | null = null;
 
     pdfDocument.getPage(pageNumber).then((page) => {
       if (isCancelled || !canvasRef.current) return;
-      const viewport = page.getViewport({ scale: 0.2, rotation });
+      const viewport = viewportFor(page, 0.2, rotation);
       const canvas = canvasRef.current;
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        page.render({ canvasContext: ctx, viewport }).promise.catch((err) => {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        renderTask = page.render({ canvasContext: ctx, viewport });
+        renderTask.promise.catch((err) => {
           if (err?.name !== 'RenderingCancelledException') {
             console.error('Thumbnail render error:', err);
           }
@@ -332,8 +345,10 @@ const ThumbnailItem: React.FC<{
       }
     });
 
+    // Belge/sayfa değişince eski çizim iptal edilir; aksi halde iki çizim aynı canvas'a karışır
     return () => {
       isCancelled = true;
+      renderTask?.cancel();
     };
   }, [pdfDocument, pageNumber, rotation]);
 

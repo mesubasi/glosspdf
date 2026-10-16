@@ -23,14 +23,17 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   rotation,
   isVisible
 }) => {
-  const { activeTool } = usePdfStore();
+  const { activeTool, searchQuery, searchMatchCase, searchResults, currentSearchIndex } = usePdfStore();
   const isTextMarkupTool = activeTool === 'highlight' || activeTool === 'underline' || activeTool === 'strikeout';
+  const isTextEditTool = activeTool === 'edittext';
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const formLayerRef = useRef<HTMLDivElement>(null);
   const [isRendered, setIsRendered] = useState(false);
+  // Metin katmanı (yeniden) çizildikçe artar; arama vurgusu bu değişince yeniden uygulanır
+  const [textLayerVersion, setTextLayerVersion] = useState(0);
   const activeRenderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
   // Sayfa yönüne göre genişlik ve yükseklik
@@ -88,6 +91,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
             scale,
             rotation
           );
+          if (!isCancelled) setTextLayerVersion((v) => v + 1);
         }
 
         // 3. İnteraktif Form Katmanı Çizimi (Faz 3 - AcroForms)
@@ -117,6 +121,44 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     };
   }, [isVisible, pageNumber, scale, rotation, pdfDocument]);
 
+  // Arama eşleşmelerini sayfada vurgula (etkin eşleşme turuncu)
+  useEffect(() => {
+    const layer = textLayerRef.current;
+    if (!layer) return;
+    const spans = Array.from(layer.querySelectorAll('span'));
+    spans.forEach((s) => s.classList.remove('highlight', 'selected'));
+
+    const query = searchQuery.trim();
+    if (!query || searchResults.length === 0) return;
+
+    const norm = (s: string) => (searchMatchCase ? s : s.toLocaleLowerCase('tr-TR'));
+    const needle = norm(query);
+    const active = searchResults[currentSearchIndex];
+    const activeOnPage = active?.pageIndex === pageNumber ? active.matchIndex : -1;
+
+    let occurrence = 0;
+    let activeSpan: HTMLElement | null = null;
+    for (const span of spans) {
+      const text = norm(span.textContent || '');
+      let from = 0;
+      let hit = false;
+      while ((from = text.indexOf(needle, from)) !== -1) {
+        hit = true;
+        if (occurrence === activeOnPage) activeSpan = span;
+        occurrence++;
+        from += needle.length;
+      }
+      if (hit) span.classList.add('highlight');
+    }
+    if (activeSpan) {
+      activeSpan.classList.add('selected');
+      const target = activeSpan;
+      // Sayfa atlama (SearchBar) bittikten sonra eşleşmeyi ortala
+      const timer = setTimeout(() => target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80);
+      return () => clearTimeout(timer);
+    }
+  }, [searchResults, currentSearchIndex, searchQuery, searchMatchCase, textLayerVersion, pageNumber]);
+
   return (
     <div
       ref={containerRef}
@@ -141,7 +183,9 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       {/* Seçilebilir Metin Katmanı (TextLayer) */}
       <div
         ref={textLayerRef}
-        className={`textLayer ${isTextMarkupTool ? '!z-30 cursor-text select-text pointer-events-auto' : ''}`}
+        className={`textLayer ${isTextMarkupTool ? '!z-30 cursor-text select-text pointer-events-auto' : ''} ${
+          isTextEditTool ? 'textLayer--editing !z-30 pointer-events-auto' : ''
+        }`}
       />
 
       {/* İnteraktif Form Katmanı (Faz 3 - AcroForm Fields) */}
