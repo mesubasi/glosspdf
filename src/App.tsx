@@ -22,6 +22,7 @@ import { CompressPdfModal } from './components/modals/CompressPdfModal';
 import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import * as pdfjsLib from 'pdfjs-dist';
+import { t } from '@/i18n';
 
 /**
  * Oturum boyunca açılan belgelerin baytlarını bellekte tutar.
@@ -111,7 +112,7 @@ export function App() {
         }
       })
       .catch((err) => {
-        console.error('PDF belgesi yüklenirken hata oluştu:', err);
+        console.error('Failed to load the PDF document:', err);
       });
 
     return () => {
@@ -203,8 +204,8 @@ export function App() {
       // Son açılanlar geçmişine kaydet
       addRecentFile({ filePath, fileName });
     } catch (err: any) {
-      console.error('PDF açma hatası:', err);
-      alert(`PDF açılırken hata oluştu: ${err?.message || err}`);
+      console.error('Failed to open PDF:', err);
+      alert(t('error_opening_pdf', { message: err?.message || err }));
     }
   };
 
@@ -237,25 +238,25 @@ export function App() {
           );
           return;
         }
-        readError = res?.error || 'Dosya okunamadı';
+        readError = res?.error || 'Could not read the file';
       } catch (err: any) {
         readError = err?.message || String(err);
       }
     } else {
-      readError = 'Masaüstü köprüsü (electronAPI) kullanılamıyor';
+      readError = 'Desktop bridge (electronAPI) is unavailable';
     }
 
     // 3) Diskten okunamadıysa oturum önbelleğindeki baytlarla aç
     const cached = getCachedFileBytes(filePath, fileName);
     if (cached) {
       console.warn(
-        `[GlossPDF] "${fileName}" diskten okunamadı (${readError}); oturum önbelleğinden açılıyor.`
+        `[GlossPDF] Could not read "${fileName}" from disk (${readError}); opening from the session cache.`
       );
       await openNewPdf(filePath, cached.fileName || fileName, cached.bytes.slice());
       return;
     }
 
-    console.error(`[GlossPDF] Son dosya açılamadı (${filePath}):`, readError);
+    console.error(`[GlossPDF] Could not open the recent file (${filePath}):`, readError);
 
     // 4) Gerçekten erişilemiyor: seçici açmak yerine net bir mesaj göster
     //    (masaüstünde dosya gerçekten yoksa kaydı listeden temizle)
@@ -264,20 +265,16 @@ export function App() {
     }
 
     alert(
-      language === 'tr'
-        ? desktopReadAttempted
-          ? `"${fileName}" açılamadı; dosya silinmiş veya taşınmış olabilir. Kayıt listeden kaldırıldı. "Dosya Aç" ile yeniden seçebilirsiniz.`
-          : `"${fileName}" bu ortamda yeniden açılamıyor: masaüstü dosya köprüsü yüklenmemiş (preload). Uygulamayı yeniden derleyip başlatın veya "Dosya Aç" ile dosyayı seçin.`
-        : desktopReadAttempted
-          ? `"${fileName}" could not be opened; the file may have been deleted or moved. The entry was removed from the list. Use "Open File" to pick it again.`
-          : `"${fileName}" cannot be reopened in this environment: the desktop file bridge (preload) is not loaded. Rebuild and restart the app, or use "Open File".`
+      t(desktopReadAttempted ? 'recent_file_missing' : 'recent_file_bridge_missing', {
+        fileName
+      })
     );
   };
 
   // Dosya Aç (Electron veya Web fallback)
   const handleOpenFile = async () => {
     if (window.electronAPI) {
-      const res = await window.electronAPI.openPdf();
+      const res = await window.electronAPI.openPdf(language);
       if (res.success && res.data && res.filePath && res.fileName) {
         await openNewPdf(res.filePath, res.fileName, base64ToBytes(res.data));
       }
@@ -337,7 +334,7 @@ export function App() {
           updateTab(activeTab.id, { isModified: false, data: savedBytes });
         } else {
           // İzin veya kilitlenme hatası durumunda kullanıcı mağdur olmasın diye Farklı Kaydet'e yönlendir
-          console.warn('Doğrudan kaydetme başarısız, Farklı Kaydet açılıyor:', res.error);
+          console.warn('Direct save failed, opening Save As:', res.error);
           handleSaveFileAs();
         }
       } else {
@@ -352,8 +349,8 @@ export function App() {
         updateTab(activeTab.id, { isModified: false, data: savedBytes });
       }
     } catch (err: any) {
-      console.error('Kaydetme hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Save failed:', err);
+      alert(t('error_generic', { message: err.message }));
     }
   };
 
@@ -375,7 +372,7 @@ export function App() {
         }
         const base64Data = btoa(binary);
 
-        const res = await window.electronAPI.savePdfAs(activeTab.fileName, base64Data);
+        const res = await window.electronAPI.savePdfAs(activeTab.fileName, base64Data, language);
         if (res.success && res.filePath && res.fileName) {
           updateTab(activeTab.id, {
             filePath: res.filePath,
@@ -395,8 +392,8 @@ export function App() {
         updateTab(activeTab.id, { isModified: false, data: savedBytes });
       }
     } catch (err: any) {
-      console.error('Farklı kaydet hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Save As failed:', err);
+      alert(t('error_generic', { message: err.message }));
     }
   };
 

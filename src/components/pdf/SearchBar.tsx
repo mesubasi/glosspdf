@@ -3,6 +3,7 @@ import { usePdfStore } from '../../store/usePdfStore';
 import { SearchService } from '../../services/searchService';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Search, ChevronUp, ChevronDown, X, CaseSensitive } from 'lucide-react';
+import { t } from '@/i18n';
 
 interface SearchBarProps {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
@@ -76,7 +77,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
       <input
         ref={inputRef}
         type="text"
-        placeholder={language === 'tr' ? 'Belgede ara...' : 'Find in document...'}
+        placeholder={t('find_in_document_2')}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -100,9 +101,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
           ? '...'
           : searchResults.length > 0
           ? `${currentSearchIndex + 1} / ${searchResults.length}`
-          : language === 'tr'
-          ? 'Sonuç yok'
-          : 'No results'}
+          : t('no_results')}
       </span>
 
       {/* Büyük/Küçük Harf Duyarlılığı */}
@@ -111,7 +110,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
         className={`p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
           matchCase ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : 'text-slate-400'
         }`}
-        title={language === 'tr' ? 'Büyük/Küçük Harfe Duyarlı' : 'Match Case'}
+        title={t('match_case')}
       >
         <CaseSensitive className="w-4 h-4" />
       </button>
@@ -121,7 +120,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
         onClick={prevSearchResult}
         disabled={searchResults.length === 0}
         className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-        title={language === 'tr' ? 'Önceki Eşleşme (Shift+Enter)' : 'Previous Match (Shift+Enter)'}
+        title={t('previous_match_shift_enter')}
       >
         <ChevronUp className="w-4 h-4" />
       </button>
@@ -131,7 +130,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
         onClick={nextSearchResult}
         disabled={searchResults.length === 0}
         className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-        title={language === 'tr' ? 'Sonraki Eşleşme (Enter)' : 'Next Match (Enter)'}
+        title={t('next_match_enter')}
       >
         <ChevronDown className="w-4 h-4" />
       </button>
@@ -142,7 +141,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
       <button
         onClick={() => setSearchBarOpen(false)}
         className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-        title={language === 'tr' ? 'Kapat (Esc)' : 'Close (Esc)'}
+        title={t('close_esc')}
       >
         <X className="w-3.5 h-3.5" />
       </button>

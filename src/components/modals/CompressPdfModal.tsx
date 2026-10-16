@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { t } from '@/i18n';
 import {
   X,
   Minimize2,
@@ -68,8 +69,8 @@ export const CompressPdfModal: React.FC = () => {
         compressedBytes
       });
     } catch (err: any) {
-      console.error('Sıkıştırma hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Compression error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -89,7 +90,7 @@ export const CompressPdfModal: React.FC = () => {
       }
       const b64 = window.btoa(binary);
 
-      const res = await window.electronAPI.savePdfAs(compressedFileName, b64);
+      const res = await window.electronAPI.savePdfAs(compressedFileName, b64, language);
       if (res.success) {
         handleClose();
         return;
@@ -136,8 +137,8 @@ export const CompressPdfModal: React.FC = () => {
 
       handleClose();
     } catch (err: any) {
-      console.error('Uygulama hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Apply error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -151,7 +152,7 @@ export const CompressPdfModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Minimize2 className="w-5 h-5 text-indigo-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'PDF Dosya Boyutunu Sıkıştır' : 'Compress & Optimize PDF'}
+              {t('compress_optimize_pdf')}
             </h2>
           </div>
           <button
@@ -168,7 +169,7 @@ export const CompressPdfModal: React.FC = () => {
           <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 flex items-center justify-between">
             <div>
               <span className="text-slate-400 block text-[11px]">
-                {language === 'tr' ? 'Mevcut Dosya Boyutu' : 'Current File Size'}
+                {t('current_file_size')}
               </span>
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                 {formatBytes(currentSizeBytes)}
@@ -176,7 +177,7 @@ export const CompressPdfModal: React.FC = () => {
             </div>
             <div className="text-right">
               <span className="text-slate-400 block text-[11px]">
-                {language === 'tr' ? 'Sayfa Sayısı' : 'Page Count'}
+                {t('page_count')}
               </span>
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                 {activeTab.numPages}
@@ -187,9 +188,7 @@ export const CompressPdfModal: React.FC = () => {
           {/* Sıkıştırma Açıklaması */}
           <div className="text-slate-600 dark:text-slate-300 leading-relaxed space-y-2">
             <p>
-              {language === 'tr'
-                ? 'Gereksiz meta veriler temizlenir, nesne akışları (Object Streams) optimize edilir ve PDF yapısı sıkıştırılır.'
-                : 'Unnecessary metadata is purged, object streams are optimized, and PDF structure is compressed.'}
+              {t('unnecessary_metadata_is_purged_object_streams_are_optimi')}
             </p>
           </div>
 
@@ -199,14 +198,14 @@ export const CompressPdfModal: React.FC = () => {
               <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
                 <CheckCircle2 className="w-5 h-5" />
                 <span>
-                  {language === 'tr' ? 'Optimizasyon Tamamlandı!' : 'Optimization Complete!'}
+                  {t('optimization_complete')}
                 </span>
               </div>
 
               <div className="flex items-center justify-between pt-1">
                 <div className="text-center flex-1">
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                    {language === 'tr' ? 'Önceki Boyut' : 'Before'}
+                    {t('before')}
                   </span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">
                     {formatBytes(compressionResult.originalSize)}
@@ -215,7 +214,7 @@ export const CompressPdfModal: React.FC = () => {
                 <ArrowRight className="w-4 h-4 text-emerald-500 mx-2 flex-shrink-0" />
                 <div className="text-center flex-1">
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                    {language === 'tr' ? 'Yeni Boyut' : 'After'}
+                    {t('after')}
                   </span>
                   <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                     {formatBytes(compressionResult.newSize)}
@@ -223,7 +222,7 @@ export const CompressPdfModal: React.FC = () => {
                 </div>
                 <div className="text-center flex-1 border-l border-emerald-500/20 pl-2">
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                    {language === 'tr' ? 'Tasarruf' : 'Saved'}
+                    {t('saved')}
                   </span>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
                     %{compressionResult.savedPercent}
@@ -241,7 +240,7 @@ export const CompressPdfModal: React.FC = () => {
             disabled={isProcessing}
             className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors font-medium"
           >
-            {language === 'tr' ? 'Kapat' : 'Close'}
+            {t('close')}
           </button>
 
           {!compressionResult ? (
@@ -253,12 +252,8 @@ export const CompressPdfModal: React.FC = () => {
               <Sparkles className="w-4 h-4" />
               <span>
                 {isProcessing
-                  ? language === 'tr'
-                    ? 'Sıkıştırılıyor...'
-                    : 'Compressing...'
-                  : language === 'tr'
-                  ? 'Sıkıştırmayı Başlat'
-                  : 'Start Compression'}
+                  ? t('compressing')
+                  : t('start_compression')}
               </span>
             </button>
           ) : (
@@ -268,14 +263,14 @@ export const CompressPdfModal: React.FC = () => {
                 className="flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors font-medium text-slate-700 dark:text-slate-200"
               >
                 <Save className="w-4 h-4" />
-                <span>{language === 'tr' ? 'Belgeye Uygula' : 'Apply to Document'}</span>
+                <span>{t('apply_to_document')}</span>
               </button>
               <button
                 onClick={handleSaveAs}
                 className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition-colors"
               >
                 <Download className="w-4 h-4" />
-                <span>{language === 'tr' ? 'Farklı Kaydet' : 'Save As...'}</span>
+                <span>{t('save_as')}</span>
               </button>
             </>
           )}

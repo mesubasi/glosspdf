@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
+import { t } from '@/i18n';
 import {
   X,
   Scissors,
@@ -47,7 +48,7 @@ export const SplitPdfModal: React.FC = () => {
       }
 
       if (ranges.length === 0) {
-        alert(language === 'tr' ? 'Lütfen geçerli bir sayfa aralığı girin (Örn: 1-2, 3-5)' : 'Please enter valid page ranges (e.g. 1-2, 3-5)');
+        alert(t('please_enter_valid_page_ranges_e_g_1_2_3_5'));
         return;
       }
 
@@ -70,8 +71,8 @@ export const SplitPdfModal: React.FC = () => {
 
       setSplitModalOpen(false);
     } catch (err: any) {
-      console.error('Bölme hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Split error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -85,7 +86,7 @@ export const SplitPdfModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Scissors className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'PDF Belgesini Böl (Split)' : 'Split PDF Document'}
+              {t('split_pdf_document')}
             </h2>
           </div>
           <button
@@ -120,12 +121,10 @@ export const SplitPdfModal: React.FC = () => {
             />
             <div>
               <div className="font-semibold text-slate-800 dark:text-slate-200">
-                {language === 'tr' ? 'Her Sayfayı Ayrı Bir PDF Yap' : 'Extract Every Page into a Separate PDF'}
+                {t('extract_every_page_into_a_separate_pdf')}
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5">
-                {language === 'tr'
-                  ? `Toplam ${activeTab.numPages} adet tek sayfalık PDF belgesi oluşturulacaktır.`
-                  : `Will create ${activeTab.numPages} individual 1-page PDF files.`}
+                {t('will_create_individual_1_page_pdf_files', [activeTab.numPages])}
               </div>
             </div>
           </label>
@@ -145,12 +144,10 @@ export const SplitPdfModal: React.FC = () => {
             />
             <div className="flex-1">
               <div className="font-semibold text-slate-800 dark:text-slate-200">
-                {language === 'tr' ? 'Özel Sayfa Aralıklarına Göre Böl' : 'Custom Page Ranges'}
+                {t('custom_page_ranges')}
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5 mb-2">
-                {language === 'tr'
-                  ? 'Virgülle ayırarak sayfa aralıklarını belirtin (Örn: 1-2, 3-5)'
-                  : 'Comma-separated page ranges (e.g. 1-2, 3-5)'}
+                {t('comma_separated_page_ranges_e_g_1_2_3_5')}
               </div>
               {splitMode === 'ranges' && (
                 <input
@@ -171,7 +168,7 @@ export const SplitPdfModal: React.FC = () => {
             onClick={() => setSplitModalOpen(false)}
             className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleSplit}
@@ -179,7 +176,7 @@ export const SplitPdfModal: React.FC = () => {
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isProcessing ? 'Bölünüyor...' : (language === 'tr' ? 'Böl ve İndir' : 'Split & Download')}</span>
+            <span>{isProcessing ? t('splitting') : (t('split_download'))}</span>
           </button>
         </div>
       </div>

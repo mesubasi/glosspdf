@@ -115,7 +115,7 @@ export class PdfRenderService {
       });
       await textLayerTask.promise;
     } catch (e) {
-      console.warn('Metin katmanı çizim uyarısı (ihmal edilebilir):', e);
+      console.warn('Text layer render warning (can be ignored):', e);
     }
   }
 
@@ -225,7 +225,7 @@ export class PdfRenderService {
         container.appendChild(wrapper);
       }
     } catch (e) {
-      console.warn('Form katmanı render uyarısı:', e);
+      console.warn('Form layer render warning:', e);
     }
   }
 
@@ -264,7 +264,7 @@ export class PdfRenderService {
 
       return await parseItems(rawOutline);
     } catch (e) {
-      console.warn('İçindekiler tablosu alınamadı:', e);
+      console.warn('Could not read the document outline:', e);
       return [];
     }
   }

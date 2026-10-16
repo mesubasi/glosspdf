@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
+import { t } from '@/i18n';
 import {
   ChevronLeft,
   ChevronRight,
@@ -51,7 +52,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
           onClick={() => onPageChange(1)}
           disabled={activeTab.currentPage <= 1}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'İlk Sayfa (Home)' : 'First Page (Home)'}
+          title={t('first_page_home')}
         >
           <ChevronsLeft className="w-3.5 h-3.5" />
         </button>
@@ -61,7 +62,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
           onClick={() => onPageChange(activeTab.currentPage - 1)}
           disabled={activeTab.currentPage <= 1}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Önceki Sayfa (PageUp)' : 'Previous Page (PageUp)'}
+          title={t('previous_page_pageup')}
         >
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
@@ -82,7 +83,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
           onClick={() => onPageChange(activeTab.currentPage + 1)}
           disabled={activeTab.currentPage >= activeTab.numPages}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Sonraki Sayfa (PageDown)' : 'Next Page (PageDown)'}
+          title={t('next_page_pagedown')}
         >
           <ChevronRight className="w-3.5 h-3.5" />
         </button>
@@ -92,7 +93,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
           onClick={() => onPageChange(activeTab.numPages)}
           disabled={activeTab.currentPage >= activeTab.numPages}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={language === 'tr' ? 'Son Sayfa (End)' : 'Last Page (End)'}
+          title={t('last_page_end')}
         >
           <ChevronsRight className="w-3.5 h-3.5" />
         </button>
@@ -103,7 +104,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={onFitPage}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          title={language === 'tr' ? 'Sayfaya Sığdır (Ctrl+0)' : 'Fit Page (Ctrl+0)'}
+          title={t('fit_page_ctrl_0')}
         >
           <Expand className="w-3.5 h-3.5" />
         </button>
@@ -111,7 +112,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={onFitWidth}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          title={language === 'tr' ? 'Genişliğe Sığdır (Ctrl+2)' : 'Fit Width (Ctrl+2)'}
+          title={t('fit_width_ctrl_2')}
         >
           <span className="font-bold text-[10px] px-1 border border-current rounded">↔</span>
         </button>
@@ -121,7 +122,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={zoomOut}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={language === 'tr' ? 'Uzaklaştır' : 'Zoom Out'}
+          title={t('zoom_out')}
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
@@ -140,7 +141,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={zoomIn}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={language === 'tr' ? 'Yakınlaştır' : 'Zoom In'}
+          title={t('zoom_in')}
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>

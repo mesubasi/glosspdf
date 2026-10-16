@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
+import { t } from '@/i18n';
 import {
   Highlighter,
   MessageSquare,
@@ -46,85 +47,85 @@ export const RightToolsPanel: React.FC = () => {
   const tools = [
     {
       id: 'highlight',
-      name: language === 'tr' ? 'Vurgula (Highlight)' : 'Highlight Text',
+      name: t('highlight_text'),
       icon: Highlighter,
       action: () => selectAnnotationTool('highlight')
     },
     {
       id: 'note',
-      name: language === 'tr' ? 'Not Ekle (Comment)' : 'Add Sticky Note',
+      name: t('add_sticky_note'),
       icon: MessageSquare,
       action: () => selectAnnotationTool('note')
     },
     {
       id: 'draw',
-      name: language === 'tr' ? 'Serbest Çizim (Ink)' : 'Freehand Drawing',
+      name: t('freehand_drawing'),
       icon: PenTool,
       action: () => selectAnnotationTool('draw')
     },
     {
       id: 'rect',
-      name: language === 'tr' ? 'Dikdörtgen Şekli' : 'Draw Rectangle',
+      name: t('draw_rectangle'),
       icon: Square,
       action: () => selectAnnotationTool('rect')
     },
     {
       id: 'text',
-      name: language === 'tr' ? 'Metin Kutusu Ekle' : 'Add Text Box',
+      name: t('add_text_box'),
       icon: Type,
       action: () => selectAnnotationTool('text')
     },
     {
       id: 'organize',
-      name: language === 'tr' ? 'Sayfaları Yönet (Organize)' : 'Organize Pages',
+      name: t('organize_pages'),
       icon: Layers,
       action: () => setOrganizeModalOpen(true)
     },
     {
       id: 'merge',
-      name: language === 'tr' ? 'PDF Birleştir (Merge)' : 'Merge PDFs',
+      name: t('merge_pdfs'),
       icon: FolderSync,
       action: () => setMergeModalOpen(true)
     },
     {
       id: 'split',
-      name: language === 'tr' ? 'PDF Böl (Split)' : 'Split PDF',
+      name: t('split_pdf'),
       icon: Scissors,
       action: () => setSplitModalOpen(true)
     },
     {
       id: 'watermark',
-      name: language === 'tr' ? 'Damga & Filigran' : 'Stamp & Watermark',
+      name: t('stamp_watermark'),
       icon: Stamp,
       action: () => setWatermarkModalOpen(true)
     },
     {
       id: 'sign',
-      name: language === 'tr' ? 'Islak İmza Ekle (Sign)' : 'Handwritten Signature',
+      name: t('handwritten_signature'),
       icon: FileCheck,
       action: () => setSignatureModalOpen(true)
     },
     {
       id: 'insertImage',
-      name: language === 'tr' ? 'Resim Ekle (Image)' : 'Insert Image',
+      name: t('insert_image'),
       icon: ImageIcon,
       action: () => setInsertImageModalOpen(true)
     },
     {
       id: 'exportImages',
-      name: language === 'tr' ? 'Resim Olarak Aktar' : 'Export Pages to Images',
+      name: t('export_pages_to_images'),
       icon: FileImage,
       action: () => setExportImagesModalOpen(true)
     },
     {
       id: 'protect',
-      name: language === 'tr' ? 'Parola ile Koru (Protect)' : 'Protect with Password',
+      name: t('protect_with_password'),
       icon: Lock,
       action: () => setProtectModalOpen(true)
     },
     {
       id: 'compress',
-      name: language === 'tr' ? 'PDF Sıkıştır (Compress)' : 'Compress PDF',
+      name: t('compress_pdf'),
       icon: Minimize2,
       action: () => setCompressModalOpen(true)
     }
@@ -134,7 +135,7 @@ export const RightToolsPanel: React.FC = () => {
     <div className="w-56 bg-acrobat-panel dark:bg-acrobat-darkPanel border-l border-acrobat-border dark:border-acrobat-darkBorder flex flex-col h-full select-none z-10 shadow-md">
       {/* Başlık */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-acrobat-border dark:border-acrobat-darkBorder text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-        <span>{language === 'tr' ? 'Hızlı Araçlar' : 'Quick Tools'}</span>
+        <span>{t('quick_tools')}</span>
         <button
           onClick={toggleRightPanel}
           className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

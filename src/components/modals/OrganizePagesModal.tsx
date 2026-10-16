@@ -3,6 +3,7 @@ import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
 import * as pdfjsLib from 'pdfjs-dist';
+import { t } from '@/i18n';
 import {
   X,
   RotateCw,
@@ -90,7 +91,7 @@ export const OrganizePagesModal: React.FC = () => {
   // Tek sayfayı sil
   const deletePage = (index: number) => {
     if (pages.length <= 1) {
-      alert(language === 'tr' ? 'Belgede en az 1 sayfa bulunmalıdır.' : 'Document must have at least 1 page.');
+      alert(t('document_must_have_at_least_1_page'));
       return;
     }
     const newPages = pages.filter((_, i) => i !== index);
@@ -116,7 +117,7 @@ export const OrganizePagesModal: React.FC = () => {
         rotationDelta: 0
       })));
     } catch (err: any) {
-      alert(`Hata: ${err.message}`);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -156,8 +157,8 @@ export const OrganizePagesModal: React.FC = () => {
 
       setOrganizeModalOpen(false);
     } catch (err: any) {
-      console.error('Sayfa düzenleme hatası:', err);
-      alert(`Hata: ${err.message}`);
+      console.error('Page organization error:', err);
+      alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
     }
@@ -171,9 +172,9 @@ export const OrganizePagesModal: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Layers className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
-              {language === 'tr' ? 'Sayfaları Yönet (Organize Pages)' : 'Organize Pages'}
+              {t('organize_pages_2')}
             </h2>
-            <span className="text-xs text-slate-400">({pages.length} sayfa)</span>
+            <span className="text-xs text-slate-400">{t('total_pages_count', [pages.length])}</span>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -184,7 +185,7 @@ export const OrganizePagesModal: React.FC = () => {
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-xs font-medium transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{language === 'tr' ? 'Boş Sayfa Ekle' : 'Add Blank Page'}</span>
+              <span>{t('add_blank_page')}</span>
             </button>
 
             <button
@@ -213,14 +214,14 @@ export const OrganizePagesModal: React.FC = () => {
                       rotationDelta={p.rotationDelta}
                     />
                   ) : (
-                    <span className="text-xs text-slate-400">Yükleniyor...</span>
+                    <span className="text-xs text-slate-400">{t('loading')}</span>
                   )}
 
                   {/* Üst Sağdaki Sil Butonu */}
                   <button
                     onClick={() => deletePage(idx)}
                     className="absolute top-1.5 right-1.5 p-1 bg-red-600/90 hover:bg-red-600 text-white rounded shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                    title={language === 'tr' ? 'Sayfayı Sil' : 'Delete Page'}
+                    title={t('delete_page')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -233,7 +234,7 @@ export const OrganizePagesModal: React.FC = () => {
                     onClick={() => moveLeft(idx)}
                     disabled={idx === 0}
                     className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
-                    title="Sola Taşı"
+                    title={t('move_left')}
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
@@ -243,7 +244,7 @@ export const OrganizePagesModal: React.FC = () => {
                     <button
                       onClick={() => rotatePage(idx, false)}
                       className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
-                      title="Sola Döndür"
+                      title={t('rotate_left')}
                     >
                       <RotateCcw className="w-3 h-3" />
                     </button>
@@ -253,7 +254,7 @@ export const OrganizePagesModal: React.FC = () => {
                     <button
                       onClick={() => rotatePage(idx, true)}
                       className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
-                      title="Sağa Döndür"
+                      title={t('rotate_right')}
                     >
                       <RotateCw className="w-3 h-3" />
                     </button>
@@ -264,7 +265,7 @@ export const OrganizePagesModal: React.FC = () => {
                     onClick={() => moveRight(idx)}
                     disabled={idx === pages.length - 1}
                     className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
-                    title="Sağa Taşı"
+                    title={t('move_right')}
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -277,9 +278,7 @@ export const OrganizePagesModal: React.FC = () => {
         {/* Alt Eylem Çubuğu */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#252526]">
           <span className="text-xs text-slate-500">
-            {language === 'tr'
-              ? 'Sayfaları döndürebilir, silebilir veya oklarla sırasını değiştirebilirsiniz.'
-              : 'Rotate, delete or reorder pages with arrows.'}
+            {t('rotate_delete_or_reorder_pages_with_arrows')}
           </span>
 
           <div className="flex items-center space-x-3">
@@ -287,7 +286,7 @@ export const OrganizePagesModal: React.FC = () => {
               onClick={() => setOrganizeModalOpen(false)}
               className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
             >
-              {language === 'tr' ? 'Vazgeç' : 'Cancel'}
+              {t('cancel_2')}
             </button>
 
             <button
@@ -296,7 +295,7 @@ export const OrganizePagesModal: React.FC = () => {
               className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-50"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>{isProcessing ? 'İşleniyor...' : (language === 'tr' ? 'Değişiklikleri Uygula' : 'Apply Changes')}</span>
+              <span>{isProcessing ? t('processing') : (t('apply_changes'))}</span>
             </button>
           </div>
         </div>

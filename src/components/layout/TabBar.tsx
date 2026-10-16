@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { X, Plus, FileText } from 'lucide-react';
+import { t } from '@/i18n';
 
 interface TabBarProps {
   onOpenFile: () => void;
@@ -45,7 +46,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onOpenFile }) => {
                   closeTab(tab.id);
                 }}
                 className="ml-1 p-0.5 rounded-full hover:bg-black/20 text-slate-400 hover:text-slate-200 opacity-60 group-hover:opacity-100 transition-opacity"
-                title={language === 'tr' ? 'Kapat (Ctrl+W)' : 'Close (Ctrl+W)'}
+                title={t('close_ctrl_w')}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -57,7 +58,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onOpenFile }) => {
         <button
           onClick={onOpenFile}
           className="p-1.5 rounded hover:bg-[#383838] text-slate-400 hover:text-white transition-colors ml-1"
-          title={language === 'tr' ? 'Yeni Belge Aç (Ctrl+O)' : 'Open New Document (Ctrl+O)'}
+          title={t('open_new_document_ctrl_o')}
         >
           <Plus className="w-4 h-4" />
         </button>

@@ -3,6 +3,7 @@ import { usePdfStore } from '../../store/usePdfStore';
 import { AnnotationItem, AnnotationType } from '../../types/pdf';
 import { NotePopover } from './NotePopover';
 import { MessageSquare } from 'lucide-react';
+import { t } from '@/i18n';
 
 interface AnnotationLayerProps {
   pageNumber: number;
@@ -189,7 +190,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
           rect: [box.x, box.y, box.w, box.h],
           contents: selectedText,
           createdAt: new Date().toISOString(),
-          author: 'Kullanıcı'
+          author: t('annotation_author_default')
         };
 
         addAnnotation(newAnnot);
@@ -241,7 +242,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
         rect: [ptX, ptY, 24, 24],
         contents: '',
         createdAt: new Date().toISOString(),
-        author: 'Kullanıcı'
+        author: t('annotation_author_default')
       };
 
       addAnnotation(newNote);
@@ -292,7 +293,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
         strokeWidth: annotationStrokeWidth,
         points: ptPoints,
         createdAt: new Date().toISOString(),
-        author: 'Kullanıcı'
+        author: t('annotation_author_default')
       };
 
       addAnnotation(newAnnot);
@@ -314,7 +315,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
           pxToPt(currentRect.h)
         ],
         createdAt: new Date().toISOString(),
-        author: 'Kullanıcı'
+        author: t('annotation_author_default')
       };
 
       addAnnotation(newAnnot);
@@ -345,7 +346,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
         pxToPt(40)
       ],
       createdAt: new Date().toISOString(),
-      author: 'Kullanıcı'
+      author: t('annotation_author_default')
     };
 
     addAnnotation(newAnnot);
@@ -658,7 +659,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
               if (e.key === 'Escape') setActiveTextInput(null);
             }}
             onBlur={handleFinishText}
-            placeholder="Metin yazın..."
+            placeholder={t('text_input_placeholder')}
             style={{
               color: annotationColor,
               fontSize: `${annotationFontSize * scale}px`
