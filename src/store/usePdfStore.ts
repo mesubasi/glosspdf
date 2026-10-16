@@ -124,6 +124,8 @@ interface PdfStoreState {
   clearRecentFiles: () => void;
   shortcutHelpModalOpen: boolean;
   setShortcutHelpModalOpen: (open: boolean) => void;
+  updateModalOpen: boolean;
+  setUpdateModalOpen: (open: boolean) => void;
 }
 
 // Tema başlangıç durumunu tespit etme
@@ -216,6 +218,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
 
   recentFiles: getInitialRecentFiles(),
   shortcutHelpModalOpen: false,
+  updateModalOpen: false,
 
   annotationModeOpen: false,
   annotationColor: '#ffeb3b', // Varsayılan fosforlu sarı
@@ -555,5 +558,6 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
     set({ recentFiles: [] });
   },
 
-  setShortcutHelpModalOpen: (open) => set({ shortcutHelpModalOpen: open })
+  setShortcutHelpModalOpen: (open) => set({ shortcutHelpModalOpen: open }),
+  setUpdateModalOpen: (open) => set({ updateModalOpen: open })
 }));

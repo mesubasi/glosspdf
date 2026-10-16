@@ -278,6 +278,20 @@ export const en = {
   "sign": "Sign",
   "place_signature_hint": "Click where you want to place your signature · Esc to cancel",
   "text_edit": "Text edit",
+  "check_for_updates": "Check for updates",
+  "app_version": "Version {version}",
+  "update_mode_auto": "Download updates automatically and install them when I quit",
+  "update_mode_ask": "Ask me before downloading updates",
+  "update_status_checking": "Checking for updates…",
+  "update_status_not_available": "GlossPDF is up to date.",
+  "update_status_available": "Version {version} is available.",
+  "update_status_downloading": "Downloading version {version}… {percent}%",
+  "update_status_downloaded": "Version {version} is ready. It will be installed when you quit, or restart now.",
+  "update_status_error": "Could not check for updates. Check your internet connection and try again.",
+  "update_status_unsupported": "Automatic updates are not available in this build (portable or development). Download new versions from the releases page.",
+  "download_update": "Download",
+  "restart_and_install": "Restart and install",
+  "open_releases_page": "Releases page",
 };
 
 /** Sözlükteki tüm anahtarların birleşimi (tip güvenliği için). */
