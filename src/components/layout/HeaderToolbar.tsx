@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePdfStore, ZOOM_LEVELS } from '../../store/usePdfStore';
+import type { UpdateState } from '../../types/electron';
 import {
   t,
   LANGUAGES,
@@ -78,6 +79,17 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     setShortcutHelpModalOpen,
     setUpdateModalOpen
   } = usePdfStore();
+
+  // Güncelleme durumu: modal kapalıyken de simgede rozet göstermek için burada izlenir
+  const [updateState, setUpdateState] = useState<UpdateState>({ status: 'idle' });
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onUpdateState) return;
+    const off = api.onUpdateState(setUpdateState);
+    api.getUpdateState().then(({ autoDownload, ...current }) => setUpdateState(current));
+    return off;
+  }, []);
+  const updateReady = updateState.status === 'available' || updateState.status === 'downloaded';
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const currentZoomPercent = activeTab ? Math.round(activeTab.zoom * 100) : 100;
@@ -364,10 +376,23 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         {/* Sürüm ve Güncellemeler */}
         <button
           onClick={() => setUpdateModalOpen(true)}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('check_for_updates')}
+          className="relative p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          title={
+            updateReady
+              ? t(updateState.status === 'downloaded' ? 'update_status_downloaded' : 'update_status_available', {
+                  version: updateState.version ?? ''
+                })
+              : t('check_for_updates')
+          }
         >
-          <RefreshCw className="w-4 h-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+          <RefreshCw
+            className={`w-4 h-4 ${
+              updateReady ? 'text-acrobat-red' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          />
+          {updateReady && (
+            <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-acrobat-red ring-2 ring-white dark:ring-[#1e1e1e]" />
+          )}
         </button>
 
         <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />
