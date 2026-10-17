@@ -25,6 +25,7 @@ export const RightToolsPanel: React.FC = () => {
     rightPanelOpen,
     toggleRightPanel,
     language,
+    activeTabId,
     setActiveTool,
     setAnnotationModeOpen,
     setOrganizeModalOpen,
@@ -159,7 +160,9 @@ export const RightToolsPanel: React.FC = () => {
             <button
               key={t.id}
               onClick={t.action}
-              className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-left text-xs text-slate-700 dark:text-slate-200 transition-colors"
+              // Modals stay mounted-but-hidden without a doc, so clicks here would all pop up once a file opens; merge needs no doc.
+              disabled={!activeTabId && t.id !== 'merge'}
+              className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-left text-xs text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
             >
               <IconComponent className="w-4 h-4 text-red-500 flex-shrink-0" />
               <span className="truncate">{t.name}</span>
