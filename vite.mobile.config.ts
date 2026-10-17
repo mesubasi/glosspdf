@@ -1,15 +1,31 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
 import path from 'path';
+
+const outDir = path.resolve(__dirname, 'dist-mobile');
+
+// pdf.js cmap ve standart yazı tiplerini pakete koyar: uygulama internetsiz de her PDF'i doğru çizer.
+// shortcut: geliştirme sunucusu bunları CDN'den alır; çevrimdışı dev gerekirse burada da sun.
+const pdfjsData: Plugin = {
+  name: 'pdfjs-data',
+  apply: 'build',
+  closeBundle() {
+    for (const dir of ['cmaps', 'standard_fonts']) {
+      fs.cpSync(path.resolve(__dirname, 'node_modules/pdfjs-dist', dir), path.join(outDir, 'pdfjs', dir), { recursive: true });
+    }
+  }
+};
 
 // Android (Capacitor) arayüzü: masaüstü yapılandırmasından ayrı, Electron eklentisiz.
 // public/ klasörü (pdf.worker, yazı tipleri) masaüstüyle paylaşılır.
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: path.resolve(__dirname, 'mobile'),
   publicDir: path.resolve(__dirname, 'public'),
   // Capacitor WebView'ı dosyaları göreli yoldan yükler
   base: './',
-  plugins: [react()],
+  plugins: [react(), pdfjsData],
+  define: command === 'build' ? { 'import.meta.env.VITE_PDFJS_DATA': JSON.stringify('pdfjs/') } : {},
   css: { postcss: __dirname },
   resolve: {
     alias: [
@@ -22,7 +38,7 @@ export default defineConfig({
     ]
   },
   build: {
-    outDir: path.resolve(__dirname, 'dist-mobile'),
+    outDir,
     emptyOutDir: true,
     rollupOptions: {
       output: {
@@ -36,4 +52,4 @@ export default defineConfig({
     }
   },
   server: { port: 5174 }
-});
+}));

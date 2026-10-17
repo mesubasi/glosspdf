@@ -1,6 +1,7 @@
 import { PdfRenderService } from '@/services/pdfRenderService';
 import type { PickedFile } from './documents';
 import type { PageItem } from './pageOps';
+import { imagePlacement } from './imagePage';
 import type { PageRange } from './ranges';
 import { formatBytes, toBlob, type OutputFile } from './share';
 
@@ -13,6 +14,9 @@ const editService = () => import('@/services/pdfEditService').then((m) => m.PdfE
 /** pdf-lib şifreli PDF'i çözemez; ignoreEncryption ile işlenirse bozuk çıktı üretir. */
 export class EncryptedPdfError extends Error {}
 export class UnsupportedImageError extends Error {}
+export class WrongPasswordError extends Error {}
+export class UnsupportedEncryptionError extends Error {}
+export class NotEncryptedError extends Error {}
 
 /** Sayfa sayısını döner; şifreli (parolalı ya da yalnızca izin kısıtlı) PDF'i reddeder. */
 export async function inspectPdf(data: Uint8Array): Promise<number> {
@@ -140,11 +144,14 @@ export async function buildFromPages(file: PickedFile, items: PageItem[], suffix
 
 const MAX_IMAGE_EDGE = 2000;
 
-/** Her görsel biçimini (WebP dahil) en uzun kenarı 2000 px olacak şekilde PNG'ye çevirir. */
-async function normalizeImage(data: Uint8Array): Promise<{ png: Uint8Array; width: number; height: number }> {
+/**
+ * Her görsel biçimini (WebP dahil) en uzun kenarı 2000 px olacak şekilde PNG'ye (saydamlık korunur)
+ * ya da JPEG'e (fotoğraflar; saydam alan beyaz olur) çevirir. Telefon fotoğraflarının EXIF yönü uygulanır.
+ */
+async function normalizeImage(data: Uint8Array, jpeg = false): Promise<{ bytes: Uint8Array; width: number; height: number }> {
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(toBlob(data));
+    bitmap = await createImageBitmap(toBlob(data), { imageOrientation: 'from-image' });
   } catch {
     throw new UnsupportedImageError('unsupported image');
   }
@@ -152,12 +159,62 @@ async function normalizeImage(data: Uint8Array): Promise<{ png: Uint8Array; widt
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(bitmap.width * ratio);
   canvas.height = Math.round(bitmap.height * ratio);
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  const ctx = canvas.getContext('2d')!;
+  if (jpeg) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  const png = await canvasToBytes(canvas, 'image/png');
+  const bytes = await canvasToBytes(canvas, jpeg ? 'image/jpeg' : 'image/png', jpeg ? 0.88 : undefined);
   const size = { width: canvas.width, height: canvas.height };
   canvas.width = canvas.height = 0;
-  return { png, ...size };
+  return { bytes, ...size };
+}
+
+/** Görselleri sırayla birer sayfa yapar; her görsel işlenince bellekten bırakılır. */
+export async function imagesToPdf(
+  images: PickedFile[],
+  size: 'fit' | 'a4',
+  onProgress: (done: number, total: number) => void
+): Promise<OutputFile[]> {
+  const { PDFDocument } = await import('pdf-lib');
+  const out = await PDFDocument.create();
+  for (let i = 0; i < images.length; i++) {
+    onProgress(i, images.length);
+    const { bytes, width, height } = await normalizeImage(images[i].data, true);
+    const img = await out.embedJpg(bytes);
+    const p = imagePlacement(width, height, size);
+    out.addPage(p.page).drawImage(img, { x: p.x, y: p.y, width: p.w, height: p.h });
+  }
+  onProgress(images.length, images.length);
+  const bytes = await out.save({ useObjectStreams: true });
+  return [{ name: `${images[0].name.replace(/\.[^.]+$/, '')}.pdf`, bytes, mime: PDF }];
+}
+
+/** Parolalı PDF'in parolasız kopyasını üretir. */
+export async function unlockPdf(file: PickedFile, password: string): Promise<OutputFile[]> {
+  let bytes: Uint8Array;
+  try {
+    bytes = await (await editService()).decryptPdf(file.data.slice(), password);
+  } catch (e: any) {
+    // pdf-lib-encrypt hata metinleri sabit: yanlış parola ya da desteklenmeyen şifreleme
+    if (/wrong password/i.test(e?.message || '')) throw new WrongPasswordError('wrong password');
+    if (/unsupported|malformed|cannot decrypt|object stream/i.test(e?.message || '')) throw new UnsupportedEncryptionError(e.message);
+    throw e;
+  }
+  return [{ name: `${stem(file.name)}_unlocked.pdf`, bytes, mime: PDF }];
+}
+
+/** Şifreli olduğunu doğrular ve sayfa sayısını (okunabiliyorsa) döner. */
+export async function inspectLockedPdf(data: Uint8Array): Promise<number> {
+  const doc = await (await editService()).loadPdf(data);
+  if (!doc.isEncrypted) throw new NotEncryptedError('not encrypted');
+  try {
+    return doc.getPageCount();
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -171,7 +228,7 @@ export async function insertImage(
   widthPct: number
 ): Promise<OutputFile[]> {
   const service = await editService();
-  const { png, width: iw, height: ih } = await normalizeImage(image.data);
+  const { bytes: png, width: iw, height: ih } = await normalizeImage(image.data);
   const { width: pw, height: ph } = (await service.loadPdf(file.data.slice())).getPage(pageNumber - 1).getSize();
 
   let w = (pw * widthPct) / 100;

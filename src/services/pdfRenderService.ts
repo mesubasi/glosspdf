@@ -15,6 +15,12 @@ if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = assetUrl('pdf.worker.min.js');
 }
 
+/** cmap ve standart yazı tipleri: mobil derleme pakete gömer (çevrimdışı), masaüstü CDN'den alır */
+const pdfjsDataUrl = (dir: string) =>
+  import.meta.env.VITE_PDFJS_DATA
+    ? assetUrl(`${import.meta.env.VITE_PDFJS_DATA}${dir}/`)
+    : `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/${dir}/`;
+
 /**
  * Sayfanın kendi /Rotate değeri + kullanıcının görünüm döndürmesi.
  * (getViewport'a rotation verildiğinde sayfanın doğal döndürmesi EZİLİR; bu yüzden toplanmalıdır.)
@@ -38,9 +44,9 @@ export class PdfRenderService {
   ): Promise<pdfjsLib.PDFDocumentProxy> {
     const loadingTask = pdfjsLib.getDocument({
       data,
-      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapUrl: pdfjsDataUrl('cmaps'),
       cMapPacked: true,
-      standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/'
+      standardFontDataUrl: pdfjsDataUrl('standard_fonts')
     });
 
     if (onPasswordNeeded) {
@@ -78,13 +84,13 @@ export class PdfRenderService {
     page: pdfjsLib.PDFPageProxy,
     canvas: HTMLCanvasElement,
     scale: number,
-    rotation: number = 0
+    rotation: number = 0,
+    // Retina / Yüksek DPI Ekran Desteği; mobil yakınlaştırmada bellek için düşürülebilir
+    outputScale: number = window.devicePixelRatio || 1
   ): RenderResult {
     const viewport = viewportFor(page, scale, rotation);
     const context = canvas.getContext('2d');
 
-    // Retina / Yüksek DPI Ekran Desteği
-    const outputScale = window.devicePixelRatio || 1;
     canvas.width = Math.floor(viewport.width * outputScale);
     canvas.height = Math.floor(viewport.height * outputScale);
     canvas.style.width = `${Math.floor(viewport.width)}px`;

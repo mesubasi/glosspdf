@@ -14,12 +14,12 @@ const TONES: Record<Tone, { card: CSSProperties; badge: CSSProperties; hint: str
     hint: 'rgba(255,255,255,0.88)'
   },
   white: {
-    card: { background: '#FFFFFF', color: 'var(--ink)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
+    card: { background: 'var(--card)', color: 'var(--ink)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
     badge: { background: 'var(--red-tint)', color: 'var(--red-ink)' },
     hint: 'var(--muted)'
   },
   black: {
-    card: { background: 'var(--ink)', color: '#FFFFFF' },
+    card: { background: 'var(--solid)', color: '#FFFFFF' },
     badge: { background: 'rgba(255,255,255,0.12)' },
     hint: 'rgba(255,255,255,0.72)'
   }
@@ -28,9 +28,11 @@ const TONES: Record<Tone, { card: CSSProperties; badge: CSSProperties; hint: str
 // Tasarımdaki yerleşim: birleştir geniş kırmızı kart, parola koru koyu kart
 const LAYOUT: { id: ToolId; tone: Tone; wide?: boolean }[] = [
   { id: 'merge', tone: 'red', wide: true },
+  { id: 'photos', tone: 'white' },
   { id: 'split', tone: 'white' },
   { id: 'compress', tone: 'white' },
   { id: 'protect', tone: 'black' },
+  { id: 'unlock', tone: 'white' },
   { id: 'watermark', tone: 'white' },
   { id: 'images', tone: 'white' },
   { id: 'insertImage', tone: 'white' }
@@ -49,7 +51,7 @@ export function ToolsScreen() {
       style={{ padding: `calc(var(--sat) + 20px) 20px calc(var(--sab) + ${fromViewer ? 32 : 112}px)` }}
     >
       {fromViewer && (
-        <button className="round-btn glass -ml-1 mb-3" aria-label={S.back} onClick={leaveTools}>
+        <button className="round-btn glass -ms-1 mb-3" aria-label={S.back} onClick={leaveTools}>
           <Icon name="back" size={22} strokeWidth={2} />
         </button>
       )}
@@ -66,7 +68,7 @@ export function ToolsScreen() {
             <button
               key={id}
               onClick={() => openTool(id)}
-              className={`relative flex flex-col justify-between overflow-hidden border-0 text-left ${
+              className={`relative flex flex-col justify-between overflow-hidden border-0 text-start ${
                 wide ? 'col-span-2 h-[120px] rounded-[26px] px-[18px] py-4' : 'h-[112px] rounded-3xl p-3.5'
               }`}
               style={t.card}
@@ -94,9 +96,14 @@ export function ToolsScreen() {
                   />
                   <span
                     aria-hidden="true"
-                    className="absolute right-[22px] top-[22px] h-[84px] w-[62px] rounded-lg bg-white"
+                    className="absolute right-[22px] top-[22px] flex h-[84px] w-[62px] flex-col gap-[5px] rounded-lg bg-white px-[9px] py-3"
                     style={{ transform: 'rotate(7deg)', boxShadow: '0 8px 18px rgba(80,0,4,0.25)' }}
-                  />
+                  >
+                    <span className="block h-1 w-[70%] rounded-sm" style={{ background: '#2A2A31' }} />
+                    <span className="block h-[3px] rounded-sm" style={{ background: '#DCDCE2' }} />
+                    <span className="block h-[3px] rounded-sm" style={{ background: '#DCDCE2' }} />
+                    <span className="block h-[3px] w-[60%] rounded-sm" style={{ background: '#DCDCE2' }} />
+                  </span>
                 </>
               )}
             </button>
@@ -106,7 +113,7 @@ export function ToolsScreen() {
 
       <button
         onClick={() => openOrganize()}
-        className="mt-2.5 flex h-16 w-full items-center gap-3 rounded-[22px] border-0 bg-white px-3.5 text-left"
+        className="mt-2.5 flex h-16 w-full items-center gap-3 rounded-[22px] border-0 bg-[var(--card)] px-3.5 text-start"
         style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
       >
         <span

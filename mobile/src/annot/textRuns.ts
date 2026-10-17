@@ -125,6 +125,23 @@ export function spanRects(runs: TextRun[], a: CharPos, b: CharPos): { rects: Rec
   return { rects, text: parts.join(' ').replace(/\s+/g, ' ').trim() };
 }
 
+/**
+ * Belgede arama: sorguyu büyük/küçük harf duyarsız arar, her eşleşmenin kutularını döner.
+ * shortcut: eşleşme tek metin parçası içinde aranır; satır ya da parça sınırını aşan ifadeler bulunmaz.
+ */
+export function findInRuns(runs: TextRun[], query: string, locale?: string): Rect[][] {
+  const q = query.toLocaleLowerCase(locale);
+  if (!q) return [];
+  const hits: Rect[][] = [];
+  runs.forEach((r, run) => {
+    const s = r.str.toLocaleLowerCase(locale);
+    for (let k = s.indexOf(q); k !== -1; k = s.indexOf(q, k + q.length)) {
+      hits.push(spanRects(runs, { run, k }, { run, k: k + q.length }).rects);
+    }
+  });
+  return hits;
+}
+
 const cache = new WeakMap<PDFDocumentProxy, Map<number, Promise<TextRun[]>>>();
 
 /** Sayfanın metin parçalarını sayfa koordinatlarında döner (belge başına önbellekli). */

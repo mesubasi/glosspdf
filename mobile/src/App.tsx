@@ -3,8 +3,14 @@ import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { HomeScreen } from './screens/HomeScreen';
 import { OrganizeScreen } from './screens/OrganizeScreen';
+import { RecentsScreen } from './screens/RecentsScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
+import { SignaturesScreen } from './screens/SignaturesScreen';
 import { SignScreen } from './screens/SignScreen';
 import { useAnnot } from './annot/state';
+import { onIncomingPdf } from './lib/documents';
+import { useForm } from './lib/form';
+import { useSearch } from './lib/search';
 import { ToolScreen } from './screens/ToolScreen';
 import { ToolsScreen } from './screens/ToolsScreen';
 import { ViewerScreen } from './screens/ViewerScreen';
@@ -40,7 +46,7 @@ function PasswordDialog() {
           placeholder={S.passwordPlaceholder}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="h-12 rounded-3xl border-0 bg-white px-4 text-[15px] outline-none"
+          className="h-12 rounded-3xl border-0 bg-[var(--card)] px-4 text-[15px] outline-none"
         />
         {request.attempt > 0 && (
           <p role="alert" className="text-[13px] font-medium" style={{ color: 'var(--red-ink)' }}>
@@ -51,7 +57,7 @@ function PasswordDialog() {
           <button
             type="button"
             onClick={request.cancel}
-            className="h-12 flex-1 rounded-3xl border-0 bg-white text-[15px] font-semibold"
+            className="h-12 flex-1 rounded-3xl border-0 bg-[var(--card)] text-[15px] font-semibold"
           >
             {S.cancel}
           </button>
@@ -83,7 +89,7 @@ function Toast() {
     <div
       role="alert"
       className="fixed left-5 right-5 z-50 rounded-3xl px-4 py-3 text-sm font-medium text-white"
-      style={{ bottom: 'calc(var(--sab) + 100px)', background: 'rgba(16,16,20,0.92)' }}
+      style={{ bottom: 'calc(var(--sab) + 100px)', background: 'var(--dock)' }}
     >
       {error}
     </div>
@@ -94,6 +100,8 @@ export function App() {
   const screen = useMobile((s) => s.screen);
   const busy = useMobile((s) => s.busy);
   const hasPasswordPrompt = useMobile((s) => s.password !== null);
+
+  useEffect(() => onIncomingPdf((uri, name) => void useMobile.getState().openIncoming(uri, name)), []);
 
   // Android geri tuşu: parola → vazgeç, araç → araçlar → geldiği yer, okuyucu → ana sayfa, ana sayfa → çık
   useEffect(() => {
@@ -109,9 +117,12 @@ export function App() {
         else if (a.tool) a.setTool(null);
         else a.exit();
       } else if (s.screen === 'sign') s.leaveSign();
+      else if (s.screen === 'settings' || s.screen === 'signatures' || s.screen === 'recents') s.goHome();
       else if (s.screen === 'tool') s.leaveTool();
       else if (s.screen === 'organize') s.leaveOrganize();
       else if (s.screen === 'tools') s.leaveTools();
+      else if (s.screen === 'viewer' && useForm.getState().editing) useForm.getState().setEditing(null);
+      else if (s.screen === 'viewer' && useSearch.getState().open) useSearch.getState().setOpen(false);
       else if (s.screen === 'viewer') s.closeDoc();
       else CapApp.exitApp();
     });
@@ -132,13 +143,19 @@ export function App() {
         <OrganizeScreen />
       ) : screen === 'sign' ? (
         <SignScreen />
+      ) : screen === 'settings' ? (
+        <SettingsScreen />
+      ) : screen === 'signatures' ? (
+        <SignaturesScreen />
+      ) : screen === 'recents' ? (
+        <RecentsScreen />
       ) : (
         <HomeScreen />
       )}
       {busy && !hasPasswordPrompt && (
         <div
           className="fixed inset-0 z-40 flex items-center justify-center"
-          style={{ background: 'rgba(242,242,245,0.6)' }}
+          style={{ background: 'var(--veil)' }}
           role="status"
         >
           <span className="glass rounded-3xl px-5 py-3 text-sm font-semibold">{S.opening}</span>

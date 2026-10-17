@@ -98,6 +98,23 @@ export async function saveFiles(files: OutputFile[]): Promise<number> {
   return saved;
 }
 
+interface PrintFilePlugin {
+  print(options: { uri: string; name: string }): Promise<void>;
+}
+
+// android/app/src/main/java/io/github/glosspdf/PrintFilePlugin.java
+const PrintFile = registerPlugin<PrintFilePlugin>('PrintFile');
+
+/** Android yazdırma penceresini açar (yazıcı veya "PDF olarak kaydet"). */
+export async function printFile(file: OutputFile): Promise<void> {
+  if (!Capacitor.isNativePlatform()) {
+    window.open(URL.createObjectURL(toBlob(file.bytes, file.mime)));
+    return;
+  }
+  const [uri] = await writeToCache([file]);
+  await PrintFile.print({ uri, name: safeName(file.name) });
+}
+
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;

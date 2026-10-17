@@ -132,7 +132,7 @@ function PageTile({ pdf, item, index, width, selected, dragging, scrollRoot, onC
       )}
       <span
         className="mono absolute bottom-2 left-2 flex h-5 items-center rounded-[10px] px-[7px] text-[11px]"
-        style={{ background: selected ? 'var(--red)' : 'var(--bg)', color: selected ? '#FFFFFF' : '#3E3E47' }}
+        style={{ background: selected ? 'var(--red)' : 'var(--bg)', color: selected ? '#FFFFFF' : 'var(--muted)' }}
       >
         {label}
       </span>
@@ -150,14 +150,22 @@ function PageTile({ pdf, item, index, width, selected, dragging, scrollRoot, onC
 
 // ---------- Ekran ----------
 
-function ToolbarButton(props: { icon: IconName; label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+function ToolbarButton(props: {
+  icon: IconName;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  /** Tasarımda yok: sürüklemeyi kullanamayanlar için yalnızca ekran okuyucuda */
+  srOnly?: boolean;
+}) {
   return (
     <button
       aria-label={props.label}
       title={props.label}
       onClick={props.onClick}
       disabled={props.disabled}
-      className="flex h-11 w-11 flex-none items-center justify-center rounded-full border-0 p-0 text-white"
+      className={`${props.srOnly ? 'sr-only' : 'flex'} h-11 w-11 flex-none items-center justify-center rounded-full border-0 p-0 text-white`}
       style={{
         background: props.danger ? 'var(--red)' : 'rgba(255,255,255,0.1)',
         opacity: props.disabled ? 0.35 : 1
@@ -371,7 +379,7 @@ export function OrganizeScreen() {
           <button
             aria-label={S.close}
             onClick={leaveOrganize}
-            className="flex h-11 w-11 items-center justify-center rounded-full border-0 bg-white p-0"
+            className="flex h-11 w-11 items-center justify-center rounded-full border-0 bg-[var(--card)] p-0"
             style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}
           >
             <Icon name="close" size={20} strokeWidth={2} />
@@ -380,7 +388,7 @@ export function OrganizeScreen() {
             onClick={() => build(items, true)}
             disabled={working || !pdf}
             className="flex h-11 items-center rounded-full border-0 px-[18px] text-[14px] font-semibold text-white"
-            style={{ background: 'var(--ink)', opacity: working || !pdf ? 0.5 : 1 }}
+            style={{ background: 'var(--solid)', opacity: working || !pdf ? 0.5 : 1 }}
           >
             {working ? S.working : S.save}
           </button>
@@ -402,7 +410,8 @@ export function OrganizeScreen() {
           </button>
         </div>
 
-        <div className="mt-2 px-1">
+        {/* Tasarımda görünür ipucu yok; ekran okuyucu için kalır, hata mesajı görünür */}
+        <div className={message ? 'mt-2 px-1' : 'sr-only'}>
           <Help tone={message ? 'error' : 'muted'}>{message ?? S.organizeTip}</Help>
         </div>
 
@@ -432,10 +441,10 @@ export function OrganizeScreen() {
       <div
         role="toolbar"
         aria-label={S.organizeTitle}
-        className="absolute left-4 right-4 flex h-16 items-center gap-0.5 rounded-[32px] pl-5 pr-2"
+        className="absolute left-4 right-4 flex h-16 items-center gap-0.5 rounded-[32px] ps-5 pe-2"
         style={{
           bottom: 'calc(var(--sab) + 24px)',
-          background: 'rgba(16,16,20,0.88)',
+          background: 'var(--dock)',
           WebkitBackdropFilter: 'blur(20px) saturate(160%)',
           backdropFilter: 'blur(20px) saturate(160%)',
           boxShadow: '0 12px 32px rgba(0,0,0,0.25)'
@@ -447,12 +456,14 @@ export function OrganizeScreen() {
         <ToolbarButton
           icon="left"
           label={S.moveEarlier}
+          srOnly
           disabled={!hasSelection}
           onClick={() => setItems((prev) => moveSelected(prev, selected, -1))}
         />
         <ToolbarButton
           icon="right"
           label={S.moveLater}
+          srOnly
           disabled={!hasSelection}
           onClick={() => setItems((prev) => moveSelected(prev, selected, 1))}
         />

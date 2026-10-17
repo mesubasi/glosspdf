@@ -17,9 +17,68 @@
   --red-ink: #c8161d;
   --red-tint: #fce8e9;
   --card: #ffffff;
+  /* Seçili parça (segment, sekme) ve beyaz yazılı koyu düğmeler */
+  --raised: #ffffff;
+  --solid: #0e0e11;
+  --track: #e3e3e8;
+  --toggle-off: #c9c9d1;
+  --dash: #b5b5bf;
+  --line: rgba(14, 14, 17, 0.1);
+  --press: rgba(14, 14, 17, 0.08);
+  --veil: rgba(242, 242, 245, 0.6);
+  --glass: rgba(255, 255, 255, 0.78);
+  --glass-strong: rgba(255, 255, 255, 0.86);
+  --glass-line: rgba(255, 255, 255, 0.7);
+  /* Her iki temada koyu kalan yüzen çubuklar */
+  --dock: rgba(16, 16, 20, 0.88);
   /* Capacitor SystemBars --safe-area-inset-* verir; tarayıcıda env() devreye girer */
   --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+}
+
+/* Koyu tema (theme.ts <html data-theme> ayarlar). PDF sayfaları ve imza alanı kâğıt gibi beyaz kalır. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f0f12;
+  --bg-reading: #17171b;
+  --ink: #f2f2f5;
+  --muted: #a1a1ad;
+  --red-ink: #ff6b70;
+  --red-tint: #3a1517;
+  --card: #1c1c21;
+  --raised: #3a3a42;
+  --solid: #2e2e35;
+  --track: #26262c;
+  --toggle-off: #4a4a52;
+  --dash: rgba(255, 255, 255, 0.28);
+  --line: rgba(255, 255, 255, 0.12);
+  --press: rgba(255, 255, 255, 0.1);
+  --veil: rgba(15, 15, 18, 0.6);
+  --glass: rgba(30, 30, 35, 0.78);
+  --glass-strong: rgba(30, 30, 35, 0.9);
+  --glass-line: rgba(255, 255, 255, 0.08);
+  --dock: rgba(44, 44, 51, 0.92);
+}
+
+/* Kâğıt yüzeyler (imza alanı): koyu temada da açık renk değişkenleriyle */
+.paper {
+  --bg: #f2f2f5;
+  --ink: #0e0e11;
+  --muted: #5f5f6b;
+  --red-ink: #c8161d;
+  --red-tint: #fce8e9;
+  color: var(--ink);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
 }
 
 /* Metin kutusu önizlemesi = PDF'e gömülen yazı tipi (PdfEditService Liberation Sans kullanır) */
@@ -49,10 +108,10 @@ body {
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--glass);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--glass-line);
   box-shadow: 0 8px 24px rgba(17, 17, 26, 0.1);
 }
 
@@ -71,13 +130,23 @@ body {
 }
 
 .round-btn:active {
-  background: rgba(14, 14, 17, 0.08);
+  background: var(--press);
 }
 
+.round-btn:disabled {
+  opacity: 0.35;
+}
+
+/* Metin kutuları imleçle odak gösterir; çerçeve düğme, anahtar ve kaydırıcılara */
 button:focus-visible,
-input:focus-visible {
+input[type='checkbox']:focus-visible,
+input[type='range']:focus-visible {
   outline: 2px solid var(--red-ink);
   outline-offset: 2px;
+}
+
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

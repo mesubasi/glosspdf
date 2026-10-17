@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Help, Section } from '../components/Fields';
 import { Icon } from '../components/Icon';
 import { ResultSheet } from '../components/ResultSheet';
 import { messageFor } from '../errors';
-import { pickPdfs, type PickedFile } from '../lib/documents';
-import { formatBytes, type OutputFile } from '../lib/share';
-import { inspectPdf } from '../lib/tools';
+import { pickImages, pickPdfs, type PickedFile } from '../lib/documents';
+import { formatBytes, toBlob, type OutputFile } from '../lib/share';
+import { inspectLockedPdf, inspectPdf } from '../lib/tools';
 import { useMobile } from '../store';
 import { S, fill } from '../strings';
 import { TOOLS, type InputFile, type ToolContext } from '../tools/registry';
+
+function Thumb({ data }: { data: Uint8Array }) {
+  const url = useMemo(() => URL.createObjectURL(toBlob(data)), [data]);
+  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  return <img src={url} alt="" className="h-10 w-10 flex-none rounded-lg object-cover" />;
+}
 
 export function ToolScreen() {
   const toolId = useMobile((s) => s.toolId)!;
@@ -26,9 +32,12 @@ export function ToolScreen() {
   const ctx: ToolContext = { files, pages: files[0]?.pages ?? 0 };
   const validation = files.length === 0 ? '' : tool.validate(options, ctx);
 
-  /** Seçilen dosyaları denetler (şifreli mi, kaç sayfa) ve listeye ekler. */
+  const input = tool.input ?? 'pdf';
+
+  /** Seçilen dosyaları denetler (şifreli mi, kaç sayfa) ve listeye ekler. Görseller olduğu gibi eklenir. */
   const addFiles = async (picked: PickedFile[]) => {
-    const inspected = await Promise.all(picked.map(async (f) => ({ ...f, pages: await inspectPdf(f.data) })));
+    const inspect = input === 'images' ? async () => 0 : input === 'locked' ? inspectLockedPdf : inspectPdf;
+    const inspected = await Promise.all(picked.map(async (f) => ({ ...f, pages: await inspect(f.data) })));
     setFiles((prev) => (tool.multi ? [...prev, ...inspected] : inspected.slice(0, 1)));
   };
 
@@ -46,14 +55,15 @@ export function ToolScreen() {
   };
 
   useEffect(() => {
-    if (preset) void busyRun(() => addFiles([preset]));
+    // Okuyucudaki belge yalnızca PDF alan araçlara hazır gelir
+    if (preset && input !== 'images') void busyRun(() => addFiles([preset]));
     // Yalnızca ekran açılırken: hazır belge bir kez eklenir
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pick = () =>
     busyRun(async () => {
-      const picked = await pickPdfs(tool.multi);
+      const picked = input === 'images' ? await pickImages() : await pickPdfs(tool.multi);
       if (picked.length) await addFiles(picked);
     });
 
@@ -81,16 +91,21 @@ export function ToolScreen() {
         <Section title={tool.multi ? S.files : S.file}>
           {files.map((f, i) => (
             <div key={`${f.name}-${i}`} className="flex items-center gap-2">
-              <span
-                className="flex h-10 w-10 flex-none items-center justify-center rounded-full"
-                style={{ background: 'var(--red-tint)', color: 'var(--red-ink)' }}
-              >
-                <Icon name="doc" size={19} />
-              </span>
+              {input === 'images' ? (
+                <Thumb data={f.data} />
+              ) : (
+                <span
+                  className="flex h-10 w-10 flex-none items-center justify-center rounded-full"
+                  style={{ background: 'var(--red-tint)', color: 'var(--red-ink)' }}
+                >
+                  <Icon name={input === 'locked' ? 'lock' : 'doc'} size={19} />
+                </span>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[14.5px] font-semibold">{f.name}</div>
                 <div className="mono text-[11.5px]" style={{ color: 'var(--muted)' }}>
-                  {f.pages} {S.pages} · {formatBytes(f.data.length)}
+                  {f.pages > 0 && `${f.pages} ${S.pages} · `}
+                  {formatBytes(f.data.length)}
                 </div>
               </div>
               {tool.multi && (
@@ -131,7 +146,7 @@ export function ToolScreen() {
             style={{ background: 'var(--red-tint)', color: 'var(--red-ink)' }}
           >
             <Icon name="plus" size={18} strokeWidth={2.2} />
-            {tool.multi ? S.addPdfs : files.length ? S.change : S.choosePdf}
+            {input === 'images' ? S.addPhotos : tool.multi ? S.addPdfs : files.length ? S.change : S.choosePdf}
           </button>
         </Section>
 

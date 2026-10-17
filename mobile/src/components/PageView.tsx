@@ -2,7 +2,12 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { PdfRenderService } from '@/services/pdfRenderService';
 import { AnnotationOverlay } from '../annot/AnnotationOverlay';
+import { FormLayer } from './FormLayer';
+import { useSearch } from '../lib/search';
 import { S } from '../strings';
+
+/** Sayfa başına canvas piksel sınırı (~32 MB): yüksek yakınlaştırmada WebView belleği taşmasın */
+const MAX_CANVAS_PIXELS = 8_000_000;
 
 interface Props {
   pdf: PDFDocumentProxy;
@@ -25,6 +30,8 @@ export function PageView({ pdf, pageNumber, width, fallbackAspect, scrollRoot, o
   const [near, setNear] = useState(false);
   /** Sayfanın ölçek 1 boyutu (sayfa birimi); işaretleme katmanı da bunu kullanır */
   const [base, setBase] = useState<{ w: number; h: number } | null>(null);
+  const hits = useSearch((s) => s.hits);
+  const current = useSearch((s) => s.index);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -57,28 +64,42 @@ export function PageView({ pdf, pageNumber, width, fallbackAspect, scrollRoot, o
 
     (async () => {
       const page = await pdf.getPage(pageNumber);
-      const canvas = canvasRef.current;
-      if (cancelled || !canvas) return;
+      if (cancelled) return;
       const base = page.getViewport({ scale: 1 });
       setBase({ w: base.width, h: base.height });
-      task = PdfRenderService.renderPageToCanvas(page, canvas, width / base.width).renderTask;
+      const scale = width / base.width;
+      const dpr = Math.min(window.devicePixelRatio || 1, Math.sqrt(MAX_CANVAS_PIXELS / (base.width * base.height * scale * scale)));
+      // Ayrı canvas'a çizilir: yakınlaştırınca yenisi bitene kadar eski görüntü (gerilmiş) görünür kalır
+      const off = document.createElement('canvas');
+      task = PdfRenderService.renderPageToCanvas(page, off, scale, 0, dpr).renderTask;
       try {
         await task.promise;
       } catch (e: any) {
         if (e?.name !== 'RenderingCancelledException') console.warn('Page render failed:', e);
+        return;
       }
+      const canvas = canvasRef.current;
+      if (cancelled || !canvas) return;
+      canvas.width = off.width;
+      canvas.height = off.height;
+      canvas.getContext('2d')?.drawImage(off, 0, 0);
+      off.width = 0;
+      off.height = 0;
     })().catch((e) => console.warn('Page load failed:', e));
 
     return () => {
       cancelled = true;
       task?.cancel();
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
-      }
     };
   }, [near, width, pdf, pageNumber]);
+
+  // Görünür alandan uzaklaşan sayfanın canvas'ı boşaltılır
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (near || !canvas) return;
+    canvas.width = 0;
+    canvas.height = 0;
+  }, [near]);
 
   return (
     <article
@@ -91,17 +112,28 @@ export function PageView({ pdf, pageNumber, width, fallbackAspect, scrollRoot, o
         boxShadow: '0 8px 28px rgba(17,17,26,0.10)'
       }}
     >
-      <canvas ref={canvasRef} className="absolute left-0 top-0" />
-      {base && (
-        <AnnotationOverlay
-          pdf={pdf}
-          pageNumber={pageNumber}
-          scale={width / base.w}
-          pageW={base.w}
-          pageH={base.h}
-          scrollRoot={scrollRoot}
-        />
+      <canvas ref={canvasRef} className="absolute left-0 top-0 h-full w-full" />
+      {hits.map(
+        (h, i) =>
+          h.page === pageNumber &&
+          h.rects.map((r, j) => (
+            <span
+              key={`${i}-${j}`}
+              aria-hidden="true"
+              className="pointer-events-none absolute rounded-[2px]"
+              style={{
+                left: `${(r[0] / h.pw) * 100}%`,
+                top: `${(r[1] / h.ph) * 100}%`,
+                width: `${(r[2] / h.pw) * 100}%`,
+                height: `${(r[3] / h.ph) * 100}%`,
+                background: i === current ? 'rgba(255,149,0,0.55)' : 'rgba(255,214,10,0.45)',
+                mixBlendMode: 'multiply'
+              }}
+            />
+          ))
       )}
+      {base && near && <FormLayer pdf={pdf} pageNumber={pageNumber} scale={width / base.w} pageH={base.h} />}
+      {base && <AnnotationOverlay pdf={pdf} pageNumber={pageNumber} scale={width / base.w} pageW={base.w} pageH={base.h} />}
     </article>
   );
 }

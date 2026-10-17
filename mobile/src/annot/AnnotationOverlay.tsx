@@ -4,8 +4,7 @@ import {
   useRef,
   useState,
   type MouseEvent as RMouseEvent,
-  type PointerEvent as RPointerEvent,
-  type RefObject
+  type PointerEvent as RPointerEvent
 } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { AnnotationItem } from '@/types/pdf';
@@ -114,9 +113,10 @@ function Shape({ it }: { it: AnnotationItem }) {
       return r ? <rect x={r[0]} y={r[1]} width={r[2]} height={r[3]} fill="none" stroke={it.color} strokeWidth={it.strokeWidth || 2} /> : null;
     case 'note':
       return r ? (
-        <g transform={`translate(${r[0]} ${r[1]})`}>
-          <rect x={1} y={1} width={22} height={22} rx={5} fill={it.color} stroke="#333" strokeWidth={1} />
-          <path d="M6 8h12M6 12h12M6 16h8" stroke="#262626" strokeWidth={1.6} strokeLinecap="round" />
+        // Tasarımdaki not balonu: sol alt köşesi sivri yuvarlak
+        <g transform={`translate(${r[0]} ${r[1]})`} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}>
+          <path d="M12 0a12 12 0 0 1 0 24H2.4A2.4 2.4 0 0 1 0 21.6V12A12 12 0 0 1 12 0z" fill={it.color} />
+          <path d="M6.5 8.5h11M6.5 12h11M6.5 15.5h6.5" stroke="#4A3A00" strokeWidth={1.8} strokeLinecap="round" />
         </g>
       ) : null;
     case 'text':
@@ -152,7 +152,7 @@ function SelectionBar({ group, items, box, scale, pageW }: { group: string; item
       role="toolbar"
       aria-label={S.annotSelected}
       className="absolute z-20 flex gap-0.5 rounded-[20px] p-[3px]"
-      style={{ left, top, background: 'var(--ink)', boxShadow: '0 10px 24px rgba(0,0,0,0.25)' }}
+      style={{ left, top, background: 'var(--solid)', boxShadow: '0 10px 24px rgba(0,0,0,0.25)' }}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -186,7 +186,8 @@ function SelectionBar({ group, items, box, scale, pageW }: { group: string; item
 // ---------- Katman ----------
 
 type Gesture =
-  | { kind: 'pan'; lastY: number }
+  /** İki parmak: kaydırma/yakınlaştırmayı okuyucu yönetir, katman yalnızca bekler */
+  | { kind: 'multi' }
   | { kind: 'markup'; tool: AnnotTool; from: CharPos | null; p0: Pt }
   | { kind: 'draw'; pts: Pt[] }
   | { kind: 'rect'; p0: Pt }
@@ -201,17 +202,17 @@ interface Props {
   scale: number;
   pageW: number;
   pageH: number;
-  scrollRoot: RefObject<HTMLElement>;
 }
 
-export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH, scrollRoot }: Props) {
+export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH }: Props) {
   const active = useAnnot((s) => s.active);
   const tool = useAnnot((s) => s.tool);
   const allItems = useAnnot((s) => s.items);
   const selected = useAnnot((s) => s.selected);
+  const pinching = useAnnot((s) => s.pinching);
   const rootRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
-  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pointers = useRef(new Set<number>());
   const [draft, setDraft] = useState<AnnotationItem[] | null>(null);
   const [offset, setOffset] = useState<{ dx: number; dy: number; dw: number } | null>(null);
   const [runs, setRuns] = useState<TextRun[] | null>(null);
@@ -230,6 +231,13 @@ export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH, scroll
       alive = false;
     };
   }, [active, tool, pdf, pageNumber, runs]);
+
+  // İkinci parmak başka sayfaya da konmuş olabilir: iki parmak hareketi başlayınca her sayfa çizimi bırakır
+  useEffect(() => {
+    if (!pinching) return;
+    gesture.current = null;
+    setDraft(null);
+  }, [pinching]);
 
   if (!active) return null;
 
@@ -268,16 +276,15 @@ export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH, scroll
     setDraft(null);
   };
 
-  // ----- Araç modu: çiz / işaretle / yerleştir; iki parmak kaydırır -----
+  // ----- Araç modu: çiz / işaretle / yerleştir; iki parmak kaydırır ve yakınlaştırır (ViewerScreen) -----
   const onToolDown = (e: RPointerEvent) => {
-    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.current.size === 2) {
-      const ys = [...pointers.current.values()].map((p) => p.y);
-      gesture.current = { kind: 'pan', lastY: (ys[0] + ys[1]) / 2 };
+    pointers.current.add(e.pointerId);
+    if (pointers.current.size > 1 || st().pinching) {
+      gesture.current = { kind: 'multi' };
       setDraft(null);
       return;
     }
-    if (pointers.current.size > 2 || !tool) return;
+    if (!tool) return;
     rootRef.current?.setPointerCapture(e.pointerId);
     const p = toPage(e);
     if (TEXT_MARKUP.has(tool)) {
@@ -294,17 +301,8 @@ export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH, scroll
   };
 
   const onToolMove = (e: RPointerEvent) => {
-    if (!pointers.current.has(e.pointerId)) return;
-    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const g = gesture.current;
-    if (!g) return;
-    if (g.kind === 'pan') {
-      const ys = [...pointers.current.values()].map((p) => p.y);
-      const y = ys.reduce((a, b) => a + b, 0) / ys.length;
-      scrollRoot.current?.scrollBy(0, g.lastY - y);
-      g.lastY = y;
-      return;
-    }
+    if (!g || g.kind === 'multi' || !pointers.current.has(e.pointerId)) return;
     const p = toPage(e);
     const s = st();
     if (g.kind === 'markup') setDraft(markupDraft(g, p));
@@ -328,7 +326,7 @@ export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH, scroll
     pointers.current.delete(e.pointerId);
     const g = gesture.current;
     if (!g) return;
-    if (g.kind === 'pan') {
+    if (g.kind === 'multi') {
       if (pointers.current.size === 0) gesture.current = null;
       return;
     }
@@ -405,7 +403,7 @@ export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH, scroll
     <div
       ref={rootRef}
       className="absolute inset-0 z-10"
-      style={{ touchAction: toolMode ? 'none' : 'pan-y', cursor: toolMode ? 'crosshair' : 'default' }}
+      style={{ touchAction: toolMode ? 'none' : 'pan-x pan-y', cursor: toolMode ? 'crosshair' : 'default' }}
       onPointerDown={toolMode ? onToolDown : undefined}
       onPointerMove={toolMode ? onToolMove : onMove}
       onPointerUp={toolMode ? onToolUp : endMove}
@@ -433,7 +431,7 @@ export function AnnotationOverlay({ pdf, pageNumber, scale, pageW, pageH, scroll
             fill="none"
             stroke="#2F7BEA"
             strokeWidth={1.5 / scale}
-            strokeDasharray={`${4 / scale} ${3 / scale}`}
+            rx={1 / scale}
           />
         )}
       </svg>

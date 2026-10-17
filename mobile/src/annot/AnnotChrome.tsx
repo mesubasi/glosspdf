@@ -27,15 +27,15 @@ const COLORS = [
 ] as const;
 
 const glass = {
-  background: 'rgba(255,255,255,0.86)',
+  background: 'var(--glass-strong)',
   WebkitBackdropFilter: 'blur(20px) saturate(180%)',
   backdropFilter: 'blur(20px) saturate(180%)',
-  border: '1px solid rgba(255,255,255,0.7)',
+  border: '1px solid var(--glass-line)',
   boxShadow: '0 12px 32px rgba(17,17,26,0.14)'
 } as const;
 
 const darkGlass = {
-  background: 'rgba(16,16,20,0.88)',
+  background: 'var(--dock)',
   WebkitBackdropFilter: 'blur(20px) saturate(160%)',
   backdropFilter: 'blur(20px) saturate(160%)',
   boxShadow: '0 12px 32px rgba(0,0,0,0.25)'
@@ -72,7 +72,7 @@ export function AnnotHeader({ onExit, onDone, busy }: { onExit: () => void; onDo
       <button
         onClick={onDone}
         disabled={busy}
-        className="ml-0.5 h-10 rounded-[20px] border-0 px-4 text-[14px] font-semibold text-white"
+        className="ms-0.5 h-10 rounded-[20px] border-0 px-4 text-[14px] font-semibold text-white"
         style={{ background: 'var(--red)', opacity: busy ? 0.6 : 1 }}
       >
         {busy ? S.working : S.done}
@@ -107,7 +107,7 @@ function StylePanel({ tool }: { tool: AnnotTool }) {
           >
             <span
               className="h-7 w-7 rounded-full"
-              style={{ background: c.hex, boxShadow: color === c.hex ? '0 0 0 3px #FFFFFF, 0 0 0 5px #0E0E11' : 'none' }}
+              style={{ background: c.hex, boxShadow: color === c.hex ? '0 0 0 3px var(--card), 0 0 0 5px var(--ink)' : 'inset 0 0 0 1px var(--line)' }}
             />
           </button>
         ))}
@@ -119,9 +119,6 @@ function StylePanel({ tool }: { tool: AnnotTool }) {
         <Slider label={S.thickness} value={stroke} min={1} max={10} format={(v) => `${v} pt`} onChange={setStroke} />
       )}
       {tool === 'text' && <Slider label={S.textSize} value={fontSize} min={8} max={36} format={(v) => `${v} pt`} onChange={setFontSize} />}
-      <p className="px-1 text-[12px]" style={{ color: 'var(--muted)' }}>
-        {S.twoFingerScroll}
-      </p>
     </section>
   );
 }
@@ -147,7 +144,7 @@ export function ToolDock() {
               aria-pressed={on}
               onClick={() => setTool(on ? null : t)}
               className="flex h-11 w-11 items-center justify-center justify-self-center rounded-full border-0 p-0"
-              style={{ background: on ? '#FFFFFF' : 'transparent', color: on ? 'var(--ink)' : 'rgba(255,255,255,0.8)' }}
+              style={{ background: on ? '#FFFFFF' : 'transparent', color: on ? '#0E0E11' : 'rgba(255,255,255,0.8)' }}
             >
               <ToolIcon d={TOOL_ICONS[t]} />
             </button>
@@ -225,7 +222,7 @@ export function EditorSheet() {
             aria-label={title}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="h-12 rounded-2xl border-0 bg-white px-4 text-[15px] outline-none"
+            className="h-12 rounded-2xl border-0 bg-[var(--card)] px-4 text-[15px] outline-none"
           />
         ) : (
           <textarea
@@ -234,11 +231,11 @@ export function EditorSheet() {
             value={value}
             rows={4}
             onChange={(e) => setValue(e.target.value)}
-            className="resize-none rounded-2xl border-0 bg-white p-3 text-[15px] outline-none"
+            className="resize-none rounded-2xl border-0 bg-[var(--card)] p-3 text-[15px] outline-none"
           />
         )}
         <div className="flex gap-2">
-          <button type="button" onClick={close} className="h-12 flex-1 rounded-3xl border-0 bg-white text-[15px] font-semibold">
+          <button type="button" onClick={close} className="h-12 flex-1 rounded-3xl border-0 bg-[var(--card)] text-[15px] font-semibold">
             {S.cancel}
           </button>
           <button type="submit" className="h-12 flex-1 rounded-3xl border-0 text-[15px] font-semibold text-white" style={{ background: 'var(--red)' }}>

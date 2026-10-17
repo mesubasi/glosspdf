@@ -68,7 +68,7 @@ export function ResultSheet(props: {
         </div>
         <ul className="flex flex-col gap-2 overflow-y-auto">
           {outputs.map((o) => (
-            <li key={o.name} className="rounded-2xl bg-white px-4 py-3">
+            <li key={o.name} className="rounded-2xl bg-[var(--card)] px-4 py-3">
               <div className="truncate text-[14px] font-semibold">{o.name}</div>
               <div className="mono text-[11.5px]" style={{ color: 'var(--muted)' }}>
                 {o.note ?? formatBytes(o.bytes.length)}
@@ -94,7 +94,7 @@ export function ResultSheet(props: {
           <button
             onClick={share}
             className="flex h-12 flex-1 items-center justify-center gap-2 rounded-3xl border-0 text-[15px] font-semibold text-white"
-            style={{ background: 'var(--ink)' }}
+            style={{ background: 'var(--solid)' }}
           >
             <Icon name="share" size={18} />
             {S.share}
@@ -104,12 +104,12 @@ export function ResultSheet(props: {
           {canOpen && (
             <button
               onClick={() => openOutput(outputs[0])}
-              className="h-12 flex-1 rounded-3xl border-0 bg-white text-[15px] font-semibold"
+              className="h-12 flex-1 rounded-3xl border-0 bg-[var(--card)] text-[15px] font-semibold"
             >
               {S.openResult}
             </button>
           )}
-          <button onClick={onClose} className="h-12 flex-1 rounded-3xl border-0 bg-white text-[15px] font-semibold">
+          <button onClick={onClose} className="h-12 flex-1 rounded-3xl border-0 bg-[var(--card)] text-[15px] font-semibold">
             {S.close}
           </button>
         </div>

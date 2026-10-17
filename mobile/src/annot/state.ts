@@ -48,6 +48,8 @@ interface AnnotState {
   future: AnnotationItem[][];
   selected: string | null;
   editing: EditRequest | null;
+  /** Okuyucuda iki parmakla kaydırma/yakınlaştırma sürüyor; yarım kalan çizimler iptal edilir */
+  pinching: boolean;
 
   begin: (tool?: AnnotTool | null) => void;
   reset: () => void;
@@ -65,6 +67,7 @@ interface AnnotState {
   select: (group: string | null) => void;
   removeGroup: (group: string) => void;
   setEditing: (req: EditRequest | null) => void;
+  setPinching: (v: boolean) => void;
 }
 
 const fresh = { items: [], past: [], future: [], selected: null, editing: null };
@@ -76,6 +79,7 @@ export const useAnnot = create<AnnotState>((set, get) => ({
   opacity: 0.4,
   stroke: 2,
   fontSize: 14,
+  pinching: false,
   ...fresh,
 
   begin: (tool = 'highlight') => set({ active: true, tool, ...fresh }),
@@ -108,5 +112,6 @@ export const useAnnot = create<AnnotState>((set, get) => ({
     get().commit(get().items.filter((it) => groupOf(it.id) !== group));
     set({ selected: null });
   },
-  setEditing: (editing) => set({ editing })
+  setEditing: (editing) => set({ editing }),
+  setPinching: (pinching) => set({ pinching })
 }));

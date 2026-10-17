@@ -9,6 +9,7 @@ import {
   loadRecents,
   makeThumbnail,
   pickPdf,
+  readIncomingPdf,
   readStoredBytes,
   rememberDocument,
   touchRecent,
@@ -18,6 +19,7 @@ import {
 import type { OutputFile } from './lib/share';
 import { EncryptedPdfError, inspectPdf } from './lib/tools';
 import { newGroup, useAnnot } from './annot/state';
+import { formDirty, useForm } from './lib/form';
 import type { InputFile, ToolId } from './tools/registry';
 import { S } from './strings';
 
@@ -37,7 +39,7 @@ interface PasswordRequest {
   cancel: () => void;
 }
 
-export type Screen = 'home' | 'viewer' | 'tools' | 'tool' | 'organize' | 'sign';
+export type Screen = 'home' | 'viewer' | 'tools' | 'tool' | 'organize' | 'sign' | 'settings' | 'signatures' | 'recents';
 
 interface MobileState {
   screen: Screen;
@@ -58,14 +60,27 @@ interface MobileState {
   organizeReturnTo: 'tools' | 'viewer';
   /** Okuyucuda en çok görünen sayfa (imza bu sayfaya yerleşir) */
   viewerPage: number;
+  /** İmza ekranı: belgeye yerleştir ya da (İmzalar'dan) yalnızca oluşturup kaydet */
+  signMode: 'place' | 'create';
 
   pickAndOpen: () => Promise<void>;
   openRecent: (id: string) => Promise<void>;
   openOutput: (file: OutputFile) => Promise<void>;
+  /** "Birlikte aç" / "Paylaş" ile gelen PDF; kaydedilmemiş iş varsa önce sorar */
+  openIncoming: (uri: string, name: string) => Promise<void>;
   removeRecent: (id: string) => Promise<void>;
   closeDoc: () => void;
   dismissError: () => void;
   goHome: () => void;
+  openSettings: () => void;
+  leaveSettings: () => void;
+  openSignatures: () => void;
+  openRecents: () => void;
+  /** Ana sayfadaki "İmzala": PDF seçtirir ve imza ekranını açar */
+  pickAndSign: () => Promise<void>;
+  /** İmzalar ekranında kayıtlı imzaya dokununca: PDF seçtirir ve imzayı yerleştirir */
+  signWithSaved: (dataUrl: string, aspect: number) => Promise<void>;
+  openSignCreate: () => void;
   openTools: (from: 'home' | 'viewer') => void;
   leaveTools: () => void;
   openTool: (id: ToolId) => void;
@@ -114,7 +129,22 @@ export const useMobile = create<MobileState>((set, get) => {
 
   function show(id: string, name: string, pdf: PDFDocumentProxy, data: Uint8Array) {
     get().doc?.pdf.destroy();
-    set({ doc: { id, name, pdf, pages: pdf.numPages, data }, screen: 'viewer' });
+    useForm.getState().reset();
+    set({ doc: { id, name, pdf, pages: pdf.numPages, data }, screen: 'viewer', viewerPage: 1 });
+  }
+
+  /** İmza için PDF seçtirir; şifreli belge düzenlenemeyeceği için baştan reddedilir. */
+  async function pickEditable(): Promise<PickedFile | null> {
+    const picked = await pickPdf();
+    if (!picked) return null;
+    try {
+      await inspectPdf(picked.data);
+    } catch (e) {
+      if (!(e instanceof EncryptedPdfError)) throw e;
+      set({ error: S.errorEncryptedEdit });
+      return null;
+    }
+    return picked;
   }
 
   /** Baytları açar, okuyucuya geçer ve arka planda son açılanlara ekler. */
@@ -161,6 +191,7 @@ export const useMobile = create<MobileState>((set, get) => {
     organizeDirty: false,
     organizeReturnTo: 'tools',
     viewerPage: 1,
+    signMode: 'place',
 
     pickAndOpen: () =>
       guarded(async () => {
@@ -185,9 +216,24 @@ export const useMobile = create<MobileState>((set, get) => {
 
     openOutput: (file) => guarded(() => openBytes(file.name, file.bytes)),
 
+    openIncoming: async (uri, name) => {
+      const s = get();
+      const annot = useAnnot.getState();
+      const unsaved = (annot.active && annot.items.length > 0) || (s.screen === 'organize' && s.organizeDirty) || formDirty();
+      if (s.busy || (unsaved && !window.confirm(S.discardChanges))) return;
+      annot.reset();
+      useForm.getState().reset();
+      // Okuyucu yeni belgeye baştan (ilk sayfa, normal boyut) açılsın
+      if (s.doc) s.closeDoc();
+      set({ organizeSource: null, organizeDirty: false });
+      await guarded(async () => openBytes(/\.pdf$/i.test(name) ? name : `${name}.pdf`, await readIncomingPdf(uri)));
+    },
+
     removeRecent: async (id) => set({ recents: await forgetDocument(id) }),
 
     closeDoc: () => {
+      if (formDirty() && !window.confirm(S.discardChanges)) return;
+      useForm.getState().reset();
       get().doc?.pdf.destroy();
       set({ doc: null, screen: 'home' });
     },
@@ -195,6 +241,32 @@ export const useMobile = create<MobileState>((set, get) => {
     dismissError: () => set({ error: null }),
 
     goHome: () => set({ screen: 'home' }),
+
+    openSettings: () => set({ screen: 'settings' }),
+
+    leaveSettings: () => set({ screen: 'home' }),
+
+    openSignatures: () => set({ screen: 'signatures' }),
+
+    openRecents: () => set({ screen: 'recents' }),
+
+    pickAndSign: () =>
+      guarded(async () => {
+        const picked = await pickEditable();
+        if (!picked) return;
+        await openBytes(picked.name, picked.data);
+        if (get().doc) set({ screen: 'sign', signMode: 'place' });
+      }),
+
+    signWithSaved: (dataUrl, aspect) =>
+      guarded(async () => {
+        const picked = await pickEditable();
+        if (!picked) return;
+        await openBytes(picked.name, picked.data);
+        if (get().doc) await get().placeSignature(dataUrl, aspect);
+      }),
+
+    openSignCreate: () => set({ screen: 'sign', signMode: 'create' }),
 
     openTools: (from) => {
       const doc = get().doc;
@@ -236,9 +308,9 @@ export const useMobile = create<MobileState>((set, get) => {
 
     showError: (error) => set({ error }),
 
-    openSign: () => set({ screen: 'sign' }),
+    openSign: () => set({ screen: 'sign', signMode: 'place' }),
 
-    leaveSign: () => set({ screen: get().doc ? 'viewer' : 'home' }),
+    leaveSign: () => set({ screen: get().signMode === 'create' ? 'signatures' : get().doc ? 'viewer' : 'home' }),
 
     placeSignature: async (dataUrl, aspect) => {
       const { doc, viewerPage } = get();

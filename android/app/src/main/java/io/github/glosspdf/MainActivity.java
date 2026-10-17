@@ -8,6 +8,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Yerel eklentiler super.onCreate'ten önce kaydedilmeli
         registerPlugin(SaveFilePlugin.class);
+        registerPlugin(IncomingFilePlugin.class);
+        registerPlugin(PrintFilePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

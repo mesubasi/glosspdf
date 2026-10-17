@@ -3,7 +3,7 @@ import { Help } from '../components/Fields';
 import { Icon } from '../components/Icon';
 import { messageFor } from '../errors';
 import { pickImage } from '../lib/documents';
-import { loadSignatures, removeSignature, saveSignature, trimCanvas, type SavedSignature } from '../lib/signatures';
+import { loadSignatures, saveSignature, trimCanvas, type SavedSignature } from '../lib/signatures';
 import { toBlob } from '../lib/share';
 import { useMobile } from '../store';
 import { S } from '../strings';
@@ -20,7 +20,9 @@ const PAD_HEIGHT = 260;
 const TYPE_FONT = "'Caveat', cursive";
 
 export function SignScreen() {
-  const doc = useMobile((s) => s.doc)!;
+  const doc = useMobile((s) => s.doc);
+  // İmzalar ekranından gelindiyse imza yalnızca oluşturulup kaydedilir
+  const creating = useMobile((s) => s.signMode === 'create') || !doc;
   const page = useMobile((s) => s.viewerPage);
   const leaveSign = useMobile((s) => s.leaveSign);
   const placeSignature = useMobile((s) => s.placeSignature);
@@ -28,7 +30,7 @@ export function SignScreen() {
   const [mode, setMode] = useState<Mode>('draw');
   const [ink, setInk] = useState(INKS[0].hex);
   const [remember, setRemember] = useState(true);
-  const [saved, setSaved] = useState<SavedSignature[]>(loadSignatures);
+  const [saved] = useState<SavedSignature[]>(loadSignatures);
   const [typed, setTyped] = useState('');
   const [image, setImage] = useState<{ dataUrl: string; aspect: number } | null>(null);
   const [hasInk, setHasInk] = useState(false);
@@ -144,8 +146,15 @@ export function SignScreen() {
   const place = () => {
     const sig = mode === 'image' ? image : canvasRef.current && trimCanvas(canvasRef.current);
     if (!sig) return;
-    if (remember) saveSignature(sig);
-    placeSignature(sig.dataUrl, sig.aspect);
+    if (remember || creating) saveSignature(sig);
+    if (creating) leaveSign();
+    else placeSignature(sig.dataUrl, sig.aspect);
+  };
+
+  /** Tasarımdaki kesikli "+" kutusu: alanı temizleyip yeni çizime başlar */
+  const startNew = () => {
+    setMode('draw');
+    clear();
   };
 
   const tab = (m: Mode, label: string) => (
@@ -155,8 +164,8 @@ export function SignScreen() {
       onClick={() => setMode(m)}
       className="h-10 rounded-[20px] border-0 text-[14px]"
       style={{
-        background: mode === m ? '#FFFFFF' : 'transparent',
-        color: mode === m ? 'var(--ink)' : '#4A4A54',
+        background: mode === m ? 'var(--raised)' : 'transparent',
+        color: mode === m ? 'var(--ink)' : 'var(--muted)',
         fontWeight: mode === m ? 600 : 500,
         boxShadow: mode === m ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
       }}
@@ -172,19 +181,21 @@ export function SignScreen() {
           <button
             aria-label={S.close}
             onClick={leaveSign}
-            className="flex h-11 w-11 flex-none items-center justify-center rounded-full border-0 bg-white p-0"
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-full border-0 bg-[var(--card)] p-0"
             style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}
           >
             <Icon name="close" size={20} strokeWidth={2} />
           </button>
-          <span className="mono min-w-0 truncate text-[12px]" style={{ color: 'var(--muted)' }}>
-            {doc.name} · {S.pageShort} {page}
-          </span>
+          {doc && !creating && (
+            <span className="mono min-w-0 truncate text-[12px]" style={{ color: 'var(--muted)' }}>
+              {doc.name} · {S.pageShort} {page}
+            </span>
+          )}
         </div>
 
         <h1 className="mt-4 text-[34px] font-bold leading-[1.1] tracking-[-0.04em]">{S.signTitle}</h1>
 
-        <div role="tablist" aria-label={S.signMethod} className="mt-4 grid grid-cols-3 gap-1 rounded-3xl p-1" style={{ background: '#E3E3E8' }}>
+        <div role="tablist" aria-label={S.signMethod} className="mt-4 grid grid-cols-3 gap-1 rounded-3xl p-1" style={{ background: 'var(--track)' }}>
           {tab('draw', S.signDraw)}
           {tab('type', S.signType)}
           {tab('image', S.signImage)}
@@ -196,12 +207,12 @@ export function SignScreen() {
             placeholder={S.signTypeLabel}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            className="mt-3 h-12 w-full rounded-2xl border-0 bg-white px-4 text-[15px] outline-none"
+            className="mt-3 h-12 w-full rounded-2xl border-0 bg-[var(--card)] px-4 text-[15px] outline-none"
           />
         )}
 
         <div
-          className="relative mt-4 overflow-hidden rounded-[28px] bg-white"
+          className="paper relative mt-4 overflow-hidden rounded-[28px] bg-white"
           style={{
             height: PAD_HEIGHT,
             backgroundImage: 'radial-gradient(#DADAE1 1px, transparent 1px)',
@@ -269,14 +280,14 @@ export function SignScreen() {
                   onClick={() => setInk(c.hex)}
                   className="flex h-11 w-11 items-center justify-center border-0 bg-transparent p-0"
                 >
-                  <span className="h-[26px] w-[26px] rounded-full" style={{ background: c.hex, boxShadow: ink === c.hex ? '0 0 0 3px var(--bg), 0 0 0 5px #0E0E11' : 'none' }} />
+                  <span className="h-[26px] w-[26px] rounded-full" style={{ background: c.hex, boxShadow: ink === c.hex ? '0 0 0 3px var(--bg), 0 0 0 5px var(--ink)' : 'inset 0 0 0 1px var(--line)' }} />
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        <label className="mt-2.5 flex min-h-16 items-center gap-3 rounded-[22px] bg-white px-4">
+        <label className={`mt-2.5 min-h-16 items-center gap-3 rounded-[22px] bg-[var(--card)] px-4 ${creating ? 'hidden' : 'flex'}`}>
           <span className="flex flex-1 flex-col gap-0.5 py-2.5">
             <span className="text-[15px] font-semibold">{S.rememberSignature}</span>
             <span className="text-[12.5px]" style={{ color: 'var(--muted)' }}>
@@ -287,41 +298,40 @@ export function SignScreen() {
           <span
             aria-hidden="true"
             className="relative h-[30px] w-[50px] flex-none rounded-[15px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-2"
-            style={{ background: remember ? 'var(--red)' : '#C9C9D1' }}
+            style={{ background: remember ? 'var(--red)' : 'var(--toggle-off)' }}
           >
             <span
               className="absolute top-[3px] h-6 w-6 rounded-full bg-white transition-all"
-              style={{ left: remember ? 23 : 3, boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}
+              style={{ insetInlineStart: remember ? 23 : 3, boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}
             />
           </span>
         </label>
 
-        {saved.length > 0 && (
+        {!creating && saved.length > 0 && (
           <>
-            <h2 className="mb-2 mt-4 text-[14px] font-semibold" style={{ color: '#3E3E47' }}>
+            <h2 className="mb-2 mt-4 text-[14px] font-semibold" style={{ color: 'var(--muted)' }}>
               {S.savedSignatures}
             </h2>
+            {/* Silme İmzalar ekranında; burada tasarımdaki gibi yalnızca kullan ve yeni ekle */}
             <div className="flex flex-wrap gap-2.5">
               {saved.map((s) => (
-                <div key={s.id} className="relative">
-                  <button
-                    aria-label={S.useSavedSignature}
-                    onClick={() => placeSignature(s.dataUrl, s.aspect)}
-                    className="flex h-16 w-[150px] items-center justify-center rounded-[20px] border-0 bg-white p-2"
-                  >
-                    <img src={s.dataUrl} alt="" className="max-h-full max-w-full object-contain" />
-                  </button>
-                  <button
-                    aria-label={S.removeSignature}
-                    onClick={() => setSaved(removeSignature(s.id))}
-                    className="absolute -right-2 -top-2 flex h-11 w-11 items-center justify-center border-0 bg-transparent p-0"
-                  >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full text-white" style={{ background: 'var(--ink)' }}>
-                      <Icon name="close" size={12} strokeWidth={2.6} />
-                    </span>
-                  </button>
-                </div>
+                <button
+                  key={s.id}
+                  aria-label={S.useSavedSignature}
+                  onClick={() => placeSignature(s.dataUrl, s.aspect)}
+                  className="flex h-16 min-w-16 items-center justify-center rounded-[20px] border-0 bg-white px-4"
+                >
+                  <img src={s.dataUrl} alt="" className="h-[42px] w-auto max-w-[118px] object-contain" />
+                </button>
               ))}
+              <button
+                aria-label={S.newSignature}
+                onClick={startNew}
+                className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-transparent p-0"
+                style={{ border: '1.5px dashed var(--dash)', color: 'var(--muted)' }}
+              >
+                <Icon name="plus" size={20} strokeWidth={2} />
+              </button>
             </div>
           </>
         )}
@@ -337,10 +347,10 @@ export function SignScreen() {
         onClick={place}
         disabled={!ready}
         className="absolute left-5 right-5 flex h-[58px] items-center justify-center gap-2.5 rounded-[29px] border-0 text-[16px] font-semibold text-white"
-        style={{ bottom: 'calc(var(--sab) + 28px)', background: 'var(--ink)', opacity: ready ? 1 : 0.4 }}
+        style={{ bottom: 'calc(var(--sab) + 28px)', background: 'var(--solid)', opacity: ready ? 1 : 0.4 }}
       >
-        {S.placeOnPage}
-        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {creating ? S.rememberSignature : S.placeOnPage}
+        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="rtl-flip">
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
       </button>

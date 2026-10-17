@@ -10,7 +10,7 @@ import {
   rgb
 } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { configure, lock } from 'pdf-lib-encrypt';
+import { configure, lock, unlockInPlace } from 'pdf-lib-encrypt';
 import { AnnotationItem } from '../types/pdf';
 import { t } from '@/i18n';
 
@@ -641,6 +641,49 @@ export class PdfEditService {
     const doc = await this.loadPdf(data);
     const rawBytes = await doc.save({ useObjectStreams: false });
     return await lock(rawBytes, password, { algo: 'aes256' });
+  }
+
+  /**
+   * Parolayı kaldırır (kullanıcı ya da sahip parolası). Yanlış parolada veya desteklenmeyen
+   * şifrelemede (AES-128, şifreli nesne akışları) pdf-lib-encrypt açıklayıcı hata fırlatır.
+   */
+  static async decryptPdf(data: Uint8Array, password: string): Promise<Uint8Array> {
+    configure(PDFLib);
+    const doc = await PDFDocument.load(data, { ignoreEncryption: true });
+    await unlockInPlace(doc, password);
+    return await doc.save({ useObjectStreams: false });
+  }
+
+  /**
+   * Form alanlarını doldurur. values: tam alan adı → metin, seçenek ya da onay durumu.
+   * Metin ve seçim görünümleri Unicode fontla yeniden çizilir (Helvetica "ş/ğ/İ" yazamaz).
+   */
+  static async fillForm(data: Uint8Array, values: Record<string, string | boolean>): Promise<Uint8Array> {
+    const doc = await this.loadPdf(data);
+    const form = doc.getForm();
+    const font = await embedUnicodeFont(doc);
+    for (const [name, value] of Object.entries(values)) {
+      const field = form.getFieldMaybe(name);
+      if (field instanceof PDFLib.PDFTextField) {
+        field.setText(String(value) || undefined);
+        field.updateAppearances(font);
+      } else if (field instanceof PDFLib.PDFCheckBox) {
+        if (value) field.check();
+        else field.uncheck();
+      } else if (field instanceof PDFLib.PDFRadioGroup) {
+        // Görüntüleyiciler düğmenin görünüm adını ("0", "1") verir; /Opt varsa pdf-lib seçeneği onun adıyla seçer
+        const options = field.getOptions();
+        const onValues = field.acroField.getOnValues().map((v) => v.decodeText());
+        const option = options.includes(String(value)) ? String(value) : options[onValues.indexOf(String(value))];
+        if (option) field.select(option);
+      } else if (field instanceof PDFLib.PDFDropdown || field instanceof PDFLib.PDFOptionList) {
+        if (field.getOptions().includes(String(value))) {
+          field.select(String(value));
+          field.updateAppearances(font);
+        }
+      }
+    }
+    return await doc.save({ useObjectStreams: true });
   }
 
   /**

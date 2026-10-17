@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { FilePicker } from '@capawesome/capacitor-file-picker';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
@@ -151,9 +151,37 @@ export async function pickPdf(): Promise<PickedPdf | null> {
   return (await pickPdfs())[0] ?? null;
 }
 
+/** Bir veya daha çok görsel seçtirir; seçim sırası korunur. İptalde boş dizi. */
+export const pickImages = () => pickFiles(['image/*'], 0);
+
 /** Tek görsel seçtirir (PNG, JPEG, WebP…). İptalde null. */
 export async function pickImage(): Promise<PickedFile | null> {
   return (await pickFiles(['image/*'], 1))[0] ?? null;
+}
+
+// ---------- "Birlikte aç" / "Paylaş" ile gelen PDF ----------
+
+interface IncomingFilePlugin {
+  addListener(event: 'file', cb: (file: { uri: string; name: string }) => void): Promise<PluginListenerHandle>;
+}
+
+// android/app/src/main/java/io/github/glosspdf/IncomingFilePlugin.java
+const IncomingFile = registerPlugin<IncomingFilePlugin>('IncomingFile');
+
+/** Başka uygulamadan gelen PDF'leri dinler (yalnızca Android). */
+export function onIncomingPdf(cb: (uri: string, name: string) => void): () => void {
+  if (!Capacitor.isNativePlatform()) return () => undefined;
+  const handle = IncomingFile.addListener('file', (f) => cb(f.uri, f.name));
+  return () => void handle.then((h) => h.remove());
+}
+
+/** content:// adresindeki PDF'i okur; PDF değilse NotAPdfError atar. */
+export async function readIncomingPdf(uri: string): Promise<Uint8Array> {
+  const res = await fetch(Capacitor.convertFileSrc(uri));
+  if (!res.ok) throw new Error(`Incoming file read failed: ${res.status}`);
+  const data = new Uint8Array(await res.arrayBuffer());
+  assertPdf(data);
+  return data;
 }
 
 /** Birinci sayfadan küçük önizleme üretir; başarısız olursa undefined (kart yer tutucu gösterir). */

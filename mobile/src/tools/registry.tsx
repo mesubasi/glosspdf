@@ -7,7 +7,7 @@ import { toBlob, type OutputFile } from '../lib/share';
 import * as ops from '../lib/tools';
 import { S, fill } from '../strings';
 
-export type ToolId = 'merge' | 'split' | 'compress' | 'protect' | 'watermark' | 'images' | 'insertImage';
+export type ToolId = 'merge' | 'split' | 'compress' | 'protect' | 'unlock' | 'watermark' | 'images' | 'insertImage' | 'photos';
 
 export interface InputFile extends PickedFile {
   pages: number;
@@ -32,6 +32,8 @@ export interface ToolDef<St = any> {
   title: string;
   hint: string;
   multi: boolean;
+  /** Seçilecek girdi: PDF (varsayılan), parolalı PDF ya da görseller */
+  input?: 'pdf' | 'locked' | 'images';
   initial: () => St;
   Options?: (p: OptionsProps<St>) => ReactElement | null;
   /** null = çalıştırılabilir; '' = henüz eksik (mesajsız); metin = kullanıcıya gösterilecek hata */
@@ -152,6 +154,50 @@ const protect = define<ProtectState>({
     return password === confirm ? null : S.passwordMismatch;
   },
   run: (st, { files }) => ops.protectPdf(files[0], st.password)
+});
+
+// ---------- Parolayı kaldır ----------
+const unlock = define<{ password: string }>({
+  id: 'unlock',
+  icon: 'unlock',
+  title: S.unlockTitle,
+  hint: S.unlockHint,
+  multi: false,
+  input: 'locked',
+  initial: () => ({ password: '' }),
+  Options: ({ state, set }) => (
+    <>
+      <TextField type="password" label={S.currentPassword} value={state.password} onChange={(password) => set({ password })} />
+      <Help>{S.unlockInfo}</Help>
+    </>
+  ),
+  validate: ({ password }) => (password ? null : ''),
+  run: (st, { files }) => ops.unlockPdf(files[0], st.password)
+});
+
+// ---------- Fotoğraflardan PDF ----------
+const MAX_PHOTOS = 50;
+const photos = define<{ size: 'a4' | 'fit' }>({
+  id: 'photos',
+  icon: 'camera',
+  title: S.photosTitle,
+  hint: S.photosHint,
+  multi: true,
+  input: 'images',
+  initial: () => ({ size: 'a4' }),
+  Options: ({ state, set }) => (
+    <Segmented
+      label={S.pageSize}
+      value={state.size}
+      options={[
+        { value: 'a4', label: S.pageSizeA4 },
+        { value: 'fit', label: S.pageSizeFit }
+      ]}
+      onChange={(size) => set({ size })}
+    />
+  ),
+  validate: (_, { files }) => (files.length > MAX_PHOTOS ? fill(S.photosTooMany, { n: MAX_PHOTOS }) : null),
+  run: (st, { files }, onProgress) => ops.imagesToPdf(files, st.size, onProgress)
 });
 
 // ---------- Filigran ----------
@@ -313,4 +359,4 @@ const insertImage = define<InsertImageState>({
   run: (st, { files }) => ops.insertImage(files[0], st.image!, Number(st.page), st.width)
 });
 
-export const TOOLS: Record<ToolId, ToolDef> = { merge, split, compress, protect, watermark, images, insertImage };
+export const TOOLS: Record<ToolId, ToolDef> = { merge, split, compress, protect, unlock, watermark, images, insertImage, photos };

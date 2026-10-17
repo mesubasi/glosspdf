@@ -6,7 +6,7 @@ export function Section({ title, children }: { title: string; children: ReactNod
       <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-[0.04em]" style={{ color: 'var(--muted)' }}>
         {title}
       </h2>
-      <div className="flex flex-col gap-3 rounded-[22px] bg-white p-4" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+      <div className="flex flex-col gap-3 rounded-[22px] bg-[var(--card)] p-4" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
         {children}
       </div>
     </section>
@@ -74,7 +74,7 @@ export function Segmented<T extends string | number>(props: {
               onClick={() => props.onChange(o.value)}
               className="h-11 flex-1 rounded-xl border-0 text-[14px] font-semibold"
               style={{
-                background: on ? '#FFFFFF' : 'transparent',
+                background: on ? 'var(--raised)' : 'transparent',
                 color: on ? 'var(--ink)' : 'var(--muted)',
                 boxShadow: on ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
               }}
@@ -114,7 +114,7 @@ export function Slider(props: {
         className="h-11 flex-1"
         style={{ accentColor: 'var(--ink)' }}
       />
-      <span className="mono w-12 text-right text-[12.5px]" style={{ color: 'var(--muted)' }}>
+      <span className="mono w-12 text-end text-[12.5px]" style={{ color: 'var(--muted)' }}>
         {props.format(props.value)}
       </span>
     </div>
@@ -139,7 +139,7 @@ export function ColorRow(props: { label: string; value: string; colors: { hex: s
             >
               <span
                 className="h-7 w-7 rounded-full"
-                style={{ background: c.hex, boxShadow: on ? '0 0 0 3px #FFFFFF, 0 0 0 5px #0E0E11' : 'none' }}
+                style={{ background: c.hex, boxShadow: on ? '0 0 0 3px var(--card), 0 0 0 5px var(--ink)' : 'inset 0 0 0 1px var(--line)' }}
               />
             </button>
           );
