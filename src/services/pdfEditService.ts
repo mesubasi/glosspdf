@@ -202,7 +202,11 @@ export class PdfEditService {
                 box,
                 `/GS0 gs ${col} rg ${num(box.x)} ${num(box.y)} ${num(box.width)} ${num(box.height)} re f`,
                 common,
-                { ExtGState: { GS0: { Type: 'ExtGState', ca: 0.35, CA: 0.35, BM: 'Multiply' } } }
+                {
+                  ExtGState: {
+                    GS0: { Type: 'ExtGState', ca: item.opacity ?? 0.35, CA: item.opacity ?? 0.35, BM: 'Multiply' }
+                  }
+                }
               );
             } else {
               const ly = item.type === 'underline' ? box.y + 1 : box.y + box.height / 2;
