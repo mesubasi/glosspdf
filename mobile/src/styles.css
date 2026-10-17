@@ -1,0 +1,88 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+/* Yazılı imza için el yazısı (Türkçe karakterli latin-ext dahil) */
+@import '@fontsource/caveat/latin-400.css';
+@import '@fontsource/caveat/latin-ext-400.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Cam tasarım: açık zemin, kırmızı vurgu, yüzen cam çubuklar */
+:root {
+  --bg: #f2f2f5;
+  --bg-reading: #e7e7ec;
+  --ink: #0e0e11;
+  --muted: #5f5f6b;
+  --red: #d81e24;
+  --red-ink: #c8161d;
+  --red-tint: #fce8e9;
+  --card: #ffffff;
+  /* Capacitor SystemBars --safe-area-inset-* verir; tarayıcıda env() devreye girer */
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+}
+
+/* Metin kutusu önizlemesi = PDF'e gömülen yazı tipi (PdfEditService Liberation Sans kullanır) */
+@font-face {
+  font-family: 'GlossSans';
+  src: url('/fonts/LiberationSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Geist Variable', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.mono {
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 24px rgba(17, 17, 26, 0.1);
+}
+
+.round-btn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.round-btn:active {
+  background: rgba(14, 14, 17, 0.08);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--red-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

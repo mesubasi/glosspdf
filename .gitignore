@@ -36,3 +36,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Mobile (Capacitor) build output
+dist-mobile/

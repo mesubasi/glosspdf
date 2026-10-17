@@ -22,8 +22,9 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "~/*": ["mobile/src/*"]
     }
   },
-  "include": ["src", "electron"]
+  "include": ["src", "electron", "mobile/src", "capacitor.config.ts"]
 }
