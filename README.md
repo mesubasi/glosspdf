@@ -7,7 +7,7 @@
 **A fast, modern and privacy-respecting desktop PDF workstation.**
 View, annotate, edit text, sign, organize and protect PDFs — entirely on your own computer.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Electron](https://img.shields.io/badge/Electron-29-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -219,4 +219,14 @@ Your documents are never uploaded anywhere.
 
 ## 📄 License
 
-Released under the [MIT License](LICENSE). Bundled third-party assets: pdf.js (Apache-2.0), pdf-lib (MIT), Liberation Sans fonts (SIL OFL 1.1, see `public/fonts/LICENSE_LIBERATION`).
+Copyright (C) 2026 GlossPDF Contributors
+
+GlossPDF is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed WITHOUT ANY WARRANTY; see the license for details.
+
+Releases up to and including v1.0.8 were published under the MIT License, and that grant still applies to those versions.
+
+Bundled third-party assets: pdf.js (Apache-2.0), pdf-lib (MIT), Liberation Sans fonts (SIL OFL 1.1, see `public/fonts/LICENSE_LIBERATION`).
+
+### Name and logo
+
+The GlossPDF name and logo are not covered by the GPL or any other license in this repository. Forks and modified builds must be published under a different name and with a different logo. You may still state that your project is based on GlossPDF.

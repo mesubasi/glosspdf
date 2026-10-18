@@ -3,6 +3,7 @@
   "version": "1.0.8",
   "description": "Sleek, modern and open-source desktop PDF workstation",
   "author": "GlossPDF Team",
+  "license": "GPL-3.0-or-later",
   "main": "dist-electron/main.js",
   "type": "module",
   "scripts": {
