@@ -37,5 +37,3 @@ Thumbs.db
 *.sln
 *.sw?
 
-# Mobile (Capacitor) build output
-dist-mobile/
