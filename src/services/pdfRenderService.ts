@@ -46,7 +46,9 @@ export class PdfRenderService {
       data,
       cMapUrl: pdfjsDataUrl('cmaps'),
       cMapPacked: true,
-      standardFontDataUrl: pdfjsDataUrl('standard_fonts')
+      standardFontDataUrl: pdfjsDataUrl('standard_fonts'),
+      // CVE-2024-4367: kötü niyetli yazı tipi verisi eval ile kod çalıştırabiliyor; 4.2.67+ sürümüne geçilene kadar kapalı
+      isEvalSupported: false
     });
 
     if (onPasswordNeeded) {
