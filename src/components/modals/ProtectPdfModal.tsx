@@ -178,10 +178,10 @@ export const ProtectPdfModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
             <Lock className="w-5 h-5 text-amber-500" />
             <h2 className="font-semibold text-sm">
@@ -190,7 +190,7 @@ export const ProtectPdfModal: React.FC = () => {
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -199,7 +199,7 @@ export const ProtectPdfModal: React.FC = () => {
         {/* Gövde */}
         <div className="p-5 flex-1 flex flex-col space-y-4">
           <div className="flex items-start space-x-3 bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg text-amber-700 dark:text-amber-300">
-            <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
               {t('your_document_is_protected_using_industry_standard_iso_3')}
             </p>
@@ -216,7 +216,7 @@ export const ProtectPdfModal: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('enter_at_least_4_characters')}
-                className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-black/20 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
               />
               <button
                 type="button"
@@ -238,7 +238,7 @@ export const ProtectPdfModal: React.FC = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder={t('confirm_password_2')}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-black/20 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -258,9 +258,9 @@ export const ProtectPdfModal: React.FC = () => {
               }`}
             >
               {statusMessage.type === 'error' ? (
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0" />
               ) : (
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
               )}
               <span>{statusMessage.text}</span>
             </div>
@@ -268,7 +268,7 @@ export const ProtectPdfModal: React.FC = () => {
         </div>
 
         {/* Butonlar */}
-        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <button
             onClick={handleClose}
             disabled={isProcessing}

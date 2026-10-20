@@ -168,7 +168,7 @@ public/               pdf.js worker, Liberation Sans
 docs/screenshots/     Images used in this README
 ```
 
-**Stack:** Electron 29 · React 18 · TypeScript · Vite 5 · Tailwind CSS · Zustand · [`pdfjs-dist`](https://github.com/mozilla/pdf.js) (rendering) · [`pdf-lib`](https://pdf-lib.js.org/) (editing) · `electron-builder` (packaging).
+**Stack:** Electron 44 · React 19 · TypeScript · Vite 8 · Tailwind CSS 4 · Zustand · [`pdfjs-dist`](https://github.com/mozilla/pdf.js) (rendering) · [`pdf-lib`](https://pdf-lib.js.org/) (editing) · `electron-builder` (packaging).
 
 ## 🔧 How editing works
 

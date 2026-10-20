@@ -80,7 +80,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             emptyOutDir: false,
-            rollupOptions: {
+            rolldownOptions: {
               external: ['electron']
             }
           }
@@ -122,7 +122,7 @@ export default defineConfig({
             // Preload küçük; okunabilir kalsın ve gereksiz dönüşüm yapılmasın
             minify: false,
             target: 'node18',
-            rollupOptions: {
+            rolldownOptions: {
               external: ['electron'],
               output: {
                 format: 'cjs',
@@ -143,6 +143,8 @@ export default defineConfig({
       '@pdf-lib/fontkit': path.resolve(__dirname, 'node_modules/@pdf-lib/fontkit/dist/fontkit.es.min.js')
     }
   },
+  // Ön derlenince worker'ın ?url içe aktarımı bozuluyor; pdf.js zaten ESM
+  optimizeDeps: { exclude: ['pdfjs-dist'] },
   server: {
     port: 5173
   }

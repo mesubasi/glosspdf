@@ -1,6 +1,45 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-acrobat-red: #ed2224;
+  --color-acrobat-darkRed: #d31b1c;
+  --color-acrobat-toolbar: #f4f4f4;
+  --color-acrobat-darkToolbar: #2b2b2b;
+  --color-acrobat-bg: #525659;
+  --color-acrobat-darkBg: #1e1e1e;
+  --color-acrobat-panel: #ffffff;
+  --color-acrobat-darkPanel: #252526;
+  --color-acrobat-border: #e0e0e0;
+  --color-acrobat-darkBorder: #3e3e42;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+/* Tailwind 4 düğmelere varsayılan imleç verir; v3'teki el imleci korunur */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 /* Açılır listeler (select/option) gibi yerel kontroller temaya uysun */
 .dark {
@@ -69,6 +108,23 @@
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
+}
+
+/* pdf.js 4+: yazı boyutu ve dönüşüm span'lara CSS değişkeniyle gelir (web/pdf_viewer.css) */
+.textLayer {
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  font-size: calc(var(--text-scale-factor) * var(--font-height, 0px));
+  transform: rotate(var(--rotate, 0deg)) scaleX(var(--scale-x, 1)) scale(var(--min-font-size-inv));
+}
+
+.textLayer .markedContent {
+  display: contents;
 }
 
 /* Metin Seçimi Rengi (Acrobat Mavisi) */

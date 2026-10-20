@@ -835,7 +835,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                 }}
                 className={`absolute ${
                   interactive ? 'pointer-events-auto cursor-move' : 'pointer-events-none'
-                } ${isSelected ? 'outline outline-2 outline-blue-500' : 'hover:outline hover:outline-1 hover:outline-blue-400/70'}`}
+                } ${isSelected ? 'outline-solid outline-2 outline-blue-500' : 'hover:outline-solid hover:outline-1 hover:outline-blue-400/70'}`}
               >
                 <img
                   src={obj.imageData}
@@ -850,7 +850,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                       data-annot
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => deleteAnnotation(obj.id)}
-                      className="absolute -top-3 -right-3 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow"
+                      className="absolute -top-3 -right-3 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm"
                       title={t('delete')}
                     >
                       <X className="w-3 h-3" />
@@ -858,7 +858,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
                     <div
                       data-annot
                       onPointerDown={(e) => startObjectDrag(e, obj, 'resize')}
-                      className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nwse-resize"
+                      className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-xs cursor-nwse-resize"
                     />
                   </>
                 )}
@@ -888,7 +888,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
               }}
               className={`absolute ${
                 interactive ? 'pointer-events-auto cursor-move' : 'pointer-events-none'
-              } ${isSelected ? 'outline outline-2 outline-blue-500' : 'hover:outline hover:outline-1 hover:outline-blue-400/70'}`}
+              } ${isSelected ? 'outline-solid outline-2 outline-blue-500' : 'hover:outline-solid hover:outline-1 hover:outline-blue-400/70'}`}
             >
               <span
                 className="absolute whitespace-pre select-none"
@@ -913,7 +913,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
               ptToPx(Math.min(180, pageWidth / scale / 2) / pendingSignature.aspect) / 2,
             width: ptToPx(Math.min(180, pageWidth / scale / 2))
           }}
-          className="absolute opacity-60 pointer-events-none outline outline-1 outline-dashed outline-blue-500"
+          className="absolute opacity-60 pointer-events-none outline-solid outline-1 outline-dashed outline-blue-500"
         />
       )}
 
@@ -947,7 +947,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             fontSize: ptToPx(textEdit.fontSize),
             lineHeight: 1
           }}
-          className="absolute z-40 pointer-events-auto outline outline-2 outline-blue-500 shadow-lg"
+          className="absolute z-40 pointer-events-auto outline-solid outline-2 outline-blue-500 shadow-lg"
         />
       )}
 
@@ -996,7 +996,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             left: `${activeTextInput.x}px`,
             top: `${activeTextInput.y}px`
           }}
-          className="absolute pointer-events-auto z-40 bg-white dark:bg-[#202020] border-2 border-dashed border-blue-500 shadow-lg rounded p-1"
+          className="absolute pointer-events-auto z-40 bg-white dark:bg-[#202020] border-2 border-dashed border-blue-500 shadow-lg rounded-sm p-1"
         >
           <input
             type="text"
@@ -1015,7 +1015,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
               color: annotationColor,
               fontSize: `${annotationFontSize * scale}px`
             }}
-            className="outline-none bg-transparent font-bold px-1"
+            className="outline-hidden bg-transparent font-bold px-1"
           />
         </div>
       )}

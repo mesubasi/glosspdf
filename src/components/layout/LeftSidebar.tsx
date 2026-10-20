@@ -155,7 +155,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
           </span>
           <button
             onClick={() => setLeftSidebarTab(null)}
-            className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -219,7 +219,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                     }}
                     className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 shadow-sm'
+                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 shadow-xs'
                         : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-[#202020] hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
@@ -235,7 +235,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 font-mono">
+                        <span className="px-1.5 py-0.5 rounded-sm bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 font-mono">
                           {t('page_2', [annot.pageNumber])}
                         </span>
                         <button
@@ -243,7 +243,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                             e.stopPropagation();
                             deleteAnnotation(annot.id);
                           }}
-                          className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                          className="p-1 rounded-sm text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                           title="Sil"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -252,7 +252,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
                     </div>
 
                     {annot.contents && (
-                      <p className="text-slate-600 dark:text-slate-300 line-clamp-2 bg-slate-50 dark:bg-[#1a1a1a] p-1.5 rounded border border-slate-100 dark:border-slate-800 text-[11px]">
+                      <p className="text-slate-600 dark:text-slate-300 line-clamp-2 bg-slate-50 dark:bg-[#1a1a1a] p-1.5 rounded-sm border border-slate-100 dark:border-slate-800 text-[11px]">
                         "{annot.contents}"
                       </p>
                     )}
@@ -336,7 +336,7 @@ const ThumbnailItem: React.FC<{
       if (ctx) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        renderTask = page.render({ canvasContext: ctx, viewport });
+        renderTask = page.render({ canvas, viewport });
         renderTask.promise.catch((err) => {
           if (err?.name !== 'RenderingCancelledException') {
             console.error('Thumbnail render error:', err);
@@ -357,11 +357,11 @@ const ThumbnailItem: React.FC<{
       onClick={onClick}
       className={`flex flex-col items-center cursor-pointer p-1.5 rounded transition-all ${
         isCurrent
-          ? 'bg-acrobat-red/10 border-2 border-acrobat-red shadow-sm'
+          ? 'bg-acrobat-red/10 border-2 border-acrobat-red shadow-xs'
           : 'hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
       }`}
     >
-      <div className="bg-white shadow-sm border border-slate-300 dark:border-slate-700 rounded-sm overflow-hidden flex items-center justify-center min-h-[100px] w-full">
+      <div className="bg-white shadow-xs border border-slate-300 dark:border-slate-700 rounded-xs overflow-hidden flex items-center justify-center min-h-[100px] w-full">
         <canvas ref={canvasRef} className="max-w-full max-h-[140px] object-contain" />
       </div>
       <span className={`text-[11px] mt-1 ${isCurrent ? 'font-bold text-acrobat-red' : 'text-slate-500'}`}>
@@ -383,7 +383,7 @@ const BookmarkNode: React.FC<{
     <div className="pl-1">
       <div
         onClick={() => onPageClick(item.pageNumber)}
-        className="flex items-center space-x-1 py-1 px-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer text-slate-700 dark:text-slate-300"
+        className="flex items-center space-x-1 py-1 px-1.5 rounded-sm hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer text-slate-700 dark:text-slate-300"
       >
         {hasChildren ? (
           <button

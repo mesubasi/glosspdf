@@ -203,8 +203,8 @@ function createWindow() {
     console.error(`[GlossPDF] Preload yüklenemedi (${failedPath}):`, error);
   });
 
-  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-    console.log(`[Renderer ${level}] ${message} (${sourceId}:${line})`);
+  mainWindow.webContents.on('console-message', ({ level, message, lineNumber, sourceId }) => {
+    console.log(`[Renderer ${level}] ${message} (${sourceId}:${lineNumber})`);
   });
 
   // Geliştirme veya üretim ortamı yükleme yolu

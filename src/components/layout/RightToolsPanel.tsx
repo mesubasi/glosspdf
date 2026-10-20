@@ -146,7 +146,7 @@ export const RightToolsPanel: React.FC = () => {
         <span>{t('quick_tools')}</span>
         <button
           onClick={toggleRightPanel}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -164,7 +164,7 @@ export const RightToolsPanel: React.FC = () => {
               disabled={!activeTabId && t.id !== 'merge'}
               className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-left text-xs text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
             >
-              <IconComponent className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <IconComponent className="w-4 h-4 text-red-500 shrink-0" />
               <span className="truncate">{t.name}</span>
             </button>
           );

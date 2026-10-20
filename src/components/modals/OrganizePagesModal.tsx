@@ -175,10 +175,10 @@ export const OrganizePagesModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 w-full max-w-5xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-5xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Üst Başlık ve Araçlar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
             <Layers className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
@@ -192,7 +192,7 @@ export const OrganizePagesModal: React.FC = () => {
             <button
               onClick={insertBlank}
               disabled={isProcessing}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-xs font-medium transition-colors"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-xs font-medium transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{t('add_blank_page')}</span>
@@ -200,7 +200,7 @@ export const OrganizePagesModal: React.FC = () => {
 
             <button
               onClick={() => setOrganizeModalOpen(false)}
-              className="p-1.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -213,10 +213,10 @@ export const OrganizePagesModal: React.FC = () => {
             {pages.map((p, idx) => (
               <div
                 key={`${p.originalPageNumber}-${idx}`}
-                className="group relative bg-white dark:bg-[#252526] rounded-lg shadow-md border border-slate-200 dark:border-slate-700 p-3 flex flex-col items-center transition-all hover:shadow-xl hover:border-red-500"
+                className="group relative bg-white dark:bg-acrobat-darkPanel rounded-lg shadow-md border border-slate-200 dark:border-slate-700 p-3 flex flex-col items-center transition-all hover:shadow-xl hover:border-red-500"
               >
                 {/* Sayfa Önizleme Tuvali */}
-                <div className="relative w-full aspect-[1/1.4] bg-white rounded border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center">
+                <div className="relative w-full aspect-[1/1.4] bg-white rounded-sm border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center">
                   {pdfDoc ? (
                     <OrganizeThumbnailCanvas
                       pdfDoc={pdfDoc}
@@ -230,7 +230,7 @@ export const OrganizePagesModal: React.FC = () => {
                   {/* Üst Sağdaki Sil Butonu */}
                   <button
                     onClick={() => deletePage(idx)}
-                    className="absolute top-1.5 right-1.5 p-1 bg-red-600/90 hover:bg-red-600 text-white rounded shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1.5 right-1.5 p-1 bg-red-600/90 hover:bg-red-600 text-white rounded-sm shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                     title={t('delete_page')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -243,7 +243,7 @@ export const OrganizePagesModal: React.FC = () => {
                   <button
                     onClick={() => moveLeft(idx)}
                     disabled={idx === 0}
-                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
+                    className="p-1 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
                     title={t('move_left')}
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
@@ -253,7 +253,7 @@ export const OrganizePagesModal: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={() => rotatePage(idx, false)}
-                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+                      className="p-1 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
                       title={t('rotate_left')}
                     >
                       <RotateCcw className="w-3 h-3" />
@@ -263,7 +263,7 @@ export const OrganizePagesModal: React.FC = () => {
                     </span>
                     <button
                       onClick={() => rotatePage(idx, true)}
-                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+                      className="p-1 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
                       title={t('rotate_right')}
                     >
                       <RotateCw className="w-3 h-3" />
@@ -274,7 +274,7 @@ export const OrganizePagesModal: React.FC = () => {
                   <button
                     onClick={() => moveRight(idx)}
                     disabled={idx === pages.length - 1}
-                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
+                    className="p-1 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-20 text-slate-500"
                     title={t('move_right')}
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -286,7 +286,7 @@ export const OrganizePagesModal: React.FC = () => {
         </div>
 
         {/* Alt Eylem Çubuğu */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#252526]">
+        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-acrobat-darkPanel">
           <span className="text-xs text-slate-500">
             {t('rotate_delete_or_reorder_pages_with_arrows')}
           </span>
@@ -294,7 +294,7 @@ export const OrganizePagesModal: React.FC = () => {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setOrganizeModalOpen(false)}
-              className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
+              className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
             >
               {t('cancel_2')}
             </button>
@@ -302,7 +302,7 @@ export const OrganizePagesModal: React.FC = () => {
             <button
               onClick={handleApplyChanges}
               disabled={isProcessing}
-              className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-50"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{isProcessing ? t('processing') : (t('apply_changes'))}</span>
@@ -337,7 +337,7 @@ const OrganizeThumbnailCanvas: React.FC<{
       if (ctx) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        page.render({ canvasContext: ctx, viewport }).promise;
+        page.render({ canvas, viewport }).promise;
       }
     });
 

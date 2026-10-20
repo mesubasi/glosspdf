@@ -21,7 +21,7 @@ export const PasswordModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs select-none">
-      <div className="bg-white dark:bg-[#252526] border border-acrobat-border dark:border-acrobat-darkBorder rounded-xl shadow-2xl p-6 w-96 max-w-[90vw]">
+      <div className="bg-white dark:bg-acrobat-darkPanel border border-acrobat-border dark:border-acrobat-darkBorder rounded-xl shadow-2xl p-6 w-96 max-w-[90vw]">
         <div className="flex items-center space-x-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-acrobat-red/10 flex items-center justify-center text-acrobat-red">
             <Lock className="w-5 h-5" />
@@ -44,7 +44,7 @@ export const PasswordModal: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t('enter_password')}
               autoFocus
-              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 rounded-md outline-none focus:border-acrobat-red text-slate-800 dark:text-slate-100 pr-9"
+              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 rounded-md outline-hidden focus:border-acrobat-red text-slate-800 dark:text-slate-100 pr-9"
             />
             <button
               type="button"
@@ -59,13 +59,13 @@ export const PasswordModal: React.FC = () => {
             <button
               type="button"
               onClick={closePasswordModal}
-              className="px-3 py-1.5 text-xs rounded hover:bg-black/5 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300"
+              className="px-3 py-1.5 text-xs rounded-sm hover:bg-black/5 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300"
             >
               {t('cancel')}
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 text-xs bg-acrobat-red hover:bg-acrobat-darkRed text-white rounded font-medium shadow-md transition-colors"
+              className="px-4 py-1.5 text-xs bg-acrobat-red hover:bg-acrobat-darkRed text-white rounded-sm font-medium shadow-md transition-colors"
             >
               {t('open')}
             </button>

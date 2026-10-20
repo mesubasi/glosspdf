@@ -183,8 +183,8 @@ export const PdfPage: React.FC<PdfPageProps> = ({
       {/* Seçilebilir Metin Katmanı (TextLayer) */}
       <div
         ref={textLayerRef}
-        className={`textLayer ${isTextMarkupTool ? '!z-30 cursor-text select-text pointer-events-auto' : ''} ${
-          isTextEditTool ? 'textLayer--editing !z-30 pointer-events-auto' : ''
+        className={`textLayer ${isTextMarkupTool ? 'z-30! cursor-text select-text pointer-events-auto' : ''} ${
+          isTextEditTool ? 'textLayer--editing z-30! pointer-events-auto' : ''
         }`}
       />
 

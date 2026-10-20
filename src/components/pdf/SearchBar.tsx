@@ -71,8 +71,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
   if (!searchBarOpen) return null;
 
   return (
-    <div className="absolute top-3 right-5 z-30 flex items-center bg-white dark:bg-[#252526] border border-acrobat-border dark:border-acrobat-darkBorder rounded-md shadow-xl px-2.5 py-1.5 space-x-2 text-xs select-none">
-      <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+    <div className="absolute top-3 right-5 z-30 flex items-center bg-white dark:bg-acrobat-darkPanel border border-acrobat-border dark:border-acrobat-darkBorder rounded-md shadow-xl px-2.5 py-1.5 space-x-2 text-xs select-none">
+      <Search className="w-4 h-4 text-slate-400 shrink-0" />
 
       {/* Arama Girişi */}
       <input
@@ -93,7 +93,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
             setSearchBarOpen(false);
           }
         }}
-        className="w-44 bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400"
+        className="w-44 bg-transparent border-none outline-hidden text-slate-800 dark:text-slate-100 placeholder-slate-400"
       />
 
       {/* Sonuç Sayısı */}
@@ -120,7 +120,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
       <button
         onClick={prevSearchResult}
         disabled={searchResults.length === 0}
-        className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+        className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
         title={t('previous_match_shift_enter')}
       >
         <ChevronUp className="w-4 h-4" />
@@ -130,18 +130,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
       <button
         onClick={nextSearchResult}
         disabled={searchResults.length === 0}
-        className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+        className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
         title={t('next_match_enter')}
       >
         <ChevronDown className="w-4 h-4" />
       </button>
 
-      <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600" />
+      <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
 
       {/* Kapat */}
       <button
         onClick={() => setSearchBarOpen(false)}
-        className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+        className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
         title={t('close_esc')}
       >
         <X className="w-3.5 h-3.5" />

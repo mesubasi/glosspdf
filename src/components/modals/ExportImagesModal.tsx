@@ -52,7 +52,7 @@ export const ExportImagesModal: React.FC = () => {
         if (ctx) {
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          await page.render({ canvas, viewport }).promise;
 
           const ext = format === 'image/png' ? 'png' : 'jpg';
           const dataUrl = canvas.toDataURL(format, 0.95);
@@ -75,10 +75,10 @@ export const ExportImagesModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
             <FileImage className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">
@@ -87,7 +87,7 @@ export const ExportImagesModal: React.FC = () => {
           </div>
           <button
             onClick={() => setExportImagesModalOpen(false)}
-            className="p-1.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -189,7 +189,7 @@ export const ExportImagesModal: React.FC = () => {
 
           {/* İlerleme Durumu */}
           {isProcessing && (
-            <div className="p-3 bg-slate-50 dark:bg-[#252526] rounded-lg border border-slate-200 dark:border-slate-700 text-center">
+            <div className="p-3 bg-slate-50 dark:bg-acrobat-darkPanel rounded-lg border border-slate-200 dark:border-slate-700 text-center">
               <span className="font-semibold text-red-500">
                 {t('exporting_pages', [progress.current, progress.total])}
               </span>
@@ -198,17 +198,17 @@ export const ExportImagesModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <button
             onClick={() => setExportImagesModalOpen(false)}
-            className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
+            className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
           >
             {t('cancel')}
           </button>
           <button
             onClick={handleExport}
             disabled={isProcessing}
-            className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
+            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
             <span>{isProcessing ? t('exporting') : (t('export'))}</span>

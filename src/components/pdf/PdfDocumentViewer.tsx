@@ -11,7 +11,7 @@ interface PdfDocumentViewerProps {
   onOpenFile: () => void;
   onFileDrop: (file: File) => void;
   onOpenRecentFile?: (filePath: string, fileName: string) => void;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
@@ -248,7 +248,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
                     className="flex items-center justify-between p-2 rounded-lg hover:bg-white/10 active:bg-white/15 transition-colors cursor-pointer group select-none"
                   >
                     <div className="flex items-center space-x-2.5 overflow-hidden flex-1 min-w-0 mr-2">
-                      <FileText className="w-4 h-4 text-acrobat-red flex-shrink-0" />
+                      <FileText className="w-4 h-4 text-acrobat-red shrink-0" />
                       <div className="truncate">
                         <span className="text-xs font-medium text-slate-200 group-hover:text-white block truncate">
                           {file.fileName}
@@ -258,7 +258,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1.5 flex-shrink-0">
+                    <div className="flex items-center space-x-1.5 shrink-0">
                       <span className="text-[10px] text-slate-500">
                         {new Date(file.lastOpened).toLocaleDateString([], {
                           month: 'short',
@@ -271,7 +271,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
                           e.stopPropagation();
                           removeRecentFile(file.filePath);
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded-sm hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"
                         title={t('remove_from_list')}
                       >
                         <X className="w-3 h-3" />

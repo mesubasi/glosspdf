@@ -1,4 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
+// Worker paketle birlikte derlenir: pdf.js sürümüyle her zaman aynı kalır
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { BookmarkItem, PageDimension } from '../types/pdf';
 
 /**
@@ -12,14 +14,14 @@ function assetUrl(path: string): string {
 
 // PDF.js Web Worker yapılandırması
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = assetUrl('pdf.worker.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(workerUrl, document.baseURI).href;
 }
 
-/** cmap ve standart yazı tipleri: mobil derleme pakete gömer (çevrimdışı), masaüstü CDN'den alır */
+/** cmap, standart yazı tipleri ve wasm çözücüler: mobil derleme pakete gömer (çevrimdışı), masaüstü CDN'den alır */
 const pdfjsDataUrl = (dir: string) =>
   import.meta.env.VITE_PDFJS_DATA
     ? assetUrl(`${import.meta.env.VITE_PDFJS_DATA}${dir}/`)
-    : `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/${dir}/`;
+    : `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/${dir}/`;
 
 /**
  * Sayfanın kendi /Rotate değeri + kullanıcının görünüm döndürmesi.
@@ -47,8 +49,9 @@ export class PdfRenderService {
       cMapUrl: pdfjsDataUrl('cmaps'),
       cMapPacked: true,
       standardFontDataUrl: pdfjsDataUrl('standard_fonts'),
-      // CVE-2024-4367: kötü niyetli yazı tipi verisi eval ile kod çalıştırabiliyor; 4.2.67+ sürümüne geçilene kadar kapalı
-      isEvalSupported: false
+      // JPEG 2000 / JBIG2 görüntüleri ve renk profilleri bunlarla çözülür
+      wasmUrl: pdfjsDataUrl('wasm'),
+      iccUrl: pdfjsDataUrl('iccs')
     });
 
     if (onPasswordNeeded) {
@@ -105,7 +108,7 @@ export class PdfRenderService {
     }
 
     const renderContext = {
-      canvasContext: context!,
+      canvas,
       viewport: viewport,
       transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
     };
@@ -127,18 +130,17 @@ export class PdfRenderService {
     const viewport = viewportFor(page, scale, rotation);
     container.style.width = `${Math.floor(viewport.width)}px`;
     container.style.height = `${Math.floor(viewport.height)}px`;
-    container.style.setProperty('--scale-factor', `${viewport.scale}`);
+    // pdf.js katman boyutunu ve yazı boyutlarını bu değişkenlerden hesaplar
+    container.style.setProperty('--total-scale-factor', `${viewport.scale}`);
+    container.style.setProperty('--scale-round-x', '1px');
+    container.style.setProperty('--scale-round-y', '1px');
 
     try {
-      const textContent = await page.getTextContent();
-      // @ts-ignore
-      const textLayerTask = pdfjsLib.renderTextLayer({
-        textContentSource: textContent,
-        container: container,
-        viewport: viewport,
-        textDivs: []
-      });
-      await textLayerTask.promise;
+      await new pdfjsLib.TextLayer({
+        textContentSource: await page.getTextContent(),
+        container,
+        viewport
+      }).render();
     } catch (e) {
       console.warn('Text layer render warning (can be ignored):', e);
     }
@@ -166,7 +168,10 @@ export class PdfRenderService {
         if (!annot.rect) continue;
 
         // PDF koordinatlarını (sol alttan) ekran koordinatlarına (sol üstten) çevir
-        const rect = viewport.convertToViewportRectangle(annot.rect);
+        const rect = [
+          ...viewport.convertToViewportPoint(annot.rect[0], annot.rect[1]),
+          ...viewport.convertToViewportPoint(annot.rect[2], annot.rect[3])
+        ];
         const minX = Math.min(rect[0], rect[2]);
         const minY = Math.min(rect[1], rect[3]);
         const width = Math.abs(rect[0] - rect[2]);

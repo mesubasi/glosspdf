@@ -251,7 +251,7 @@ export const SignatureModal: React.FC = () => {
           onClick={() => setPenColor(c.hex)}
           style={{ backgroundColor: c.hex }}
           className={`w-5 h-5 rounded-full border-2 transition-transform ${
-            penColor === c.hex ? 'border-white scale-110 shadow-sm ring-2 ring-red-500' : 'border-transparent'
+            penColor === c.hex ? 'border-white scale-110 shadow-xs ring-2 ring-red-500' : 'border-transparent'
           }`}
           title={t(c.labelKey)}
         />
@@ -260,17 +260,17 @@ export const SignatureModal: React.FC = () => {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 w-full max-w-lg rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
             <FileSignature className="w-5 h-5 text-red-500" />
             <h2 className="font-semibold text-sm">{t('create_signature')}</h2>
           </div>
           <button
             onClick={() => setSignatureModalOpen(false)}
-            className="p-1.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -285,7 +285,7 @@ export const SignatureModal: React.FC = () => {
                 {saved.map((s) => (
                   <div
                     key={s.id}
-                    className="group relative h-12 px-3 flex items-center rounded border border-slate-300 dark:border-slate-600 bg-white hover:border-red-500 cursor-pointer"
+                    className="group relative h-12 px-3 flex items-center rounded-sm border border-slate-300 dark:border-slate-600 bg-white hover:border-red-500 cursor-pointer"
                     onClick={() => beginPlacing(s)}
                     title={t('place_signature')}
                   >
@@ -359,7 +359,7 @@ export const SignatureModal: React.FC = () => {
                   type="button"
                   onClick={clearCanvas}
                   disabled={!hasDrawn}
-                  className="flex items-center space-x-1 px-3 py-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
+                  className="flex items-center space-x-1 px-3 py-1 rounded-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>{t('clear_drawing')}</span>
@@ -378,7 +378,7 @@ export const SignatureModal: React.FC = () => {
                 value={typedName}
                 onChange={(e) => setTypedName(e.target.value)}
                 autoFocus
-                className="w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-none focus:border-red-500 text-sm"
+                className="w-full px-3 py-2 rounded-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-hidden focus:border-red-500 text-sm"
               />
               <div className="grid gap-2">
                 {SCRIPT_FONTS.map((font, i) => (
@@ -425,7 +425,7 @@ export const SignatureModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <label className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
             <input type="checkbox" checked={saveForLater} onChange={(e) => setSaveForLater(e.target.checked)} />
             <span>{t('save_signature_for_later')}</span>
@@ -433,14 +433,14 @@ export const SignatureModal: React.FC = () => {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setSignatureModalOpen(false)}
-              className="px-4 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
+              className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
             >
               {t('cancel')}
             </button>
             <button
               onClick={handleApply}
               disabled={!canApply}
-              className="flex items-center space-x-1.5 px-5 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{t('place_signature')}</span>

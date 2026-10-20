@@ -51,7 +51,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={() => onPageChange(1)}
           disabled={activeTab.currentPage <= 1}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('first_page_home')}
         >
           <ChevronsLeft className="w-3.5 h-3.5" />
@@ -61,7 +61,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={() => onPageChange(activeTab.currentPage - 1)}
           disabled={activeTab.currentPage <= 1}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('previous_page_pageup')}
         >
           <ChevronLeft className="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
             type="text"
             value={inputPage}
             onChange={(e) => setInputPage(e.target.value)}
-            className="w-10 bg-white dark:bg-[#1e1e1e] border border-acrobat-border dark:border-acrobat-darkBorder rounded text-center py-0.5 text-xs outline-none focus:border-acrobat-red"
+            className="w-10 bg-white dark:bg-acrobat-darkBg border border-acrobat-border dark:border-acrobat-darkBorder rounded-sm text-center py-0.5 text-xs outline-hidden focus:border-acrobat-red"
           />
           <span className="text-slate-500">/ {activeTab.numPages}</span>
         </form>
@@ -82,7 +82,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={() => onPageChange(activeTab.currentPage + 1)}
           disabled={activeTab.currentPage >= activeTab.numPages}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('next_page_pagedown')}
         >
           <ChevronRight className="w-3.5 h-3.5" />
@@ -92,7 +92,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         <button
           onClick={() => onPageChange(activeTab.numPages)}
           disabled={activeTab.currentPage >= activeTab.numPages}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('last_page_end')}
         >
           <ChevronsRight className="w-3.5 h-3.5" />
@@ -103,7 +103,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
       <div className="flex items-center space-x-2">
         <button
           onClick={onFitPage}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           title={t('fit_page_ctrl_0')}
         >
           <Expand className="w-3.5 h-3.5" />
@@ -111,17 +111,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
 
         <button
           onClick={onFitWidth}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           title={t('fit_width_ctrl_2')}
         >
-          <span className="font-bold text-[10px] px-1 border border-current rounded">↔</span>
+          <span className="font-bold text-[10px] px-1 border border-current rounded-sm">↔</span>
         </button>
 
-        <div className="h-3 w-[1px] bg-slate-300 dark:bg-slate-600" />
+        <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
 
         <button
           onClick={zoomOut}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           title={t('zoom_out')}
         >
           <ZoomOut className="w-3.5 h-3.5" />
@@ -140,7 +140,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
 
         <button
           onClick={zoomIn}
-          className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           title={t('zoom_in')}
         >
           <ZoomIn className="w-3.5 h-3.5" />

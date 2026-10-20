@@ -127,12 +127,12 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           <Layout className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
 
         {/* Dosya Aç */}
         <button
           onClick={onOpenFile}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           title={t('open_file_ctrl_o')}
         >
           <FolderOpen className="w-4 h-4" />
@@ -142,7 +142,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={onSaveFile}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('save_ctrl_s')}
         >
           <Save className="w-4 h-4" />
@@ -152,13 +152,13 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={onPrint}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('print_ctrl_p')}
         >
           <Printer className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
 
         {/* İmleç / Seçim Aracı */}
         <button
@@ -182,7 +182,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           <Hand className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
 
         {/* İşaretleme ve Not Ekleme Modu Aç/Kapat */}
         <button
@@ -190,7 +190,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           disabled={!activeTab}
           className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors ${
             annotationModeOpen
-              ? 'bg-acrobat-red text-white font-medium shadow-sm'
+              ? 'bg-acrobat-red text-white font-medium shadow-xs'
               : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
           }`}
           title={t('annotation_toolbar')}
@@ -205,7 +205,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           disabled={!activeTab}
           className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
             activeTool === 'edittext'
-              ? 'bg-acrobat-red text-white font-medium shadow-sm'
+              ? 'bg-acrobat-red text-white font-medium shadow-xs'
               : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
           }`}
           title={t('edit_text')}
@@ -220,7 +220,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           disabled={!activeTab}
           className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
             activeTool === 'signature'
-              ? 'bg-acrobat-red text-white font-medium shadow-sm'
+              ? 'bg-acrobat-red text-white font-medium shadow-xs'
               : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
           }`}
           title={t('sign')}
@@ -236,7 +236,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={zoomOut}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('zoom_out_ctrl')}
         >
           <ZoomOut className="w-4 h-4" />
@@ -247,7 +247,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           value={activeTab?.zoom || 1.0}
           onChange={(e) => setZoom(parseFloat(e.target.value))}
           disabled={!activeTab}
-          className="bg-white dark:bg-[#1e1e1e] border border-acrobat-border dark:border-acrobat-darkBorder rounded px-2 py-0.5 text-xs text-center cursor-pointer outline-none focus:border-acrobat-red"
+          className="bg-white dark:bg-acrobat-darkBg border border-acrobat-border dark:border-acrobat-darkBorder rounded-sm px-2 py-0.5 text-xs text-center cursor-pointer outline-hidden focus:border-acrobat-red"
         >
           {ZOOM_LEVELS.map((lvl) => (
             <option key={lvl} value={lvl}>
@@ -263,19 +263,19 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={zoomIn}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('zoom_in_ctrl')}
         >
           <ZoomIn className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
 
         {/* Sayfaya Sığdır */}
         <button
           onClick={onFitPage}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('fit_page_ctrl_0')}
         >
           <Expand className="w-4 h-4" />
@@ -285,19 +285,19 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={onFitWidth}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('fit_width_ctrl_2')}
         >
-          <span className="font-semibold text-[11px] px-0.5 border border-current rounded">↔</span>
+          <span className="font-semibold text-[11px] px-0.5 border border-current rounded-sm">↔</span>
         </button>
 
-        <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
 
         {/* Saat Yönünde Döndür */}
         <button
           onClick={rotateClockwise}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('rotate_clockwise_ctrl_shift_r')}
         >
           <RotateCw className="w-4 h-4" />
@@ -307,7 +307,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={rotateCounterClockwise}
           disabled={!activeTab}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
           title={t('rotate_counter_clockwise_ctrl_shift_l')}
         >
           <RotateCcw className="w-4 h-4" />
@@ -331,7 +331,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         {/* Tema Değiştir */}
         <button
           onClick={toggleTheme}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           title={t(theme === 'dark' ? 'switch_to_light_theme' : 'switch_to_dark_theme')}
         >
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
@@ -343,7 +343,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onChange={(e) => setLanguagePreference(e.target.value as LanguagePreference)}
           title={t('language')}
           aria-label={t('language')}
-          className="px-1.5 py-1 rounded text-[11px] bg-transparent hover:bg-black/10 dark:hover:bg-white/10 border border-slate-300/60 dark:border-slate-600/60 outline-none cursor-pointer max-w-[150px] truncate"
+          className="px-1.5 py-1 rounded-sm text-[11px] bg-transparent hover:bg-black/10 dark:hover:bg-white/10 border border-slate-300/60 dark:border-slate-600/60 outline-hidden cursor-pointer max-w-[150px] truncate"
         >
           <option value="system">
             {t('system_language')} ({getLanguageInfo(detectSystemLanguage()).nativeLabel})
@@ -358,7 +358,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         {/* Tam Ekran */}
         <button
           onClick={toggleFullScreen}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           title={t('full_screen_f11_ctrl_l')}
         >
           {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -367,7 +367,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         {/* Kısayollar ve Yardım */}
         <button
           onClick={() => setShortcutHelpModalOpen(true)}
-          className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           title={t('keyboard_shortcuts_f1')}
         >
           <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
@@ -376,7 +376,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         {/* Sürüm ve Güncellemeler */}
         <button
           onClick={() => setUpdateModalOpen(true)}
-          className="relative p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className="relative p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           title={
             updateReady
               ? t(updateState.status === 'downloaded' ? 'update_status_downloaded' : 'update_status_available', {
@@ -391,11 +391,11 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
             }`}
           />
           {updateReady && (
-            <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-acrobat-red ring-2 ring-white dark:ring-[#1e1e1e]" />
+            <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-acrobat-red ring-2 ring-white dark:ring-acrobat-darkBg" />
           )}
         </button>
 
-        <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
 
         {/* Sağ Panel Aç/Kapat */}
         <button
