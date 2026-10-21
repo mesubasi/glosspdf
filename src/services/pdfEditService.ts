@@ -13,6 +13,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { configure, lock, unlockInPlace } from 'pdf-lib-encrypt';
 import { AnnotationItem } from '../types/pdf';
 import { t } from '@/i18n';
+import { DEFAULT_WATERMARK_PLACEMENT, watermarkCenter, type WatermarkPlacement } from './watermarkLayout';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   let clean = hex.replace('#', '');
@@ -431,12 +432,12 @@ export class PdfEditService {
   }
 
   /**
-   * Belgenin tüm sayfalarına yarı saydam çapraz filigran (Watermark) ekler
+   * Belgenin tüm sayfalarına yarı saydam filigran (Watermark) ekler; varsayılan yer sayfa ortası, 45°
    */
   static async addWatermark(
     data: Uint8Array,
     text: string,
-    options?: { colorHex?: string; opacity?: number; size?: number }
+    options?: { colorHex?: string; opacity?: number; size?: number; placement?: WatermarkPlacement }
   ): Promise<Uint8Array> {
     const doc = await this.loadPdf(data);
     const font = await embedUnicodeFont(doc, true);
@@ -444,21 +445,29 @@ export class PdfEditService {
 
     const opacity = options?.opacity ?? 0.22;
     const size = options?.size ?? 50;
+    const place = options?.placement ?? DEFAULT_WATERMARK_PLACEMENT;
     const { r, g, b } = options?.colorHex ? hexToRgb(options.colorHex) : { r: 0.8, g: 0.2, b: 0.2 };
+    const textWidth = font.widthOfTextAtSize(text, size);
+    const textHeight = font.heightAtSize(size, { descender: false });
 
     for (const page of pages) {
-      const { width, height } = page.getSize();
-      const textWidth = font.widthOfTextAtSize(text, size);
-      const textHeight = font.heightAtSize(size);
+      const { rot, pt } = pageMapper(page);
+      const { width, height } = page.getCropBox();
+      const [viewW, viewH] = rot % 180 ? [height, width] : [width, height];
+      const c = watermarkCenter(viewW, viewH, textWidth, textHeight, place);
+      const at = pt(c.x, c.y);
+      // Görünen açıyı korumak için sayfa dönüşü eklenir; drawText taban çizgisinin sol ucundan döndürür
+      const angle = place.angle + rot;
+      const rad = (angle * Math.PI) / 180;
 
       page.drawText(text, {
-        x: width / 2 - textWidth / 2 + 30,
-        y: height / 2 - textHeight / 2,
+        x: at.x - (textWidth / 2) * Math.cos(rad) + (textHeight / 2) * Math.sin(rad),
+        y: at.y - (textWidth / 2) * Math.sin(rad) - (textHeight / 2) * Math.cos(rad),
         size,
         font,
         color: rgb(r, g, b),
         opacity,
-        rotate: degrees(45)
+        rotate: degrees(angle)
       });
     }
 

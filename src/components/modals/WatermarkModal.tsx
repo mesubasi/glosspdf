@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { drawWatermarkPreview, renderPreviewPage, type WatermarkPlacement } from '../../services/watermarkLayout';
 import { t } from '@/i18n';
 import {
   X,
@@ -9,6 +10,42 @@ import {
   Check,
   Droplet
 } from 'lucide-react';
+
+const WATERMARK_SIZE = 48;
+const SPOTS = [0, 50, 100];
+
+/** Geçerli sayfa üstünde, kayıttaki hesapla çizilen canlı önizleme */
+const WatermarkPreview: React.FC<{
+  data: Uint8Array;
+  pageNumber: number;
+  text: string;
+  colorHex: string;
+  opacity: number;
+  placement: WatermarkPlacement;
+}> = ({ data, pageNumber, text, colorHex, opacity, placement }) => {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [page, setPage] = useState<Awaited<ReturnType<typeof renderPreviewPage>> | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const loading = PdfRenderService.loadDocument(data.slice());
+    loading
+      .then((pdf) => renderPreviewPage(pdf, pageNumber, 480))
+      .then((p) => alive && setPage(p))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+      void loading.then((pdf) => pdf.loadingTask.destroy()).catch(() => undefined);
+    };
+  }, [data, pageNumber]);
+
+  useEffect(() => {
+    if (page && ref.current) drawWatermarkPreview(ref.current, page, text, { colorHex, opacity, size: WATERMARK_SIZE }, placement);
+  });
+
+  if (!page) return null;
+  return <canvas ref={ref} aria-hidden="true" className="mx-auto max-h-64 max-w-full rounded-sm shadow-md" />;
+};
 
 export const WatermarkModal: React.FC = () => {
   const {
@@ -27,6 +64,11 @@ export const WatermarkModal: React.FC = () => {
   const [watermarkText, setWatermarkText] = useState(t('confidential_proprietary'));
   const [opacity, setOpacity] = useState(20);
   const [watermarkColor, setWatermarkColor] = useState('#d32f2f');
+  /** Konum yüzdesi: 0 = sol / üst, 100 = sağ / alt */
+  const [posX, setPosX] = useState(50);
+  const [posY, setPosY] = useState(50);
+  const [angle, setAngle] = useState(45);
+  const placement: WatermarkPlacement = { x: posX / 100, y: posY / 100, angle };
 
   // Damga Ayarları
   const [stampText, setStampText] = useState(t('approved'));
@@ -49,7 +91,8 @@ export const WatermarkModal: React.FC = () => {
           {
             colorHex: watermarkColor,
             opacity: opacity / 100,
-            size: 48
+            size: WATERMARK_SIZE,
+            placement
           }
         );
       } else {
@@ -91,7 +134,7 @@ export const WatermarkModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md max-h-[92vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Başlık */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
@@ -135,9 +178,18 @@ export const WatermarkModal: React.FC = () => {
         </div>
 
         {/* Gövde */}
-        <div className="p-5 flex-1 space-y-4 text-xs">
+        <div className="p-5 flex-1 overflow-y-auto space-y-4 text-xs">
           {tabType === 'watermark' ? (
             <>
+              <WatermarkPreview
+                data={activeTab.data}
+                pageNumber={activeTab.currentPage}
+                text={watermarkText.trim()}
+                colorHex={watermarkColor}
+                opacity={opacity / 100}
+                placement={placement}
+              />
+
               <div>
                 <label className="block text-slate-600 dark:text-slate-300 font-medium mb-1">
                   {t('watermark_text')}
@@ -196,6 +248,94 @@ export const WatermarkModal: React.FC = () => {
                         watermarkColor === color ? 'ring-2 ring-slate-800 dark:ring-white scale-110' : ''
                       }`}
                     />
+                  ))}
+                </div>
+              </div>
+
+              {/* Konum: 9 noktalı ızgara + ince ayar; ızgara sayfayı temsil eder, RTL'de aynalanmaz */}
+              <div className="flex items-start gap-4">
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-300 font-medium mb-1">
+                    {t('watermark_position')}
+                  </label>
+                  <div
+                    role="radiogroup"
+                    aria-label={t('watermark_position')}
+                    dir="ltr"
+                    className="grid grid-cols-3 gap-0.5 p-0.5 w-[72px] rounded-sm bg-slate-100 dark:bg-slate-800"
+                  >
+                    {SPOTS.flatMap((y) =>
+                      SPOTS.map((x) => {
+                        const on = posX === x && posY === y;
+                        const v = y === 0 ? t('pos_top') : y === 100 ? t('pos_bottom') : '';
+                        const h = x === 0 ? t('pos_left') : x === 100 ? t('pos_right') : '';
+                        return (
+                          <button
+                            key={`${x}-${y}`}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            aria-label={[v, h].filter(Boolean).join(', ') || t('center')}
+                            onClick={() => {
+                              setPosX(x);
+                              setPosY(y);
+                            }}
+                            className={`h-[22px] flex items-center justify-center rounded-xs transition-colors ${
+                              on ? 'bg-white dark:bg-slate-600 shadow-xs' : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${on ? 'bg-red-600' : 'bg-slate-400'}`} />
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2 pt-4">
+                  {(
+                    [
+                      [t('horizontal'), posX, setPosX],
+                      [t('vertical'), posY, setPosY]
+                    ] as const
+                  ).map(([label, value, setValue]) => (
+                    <label key={label} className="block">
+                      <div className="flex justify-between text-[11px] text-slate-500 mb-0.5">
+                        <span>{label}</span>
+                        <span>%{value}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={value}
+                        onChange={(e) => setValue(parseInt(e.target.value, 10))}
+                        className="w-full accent-red-600 cursor-pointer"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Açı */}
+              <div>
+                <label className="block text-slate-600 dark:text-slate-300 font-medium mb-1">
+                  {t('angle')}
+                </label>
+                <div className="flex gap-1.5">
+                  {[0, 45, 90, -45].map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => setAngle(a)}
+                      aria-pressed={angle === a}
+                      className={`px-2.5 py-0.5 rounded-sm text-[11px] font-medium transition-colors ${
+                        angle === a
+                          ? 'bg-red-600 text-white'
+                          : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {a}°
+                    </button>
                   ))}
                 </div>
               </div>
