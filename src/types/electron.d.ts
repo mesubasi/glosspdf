@@ -23,6 +23,9 @@ export interface IElectronAPI {
   savePdf: (filePath: string, base64Data: string) => Promise<SavePdfResult>;
   savePdfAs: (defaultName: string, base64Data: string, locale?: string) => Promise<SavePdfResult>;
   print: () => Promise<boolean>;
+  setHasUnsaved: (hasUnsaved: boolean) => void;
+  confirmClose: () => void;
+  onCloseRequested: (callback: () => void) => () => void;
   getVersion: () => Promise<string>;
   getUpdateState: () => Promise<UpdateState & { autoDownload: boolean }>;
   setAutoDownload: (autoDownload: boolean) => Promise<void>;

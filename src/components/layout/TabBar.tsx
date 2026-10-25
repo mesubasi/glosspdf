@@ -8,7 +8,7 @@ interface TabBarProps {
 }
 
 export const TabBar: React.FC<TabBarProps> = ({ onOpenFile }) => {
-  const { tabs, activeTabId, setActiveTab, closeTab, language } = usePdfStore();
+  const { tabs, activeTabId, setActiveTab, requestCloseTab, language } = usePdfStore();
 
   return (
     <div className="flex items-center bg-[#1c1d1f] text-slate-300 text-xs px-2 pt-1.5 select-none border-b border-black/40 overflow-x-auto no-scrollbar">
@@ -43,7 +43,7 @@ export const TabBar: React.FC<TabBarProps> = ({ onOpenFile }) => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  closeTab(tab.id);
+                  requestCloseTab(tab.id);
                 }}
                 className="ml-1 p-0.5 rounded-full hover:bg-black/20 text-slate-400 hover:text-slate-200 opacity-60 group-hover:opacity-100 transition-opacity"
                 title={t('close_ctrl_w')}

@@ -315,4 +315,7 @@ export const de: Record<MessageKey, string> = {
   "download_update": "Herunterladen",
   "restart_and_install": "Neu starten und installieren",
   "open_releases_page": "Release-Seite",
+  "unsaved_changes_title": "Nicht gespeicherte Änderungen",
+  "unsaved_changes_message": "„{name}“ enthält nicht gespeicherte Änderungen. Möchten Sie diese vor dem Schließen speichern?",
+  "dont_save": "Nicht speichern",
 };

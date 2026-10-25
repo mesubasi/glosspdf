@@ -315,4 +315,7 @@ export const ar: Record<MessageKey, string> = {
   "download_update": "تنزيل",
   "restart_and_install": "إعادة التشغيل والتثبيت",
   "open_releases_page": "صفحة الإصدارات",
+  "unsaved_changes_title": "تغييرات غير محفوظة",
+  "unsaved_changes_message": "يحتوي «{name}» على تغييرات غير محفوظة. هل تريد حفظها قبل الإغلاق؟",
+  "dont_save": "عدم الحفظ",
 };

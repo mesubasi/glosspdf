@@ -315,4 +315,7 @@ export const es: Record<MessageKey, string> = {
   "download_update": "Descargar",
   "restart_and_install": "Reiniciar e instalar",
   "open_releases_page": "Página de versiones",
+  "unsaved_changes_title": "Cambios sin guardar",
+  "unsaved_changes_message": "«{name}» tiene cambios sin guardar. ¿Quieres guardarlos antes de cerrar?",
+  "dont_save": "No guardar",
 };

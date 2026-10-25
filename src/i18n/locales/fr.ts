@@ -315,4 +315,7 @@ export const fr: Record<MessageKey, string> = {
   "download_update": "Télécharger",
   "restart_and_install": "Redémarrer et installer",
   "open_releases_page": "Page des versions",
+  "unsaved_changes_title": "Modifications non enregistrées",
+  "unsaved_changes_message": "« {name} » contient des modifications non enregistrées. Voulez-vous les enregistrer avant de fermer ?",
+  "dont_save": "Ne pas enregistrer",
 };

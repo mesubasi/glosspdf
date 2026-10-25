@@ -8,6 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
+// Renderer'ın bildirdiği kaydedilmemiş değişiklik durumu; confirmClose gelene kadar kapatma engellenir
+let hasUnsaved = false;
+let forceClose = false;
 
 /** Desteklenen diller (src/i18n/languages.ts ile aynı liste) */
 const SUPPORTED_LANGUAGES = ['tr', 'en', 'de', 'fr', 'es', 'ar', 'zh'] as const;
@@ -198,6 +201,16 @@ function createWindow() {
     }
   });
 
+  hasUnsaved = false;
+  forceClose = false;
+  mainWindow.on('close', (event) => {
+    // Çöken renderer cevap veremez; pencerenin kapanamaz kalmaması için engelleme
+    if (hasUnsaved && !forceClose && !mainWindow?.webContents.isCrashed()) {
+      event.preventDefault();
+      mainWindow?.webContents.send('app:close-requested');
+    }
+  });
+
   // Preload yüklenemezse sessizce devam etme: nedeni konsola yaz
   mainWindow.webContents.on('preload-error', (_event, failedPath, error) => {
     console.error(`[GlossPDF] Preload yüklenemedi (${failedPath}):`, error);
@@ -292,6 +305,13 @@ function setupUpdater() {
     .catch((error) => console.error('[GlossPDF] Güncelleme kontrolü başarısız:', error));
 }
 
+ipcMain.on('app:setHasUnsaved', (_event, value: boolean) => {
+  hasUnsaved = value === true;
+});
+ipcMain.on('app:confirmClose', () => {
+  forceClose = true;
+  mainWindow?.close();
+});
 ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('updater:getState', () => ({ ...updateState, autoDownload: readAutoDownload() }));
 ipcMain.handle('updater:setAutoDownload', async (_event, autoDownload: boolean) => {

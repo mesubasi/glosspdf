@@ -315,4 +315,7 @@ export const zh: Record<MessageKey, string> = {
   "download_update": "下载",
   "restart_and_install": "重启并安装",
   "open_releases_page": "发布页面",
+  "unsaved_changes_title": "有未保存的更改",
+  "unsaved_changes_message": "“{name}”有未保存的更改。关闭前是否保存？",
+  "dont_save": "不保存",
 };

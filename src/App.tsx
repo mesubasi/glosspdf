@@ -21,6 +21,7 @@ import { ProtectPdfModal } from './components/modals/ProtectPdfModal';
 import { CompressPdfModal } from './components/modals/CompressPdfModal';
 import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
 import { UpdateModal } from './components/modals/UpdateModal';
+import { UnsavedChangesModal } from './components/modals/UnsavedChangesModal';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PdfTab } from './types/pdf';
@@ -77,10 +78,18 @@ export function App() {
     annotationModeOpen,
     addRecentFile,
     removeRecentFile,
+    requestCloseWindow,
     language
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+  const hasUnsaved = tabs.some((tab) => tab.isModified);
+
+  // Pencere kapatılırken kaydedilmemiş değişiklikleri sormak için ana sürece durumu bildir
+  useEffect(() => {
+    window.electronAPI?.setHasUnsaved(hasUnsaved);
+  }, [hasUnsaved]);
+  useEffect(() => window.electronAPI?.onCloseRequested(requestCloseWindow), [requestCloseWindow]);
   const [activePdfDoc, setActivePdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -318,7 +327,7 @@ export function App() {
 
     // Eğer geçerli bir disk dosya yolu yoksa (sürükle-bırak veya isimsiz belge), güvenle Farklı Kaydet'e yönlendir
     if (!activeTab.filePath || activeTab.filePath === activeTab.fileName || !window.electronAPI) {
-      handleSaveFileAs();
+      await handleSaveFileAs();
       return;
     }
 
@@ -343,7 +352,7 @@ export function App() {
         } else {
           // İzin veya kilitlenme hatası durumunda kullanıcı mağdur olmasın diye Farklı Kaydet'e yönlendir
           console.warn('Direct save failed, opening Save As:', res.error);
-          handleSaveFileAs();
+          await handleSaveFileAs();
         }
       } else {
         // Tarayıcı Fallback (İndirme)
@@ -505,6 +514,7 @@ export function App() {
       <CompressPdfModal />
       <ShortcutHelpModal />
       <UpdateModal />
+      <UnsavedChangesModal onSave={handleSaveFile} />
     </div>
   );
 }

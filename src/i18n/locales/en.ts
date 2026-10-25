@@ -313,6 +313,9 @@ export const en = {
   "download_update": "Download",
   "restart_and_install": "Restart and install",
   "open_releases_page": "Releases page",
+  "unsaved_changes_title": "Unsaved changes",
+  "unsaved_changes_message": "“{name}” has unsaved changes. Do you want to save them before closing?",
+  "dont_save": "Don’t save",
 };
 
 /** Sözlükteki tüm anahtarların birleşimi (tip güvenliği için). */

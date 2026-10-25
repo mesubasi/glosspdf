@@ -20,7 +20,7 @@ export function useKeyboardShortcuts({
 }: ShortcutOptions) {
   const {
     activeTabId,
-    closeTab,
+    requestCloseTab,
     zoomIn,
     zoomOut,
     setZoom,
@@ -80,7 +80,7 @@ export function useKeyboardShortcuts({
       if (isCtrl && (e.key === 'w' || e.key === 'W')) {
         e.preventDefault();
         if (activeTabId) {
-          closeTab(activeTabId);
+          requestCloseTab(activeTabId);
         }
         return;
       }
@@ -213,7 +213,7 @@ export function useKeyboardShortcuts({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     activeTabId,
-    closeTab,
+    requestCloseTab,
     zoomIn,
     zoomOut,
     setZoom,

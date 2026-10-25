@@ -315,4 +315,7 @@ export const tr: Record<MessageKey, string> = {
   "download_update": "İndir",
   "restart_and_install": "Yeniden başlat ve kur",
   "open_releases_page": "Sürümler sayfası",
+  "unsaved_changes_title": "Kaydedilmemiş değişiklikler",
+  "unsaved_changes_message": "“{name}” belgesinde kaydedilmemiş değişiklikler var. Kapatmadan önce kaydetmek ister misiniz?",
+  "dont_save": "Kaydetme",
 };

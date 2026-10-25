@@ -69,6 +69,13 @@ interface PdfStoreState {
   // Eylemler (Actions)
   addTab: (tab: PdfTab) => void;
   closeTab: (tabId: string) => void;
+  /** Sekmeyi kapatır; kaydedilmemiş değişiklik varsa önce kullanıcıya sorar */
+  requestCloseTab: (tabId: string) => void;
+  /** Pencere kapanırken kaydedilmemiş sekmeleri sırayla sorar; hepsi bitince pencereyi kapatır */
+  requestCloseWindow: () => void;
+  /** Onay bekleyen sekmeler; closeWindow: sıra bitince pencere de kapanır */
+  closeRequest: { tabIds: string[]; closeWindow: boolean } | null;
+  setCloseRequest: (request: { tabIds: string[]; closeWindow: boolean } | null) => void;
   setActiveTab: (tabId: string) => void;
   updateTab: (tabId: string, updates: Partial<PdfTab>) => void;
   setCurrentPage: (pageNumber: number) => void;
@@ -219,6 +226,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   recentFiles: getInitialRecentFiles(),
   shortcutHelpModalOpen: false,
   updateModalOpen: false,
+  closeRequest: null,
 
   annotationModeOpen: false,
   annotationColor: '#ffeb3b', // Varsayılan fosforlu sarı
@@ -263,6 +271,24 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
       };
     });
   },
+
+  // Soru sırasındaki sekme etkin yapılır: kaydet işlemleri etkin sekme üzerinde çalışır
+  requestCloseTab: (tabId) => {
+    const tab = get().tabs.find((tab) => tab.id === tabId);
+    if (tab?.isModified) set({ closeRequest: { tabIds: [tabId], closeWindow: false }, activeTabId: tabId });
+    else get().closeTab(tabId);
+  },
+
+  requestCloseWindow: () => {
+    const tabIds = get().tabs.filter((tab) => tab.isModified).map((tab) => tab.id);
+    if (tabIds.length === 0) {
+      window.electronAPI?.confirmClose();
+      return;
+    }
+    set({ closeRequest: { tabIds, closeWindow: true }, activeTabId: tabIds[0] });
+  },
+
+  setCloseRequest: (request) => set({ closeRequest: request }),
 
   setActiveTab: (tabId) => set({ activeTabId: tabId }),
 

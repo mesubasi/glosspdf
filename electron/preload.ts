@@ -31,6 +31,16 @@ const electronAPI = {
   // Belgeyi Yazdırma
   print: () => ipcRenderer.invoke('app:print'),
 
+  // Kaydedilmemiş değişiklik bildirimi ve pencere kapatma onayı
+  setHasUnsaved: (hasUnsaved: boolean) => ipcRenderer.send('app:setHasUnsaved', hasUnsaved),
+  confirmClose: () => ipcRenderer.send('app:confirmClose'),
+  // Kullanıcı pencereyi kapatmak istediğinde (kaydedilmemiş değişiklik varken) tetiklenir
+  onCloseRequested: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('app:close-requested', listener);
+    return () => ipcRenderer.removeListener('app:close-requested', listener);
+  },
+
   // Sürüm ve Güncellemeler
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
   getUpdateState: () => ipcRenderer.invoke('updater:getState'),
