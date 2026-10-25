@@ -38,6 +38,39 @@ export function watermarkCenter(
   return { x: axis(pageW, boxW, p.x), y: axis(pageH, boxH, p.y) };
 }
 
+/** watermarkCenter'ın tersi: merkezi verilen noktaya en yakın düşen yerleşim (0..1'e kırpılır) */
+export function placementAt(
+  pageW: number,
+  pageH: number,
+  textW: number,
+  textH: number,
+  angle: number,
+  point: { x: number; y: number },
+  margin = MARGIN
+): { x: number; y: number } {
+  const lo = watermarkCenter(pageW, pageH, textW, textH, { x: 0, y: 0, angle }, margin);
+  const hi = watermarkCenter(pageW, pageH, textW, textH, { x: 1, y: 1, angle }, margin);
+  const axis = (v: number, a: number, b: number) => (b > a ? Math.min(1, Math.max(0, (v - a) / (b - a))) : 0.5);
+  return { x: axis(point.x, lo.x, hi.x), y: axis(point.y, lo.y, hi.y) };
+}
+
+const previewFont = (px: number) => `bold ${px}px GlossSans, sans-serif`;
+
+/** Önizleme tuvalindeki bir noktaya (tuval pikseli) göre yerleşim; çizimle aynı yazı tipi ve kenar boşluğu */
+export function previewPlacementAt(
+  canvas: HTMLCanvasElement,
+  page: { scale: number },
+  text: string,
+  size: number,
+  angle: number,
+  point: { x: number; y: number }
+): { x: number; y: number } {
+  const ctx = canvas.getContext('2d')!;
+  const px = size * page.scale;
+  ctx.font = previewFont(px);
+  return placementAt(canvas.width, canvas.height, ctx.measureText(text).width, px * ASCENT, angle, point, MARGIN * page.scale);
+}
+
 /** Önizleme için sayfanın görüntüsü; scale = piksel / PDF birimi */
 export async function renderPreviewPage(
   pdf: PDFDocumentProxy,
@@ -71,7 +104,7 @@ export function drawWatermarkPreview(
   ctx.drawImage(page.image, 0, 0);
   if (!text) return;
   const size = style.size * page.scale;
-  ctx.font = `bold ${size}px GlossSans, sans-serif`;
+  ctx.font = previewFont(size);
   const c = watermarkCenter(canvas.width, canvas.height, ctx.measureText(text).width, size * ASCENT, p, MARGIN * page.scale);
   ctx.globalAlpha = style.opacity;
   ctx.fillStyle = style.colorHex;
