@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { PdfEditService } from '../../services/pdfEditService';
+import { PdfEditService, type CompressionLevel } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
 import { t } from '@/i18n';
 import {
@@ -28,6 +28,7 @@ export const CompressPdfModal: React.FC = () => {
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [level, setLevel] = useState<CompressionLevel>('balanced');
   const [compressionResult, setCompressionResult] = useState<{
     originalSize: number;
     newSize: number;
@@ -53,7 +54,7 @@ export const CompressPdfModal: React.FC = () => {
     try {
       setIsProcessing(true);
       const originalBytes = activeTab.data.slice();
-      const compressedBytes = await PdfEditService.compressPdf(originalBytes);
+      const compressedBytes = await PdfEditService.compressPdf(originalBytes, level);
 
       const originalSize = originalBytes.byteLength;
       const newSize = compressedBytes.byteLength;
@@ -188,8 +189,38 @@ export const CompressPdfModal: React.FC = () => {
           {/* Sıkıştırma Açıklaması */}
           <div className="text-slate-600 dark:text-slate-300 leading-relaxed space-y-2">
             <p>
-              {t('unnecessary_metadata_is_purged_object_streams_are_optimi')}
+              {t('compression_explainer')}
             </p>
+          </div>
+
+          {/* Sıkıştırma Seviyesi */}
+          <div className="flex flex-col space-y-2">
+            {(['light', 'balanced', 'strong'] as const).map((value) => (
+              <label
+                key={value}
+                className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  level === value
+                    ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-acrobat-darkPanel'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="compressionLevel"
+                  checked={level === value}
+                  disabled={isProcessing}
+                  onChange={() => {
+                    setLevel(value);
+                    setCompressionResult(null);
+                  }}
+                  className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                />
+                <div>
+                  <div className="font-semibold text-slate-800 dark:text-slate-200">{t(`compression_${value}`)}</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">{t(`compression_${value}_desc`)}</div>
+                </div>
+              </label>
+            ))}
           </div>
 
           {/* Sonuç Alanı */}
