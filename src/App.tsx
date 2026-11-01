@@ -321,6 +321,10 @@ export function App() {
     await openNewPdf(resolvedPath, file.name, bytes);
   };
 
+  // Karartma geri alınamaz ve sayfayı görüntüye çevirir: kaydetmeden önce kullanıcıya sorulur
+  const confirmRedactions = () =>
+    !activeTab?.annotations.some((a) => a.type === 'redact') || window.confirm(t('redact_confirm'));
+
   // Mevcut Dosyayı Kaydet (Ctrl+S) - ISO 32000 Annotation'ları ile Birlikte
   const handleSaveFile = async () => {
     if (!activeTab) return;
@@ -330,6 +334,7 @@ export function App() {
       await handleSaveFileAs();
       return;
     }
+    if (!confirmRedactions()) return;
 
     try {
       // pdf-lib ile annotation'ları (Highlight, Text, Ink, Square vb.) PDF'e yaz
@@ -373,7 +378,7 @@ export function App() {
 
   // Farklı Kaydet (Ctrl+Shift+S) - ISO 32000 Annotation'ları ile Birlikte
   const handleSaveFileAs = async () => {
-    if (!activeTab) return;
+    if (!activeTab || !confirmRedactions()) return;
 
     try {
       const savedBytes = await PdfEditService.savePdfWithAnnotations(
@@ -415,12 +420,58 @@ export function App() {
     }
   };
 
-  // Yazdır (Ctrl+P)
+  // Yazdır (Ctrl+P): sayfalar bekleyen işaretlemelerle birlikte görüntüye çizilir ve yalnızca
+  // #print-container basılır (index.css @media print); arayüz kağıda çıkmaz
+  const isPrintingRef = useRef(false);
   const handlePrint = async () => {
-    if (window.electronAPI) {
-      await window.electronAPI.print();
-    } else {
-      window.print();
+    if (!activeTab || !activePdfDoc || isPrintingRef.current) return;
+    isPrintingRef.current = true;
+
+    const container = document.createElement('div');
+    container.id = 'print-container';
+    const pageStyle = document.createElement('style');
+    let urls: string[] = [];
+    let printDoc = activePdfDoc;
+
+    try {
+      if (activeTab.annotations.length > 0) {
+        const bytes = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations);
+        printDoc = await PdfRenderService.loadDocument(bytes, openPasswordModal);
+      }
+      urls = await PdfRenderService.renderPagesForPrint(printDoc, activeTab.rotation);
+
+      // Kağıt boyutu ilk sayfadan alınır (pdf.js görüntüleyicisi gibi)
+      const first = activeTab.pageDimensions[0];
+      const isRotated = activeTab.rotation === 90 || activeTab.rotation === 270;
+      const width = isRotated ? first.originalHeight : first.originalWidth;
+      const height = isRotated ? first.originalWidth : first.originalHeight;
+      pageStyle.textContent = `@page { size: ${width}pt ${height}pt; margin: 0; }`;
+
+      for (const url of urls) {
+        const pageEl = document.createElement('div');
+        const img = document.createElement('img');
+        img.src = url;
+        pageEl.appendChild(img);
+        container.appendChild(pageEl);
+      }
+      document.head.appendChild(pageStyle);
+      document.body.appendChild(container);
+      await Promise.all(Array.from(container.querySelectorAll('img'), (img) => img.decode()));
+
+      if (window.electronAPI) {
+        await window.electronAPI.print();
+      } else {
+        window.print();
+      }
+    } catch (err: any) {
+      console.error('Print failed:', err);
+      alert(t('error_generic', { message: err.message }));
+    } finally {
+      container.remove();
+      pageStyle.remove();
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      if (printDoc !== activePdfDoc) printDoc.loadingTask.destroy();
+      isPrintingRef.current = false;
     }
   };
 
@@ -432,6 +483,21 @@ export function App() {
       pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  // İşletim sisteminden gelen PDF'ler (çift tıklama, "Birlikte aç", ikinci örnek). Abonelik bir kez kurulur;
+  // ref, açılış sırasında güncel sekme listesini gören işleyiciyi kullanmak içindir
+  const openPathRef = useRef(handleOpenRecentFile);
+  openPathRef.current = handleOpenRecentFile;
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onOpenFile) return;
+    const openPath = (filePath: string) => openPathRef.current(filePath, filePath.split(/[\\/]/).pop() || filePath);
+    const unsubscribe = api.onOpenFile(openPath);
+    api.takePendingFiles().then(async (paths) => {
+      for (const filePath of paths) await openPath(filePath);
+    });
+    return unsubscribe;
+  }, []);
 
   // Klavye Kısayolları Entegrasyonu
   useKeyboardShortcuts({

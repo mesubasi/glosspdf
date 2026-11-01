@@ -17,11 +17,8 @@ if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(workerUrl, document.baseURI).href;
 }
 
-/** cmap, standart yazı tipleri ve wasm çözücüler: mobil derleme pakete gömer (çevrimdışı), masaüstü CDN'den alır */
-const pdfjsDataUrl = (dir: string) =>
-  import.meta.env.VITE_PDFJS_DATA
-    ? assetUrl(`${import.meta.env.VITE_PDFJS_DATA}${dir}/`)
-    : `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/${dir}/`;
+/** cmap, standart yazı tipleri ve wasm çözücüler pakete gömülür (vite.config.ts → public/pdfjs/): tamamen çevrimdışı */
+const pdfjsDataUrl = (dir: string) => assetUrl(`${import.meta.env.VITE_PDFJS_DATA || 'pdfjs/'}${dir}/`);
 
 /**
  * Sayfanın kendi /Rotate değeri + kullanıcının görünüm döndürmesi.
@@ -115,6 +112,97 @@ export class PdfRenderService {
 
     const renderTask = page.render(renderContext);
     return { renderTask, viewport };
+  }
+
+  /**
+   * Yazdırma için tüm sayfaları 150 DPI görüntüye çizer (pdf.js görüntüleyicisinin yöntemi).
+   * Dönen blob URL'lerini işi biten çağıran serbest bırakır.
+   */
+  static async renderPagesForPrint(doc: pdfjsLib.PDFDocumentProxy, rotation: number = 0): Promise<string[]> {
+    const urls: string[] = [];
+    const canvas = document.createElement('canvas');
+    try {
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const viewport = viewportFor(page, 150 / 72, rotation);
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        // 'print' amacı: yalnızca basılacak işaretlemeler çizilir, arka plandaki pencerede de requestAnimationFrame beklenmez
+        await page.render({ canvas, viewport, intent: 'print', background: '#ffffff' }).promise;
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve));
+        if (!blob) throw new Error(`Page ${i} could not be rendered for printing`);
+        urls.push(URL.createObjectURL(blob));
+        page.cleanup();
+      }
+      return urls;
+    } catch (e) {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      throw e;
+    }
+  }
+
+  /**
+   * Bağlantı hedefini (adlandırılmış veya açık /Dest) 1 tabanlı sayfa numarasına çevirir
+   */
+  static async resolveDestPage(doc: pdfjsLib.PDFDocumentProxy, dest: unknown): Promise<number | null> {
+    const explicit = typeof dest === 'string' ? await doc.getDestination(dest) : dest;
+    const ref = Array.isArray(explicit) ? explicit[0] : null;
+    if (ref == null) return null;
+    // Hedef bazen sayfa nesnesi yerine 0 tabanlı sayfa numarasıdır
+    return typeof ref === 'number' ? ref + 1 : (await doc.getPageIndex(ref)) + 1;
+  }
+
+  /**
+   * Sayfadaki bağlantıları (Link) tıklanabilir alanlara çevirir.
+   * Dış adresler target=_blank ile açılır (ana süreç varsayılan tarayıcıya yönlendirir),
+   * iç hedefler onNavigate ile ilgili sayfaya gider.
+   */
+  static async renderLinkLayer(
+    page: pdfjsLib.PDFPageProxy,
+    doc: pdfjsLib.PDFDocumentProxy,
+    container: HTMLElement,
+    scale: number,
+    rotation: number,
+    onNavigate: (pageNumber: number) => void
+  ): Promise<void> {
+    container.innerHTML = '';
+    const viewport = viewportFor(page, scale, rotation);
+
+    try {
+      const annotations = await page.getAnnotations({ intent: 'display' });
+      for (const annot of annotations) {
+        if (annot.subtype !== 'Link' || !annot.rect || (!annot.url && !annot.dest)) continue;
+
+        const [x1, y1] = viewport.convertToViewportPoint(annot.rect[0], annot.rect[1]);
+        const [x2, y2] = viewport.convertToViewportPoint(annot.rect[2], annot.rect[3]);
+        const link = document.createElement('a');
+        link.style.position = 'absolute';
+        link.style.left = `${Math.min(x1, x2)}px`;
+        link.style.top = `${Math.min(y1, y2)}px`;
+        link.style.width = `${Math.abs(x2 - x1)}px`;
+        link.style.height = `${Math.abs(y2 - y1)}px`;
+        link.style.pointerEvents = 'auto';
+
+        if (annot.url) {
+          link.href = annot.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.title = annot.url;
+        } else {
+          link.href = '#';
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            PdfRenderService.resolveDestPage(doc, annot.dest)
+              .then((pageNumber) => pageNumber && onNavigate(pageNumber))
+              .catch((err) => console.warn('Could not resolve the link destination:', err));
+          });
+        }
+
+        container.appendChild(link);
+      }
+    } catch (e) {
+      console.warn('Link layer render warning:', e);
+    }
   }
 
   /**
@@ -270,17 +358,7 @@ export class PdfRenderService {
       const parseItems = async (items: any[]): Promise<BookmarkItem[]> => {
         const result: BookmarkItem[] = [];
         for (const item of items) {
-          let pageNum = 1;
-          if (typeof item.dest === 'string') {
-            const destIndex = await doc.getDestination(item.dest);
-            if (destIndex && destIndex.length > 0) {
-              const ref = destIndex[0];
-              pageNum = (await doc.getPageIndex(ref)) + 1;
-            }
-          } else if (Array.isArray(item.dest) && item.dest.length > 0) {
-            const ref = item.dest[0];
-            pageNum = (await doc.getPageIndex(ref)) + 1;
-          }
+          const pageNum = (await PdfRenderService.resolveDestPage(doc, item.dest)) ?? 1;
 
           const children = item.items && item.items.length > 0 ? await parseItems(item.items) : [];
           result.push({

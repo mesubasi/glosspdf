@@ -28,6 +28,7 @@ export type AnnotationType =
   | 'rect'
   | 'text'
   | 'signature' // Yerleştirilmiş imza görseli (Adobe "Fill & Sign" tarzı)
+  | 'redact' // Karartma: kaydederken altındaki içerik dosyadan kalıcı olarak silinir
   | 'textedit'; // Mevcut PDF metninin üzerine yazılan düzenleme
 
 export type ActiveTool =

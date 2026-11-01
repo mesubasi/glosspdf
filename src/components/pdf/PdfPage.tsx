@@ -23,7 +23,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   rotation,
   isVisible
 }) => {
-  const { activeTool, searchQuery, searchMatchCase, searchResults, currentSearchIndex } = usePdfStore();
+  const { activeTool, searchQuery, searchMatchCase, searchResults, currentSearchIndex, setCurrentPage } = usePdfStore();
   const isTextMarkupTool = activeTool === 'highlight' || activeTool === 'underline' || activeTool === 'strikeout';
   const isTextEditTool = activeTool === 'edittext';
 
@@ -31,6 +31,7 @@ export const PdfPage: React.FC<PdfPageProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const formLayerRef = useRef<HTMLDivElement>(null);
+  const linkLayerRef = useRef<HTMLDivElement>(null);
   const [isRendered, setIsRendered] = useState(false);
   // Metin katmanı (yeniden) çizildikçe artar; arama vurgusu bu değişince yeniden uygulanır
   const [textLayerVersion, setTextLayerVersion] = useState(0);
@@ -101,6 +102,21 @@ export const PdfPage: React.FC<PdfPageProps> = ({
             formLayerRef.current,
             scale,
             rotation
+          );
+        }
+
+        // 4. Bağlantı Katmanı (URL'ler ve belge içi hedefler)
+        if (linkLayerRef.current && !isCancelled) {
+          await PdfRenderService.renderLinkLayer(
+            page,
+            pdfDocument,
+            linkLayerRef.current,
+            scale,
+            rotation,
+            (target) => {
+              setCurrentPage(target);
+              document.getElementById(`pdf-page-${target}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
           );
         }
       } catch (err: any) {
@@ -194,6 +210,9 @@ export const PdfPage: React.FC<PdfPageProps> = ({
         className="absolute inset-0 pointer-events-none z-10"
         style={{ width: `${targetWidth}px`, height: `${targetHeight}px` }}
       />
+
+      {/* Bağlantılar: metin katmanının üstünde; işaretleme/çizim araçları açıkken onların altında kalır */}
+      <div ref={linkLayerRef} className="absolute inset-0 pointer-events-none z-10" />
 
       {/* İnteraktif İşaretleme Katmanı (Faz 2 - AnnotationLayer) */}
       <AnnotationLayer

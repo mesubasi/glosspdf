@@ -6,9 +6,14 @@ import {
   PDFString,
   PDFPage,
   PDFFont,
+  PDFRef,
+  PDFDict,
+  PDFStream,
+  PDFObject,
   degrees,
   rgb
 } from 'pdf-lib';
+import { PdfRenderService, viewportFor } from './pdfRenderService';
 import fontkit from '@pdf-lib/fontkit';
 import { configure, lock, unlockInPlace } from 'pdf-lib-encrypt';
 import { AnnotationItem } from '../types/pdf';
@@ -102,6 +107,37 @@ function pageMapper(page: PDFPage) {
 }
 
 const num = (n: number) => Number(n.toFixed(3));
+
+/** Karartılan sayfaların görüntü çözünürlüğü */
+const REDACT_DPI = 200;
+
+/**
+ * Kökten (katalog, bilgi sözlüğü) erişilemeyen nesneleri siler. pdf-lib save() bağlamdaki her
+ * nesneyi yazar; silinmezse karartılan sayfanın eski içerik akışları dosyada kalır.
+ */
+function removeUnreachableObjects(doc: PDFDocument) {
+  const { context } = doc;
+  const reachable = new Set<PDFRef>();
+  const { Root, Info, Encrypt } = context.trailerInfo;
+  const stack: (PDFObject | undefined)[] = [Root, Info, Encrypt];
+  while (stack.length > 0) {
+    const obj = stack.pop();
+    if (obj instanceof PDFRef) {
+      if (reachable.has(obj)) continue;
+      reachable.add(obj);
+      stack.push(context.lookup(obj));
+    } else if (obj instanceof PDFDict) {
+      for (const [, value] of obj.entries()) stack.push(value);
+    } else if (obj instanceof PDFArray) {
+      stack.push(...obj.asArray());
+    } else if (obj instanceof PDFStream) {
+      stack.push(obj.dict);
+    }
+  }
+  for (const [ref] of context.enumerateIndirectObjects()) {
+    if (!reachable.has(ref)) context.delete(ref);
+  }
+}
 
 export class PdfEditService {
   /**
@@ -335,7 +371,93 @@ export class PdfEditService {
       }
     }
 
-    return await doc.save({ useObjectStreams: true });
+    const saved = await doc.save({ useObjectStreams: true });
+    const redactions = annotations.filter((a) => a.type === 'redact' && a.rect);
+    return redactions.length > 0 ? await this.applyRedactions(saved, redactions) : saved;
+  }
+
+  /**
+   * Karartma: işaretli her sayfa, kutular siyaha boyanmış hâliyle görüntüye çevrilir ve sayfanın
+   * eski içeriği (metin, vektör, görseller, işaretlemeler, form alanları) dosyadan silinir.
+   * Sayfa sözlüğü yerinde kalır; yer imleri ve bağlantılar bozulmaz. Diğer sayfalar aynen kalır.
+   * shortcut: sayfanın tamamı görüntüye döner (o sayfada metin seçilemez/aranamaz); yalnızca kutu
+   * altındaki glifleri silmek içerik akışı ayrıştırıcısı ister, istenirse o zaman eklenmeli.
+   */
+  static async applyRedactions(data: Uint8Array, redactions: AnnotationItem[]): Promise<Uint8Array> {
+    const doc = await this.loadPdf(data);
+    const { context } = doc;
+    const pages = doc.getPages();
+    const pageNumbers = [...new Set(redactions.map((r) => r.pageNumber))].filter((n) => n >= 1 && n <= pages.length);
+
+    // Form alanları AcroForm'dan da erişilir: değerleri kalmasın diye sayfalar temizlenmeden önce kaldırılır
+    const redactedAnnots = new Set<PDFRef>();
+    for (const n of pageNumbers) {
+      const annots = pages[n - 1].node.lookupMaybe(PDFName.of('Annots'), PDFArray);
+      annots?.asArray().forEach((ref) => ref instanceof PDFRef && redactedAnnots.add(ref));
+    }
+    if (redactedAnnots.size > 0 && doc.catalog.has(PDFName.of('AcroForm'))) {
+      const form = doc.getForm();
+      for (const field of form.getFields()) {
+        const onRedactedPage = field.acroField
+          .getWidgets()
+          .some((widget) => redactedAnnots.has(context.getObjectRef(widget.dict)!));
+        if (onRedactedPage) form.removeField(field);
+      }
+    }
+
+    const pdfjsDoc = await PdfRenderService.loadDocument(data.slice());
+    try {
+      for (const n of pageNumbers) {
+        const pdfjsPage = await pdfjsDoc.getPage(n);
+        const scale = REDACT_DPI / 72;
+        const viewport = viewportFor(pdfjsPage, scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        await pdfjsPage.render({ canvas, viewport, intent: 'print', background: '#ffffff' }).promise;
+
+        // Kutular sayfa-ekran noktası (sol üst, /Rotate uygulanmış); kenar pikselleri de örtülsün diye dışa yuvarlanır
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = '#000000';
+        for (const r of redactions) {
+          if (r.pageNumber !== n || !r.rect) continue;
+          const [x, y, w, h] = r.rect;
+          const left = Math.floor(x * scale);
+          const top = Math.floor(y * scale);
+          ctx.fillRect(left, top, Math.ceil((x + w) * scale) - left, Math.ceil((y + h) * scale) - top);
+        }
+
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+        if (!blob) throw new Error(`Page ${n} could not be rendered for redaction`);
+        const image = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+        const { width, height } = viewportFor(pdfjsPage, 1);
+        pdfjsPage.cleanup();
+
+        // Yalnızca /Type ve /Parent kalır; /Rotate ve kutular üst düğümden miras alınmasın diye açıkça yazılır
+        const node = pages[n - 1].node;
+        for (const key of node.keys()) {
+          if (key !== PDFName.of('Type') && key !== PDFName.of('Parent')) node.delete(key);
+        }
+        const box = context.obj([0, 0, num(width), num(height)]);
+        node.set(PDFName.of('MediaBox'), box);
+        node.set(PDFName.of('CropBox'), box);
+        node.set(PDFName.of('Rotate'), context.obj(0));
+        node.set(PDFName.of('Resources'), context.obj({ XObject: { Im0: image.ref } }));
+        node.set(
+          PDFName.of('Contents'),
+          context.register(context.flateStream(`q ${num(width)} 0 0 ${num(height)} 0 0 cm /Im0 Do Q`))
+        );
+      }
+    } finally {
+      pdfjsDoc.loadingTask.destroy();
+    }
+
+    // Etiket ağacı karartılan metnin kopyasını (/ActualText, /Alt) taşıyabilir
+    doc.catalog.delete(PDFName.of('StructTreeRoot'));
+    doc.catalog.delete(PDFName.of('MarkInfo'));
+    removeUnreachableObjects(doc);
+    // Alan görünümlerini yeniden üretmek Unicode olmayan Helvetica ister; karartma buna gerek duymaz
+    return await doc.save({ useObjectStreams: true, updateFieldAppearances: false });
   }
 
   /**

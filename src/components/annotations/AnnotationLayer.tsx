@@ -406,7 +406,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     if (activeTool === 'draw') {
       setIsDrawing(true);
       setCurrentStroke([coords]);
-    } else if (activeTool === 'rect') {
+    } else if (activeTool === 'rect' || activeTool === 'redact') {
       setIsRectDrawing(true);
       setRectStart(coords);
       setCurrentRect({ x: coords.x, y: coords.y, w: 0, h: 0 });
@@ -469,7 +469,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
       setGhost(coords);
     } else if (isDrawing && activeTool === 'draw') {
       setCurrentStroke((prev) => [...prev, coords]);
-    } else if (isRectDrawing && rectStart && activeTool === 'rect') {
+    } else if (isRectDrawing && rectStart && (activeTool === 'rect' || activeTool === 'redact')) {
       const minX = Math.min(rectStart.x, coords.x);
       const minY = Math.min(rectStart.y, coords.y);
       const w = Math.abs(coords.x - rectStart.x);
@@ -502,11 +502,12 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     }
 
     if (isRectDrawing && currentRect && currentRect.w > 4 && currentRect.h > 4) {
+      const isRedact = activeTool === 'redact';
       const newAnnot: AnnotationItem = {
-        id: `annot-rect-${Date.now()}`,
+        id: `annot-${isRedact ? 'redact' : 'rect'}-${Date.now()}`,
         pageNumber,
-        type: 'rect',
-        color: annotationColor,
+        type: isRedact ? 'redact' : 'rect',
+        color: isRedact ? '#000000' : annotationColor,
         strokeWidth: annotationStrokeWidth,
         rect: [
           pxToPt(currentRect.x),
@@ -573,6 +574,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
   const isDrawingTool =
     activeTool === 'draw' ||
     activeTool === 'rect' ||
+    activeTool === 'redact' ||
     activeTool === 'note' ||
     activeTool === 'text' ||
     (activeTool === 'signature' && !!pendingSignature);
@@ -753,6 +755,32 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
               );
             }
 
+            case 'redact': {
+              if (!annot.rect) return null;
+              const [x, y, w, h] = annot.rect;
+
+              // Kırmızı kenar: henüz uygulanmamış karartma (kayıtta tamamen siyah olur)
+              return (
+                <rect
+                  key={annot.id}
+                  x={ptToPx(x)}
+                  y={ptToPx(y)}
+                  width={ptToPx(w)}
+                  height={ptToPx(h)}
+                  fill="#000000"
+                  fillOpacity={0.85}
+                  stroke="#ed2224"
+                  strokeWidth={1}
+                  className={`${itemPointerClass} hover:opacity-80`}
+                  onClick={(e) => {
+                    if (activeTool !== 'select') return;
+                    e.stopPropagation();
+                    setSelectedAnnotationId(annot.id);
+                  }}
+                />
+              );
+            }
+
             case 'text': {
               if (!annot.rect || !annot.contents) return null;
               const [x, y] = annot.rect;
@@ -804,8 +832,9 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             y={currentRect.y}
             width={currentRect.w}
             height={currentRect.h}
-            fill="none"
-            stroke={annotationColor}
+            fill={activeTool === 'redact' ? '#000000' : 'none'}
+            fillOpacity={0.5}
+            stroke={activeTool === 'redact' ? '#ed2224' : annotationColor}
             strokeWidth={annotationStrokeWidth * scale}
             strokeDasharray="4,4"
           />

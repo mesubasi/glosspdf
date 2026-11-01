@@ -16,6 +16,7 @@ import {
   Square,
   Type,
   FileSignature,
+  EyeOff,
   ChevronRight,
   ChevronDown,
   Trash2,
@@ -67,6 +68,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
         return Type;
       case 'signature':
         return FileSignature;
+      case 'redact':
+        return EyeOff;
       default:
         return MessageSquare;
     }
@@ -92,6 +95,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
         return t('text_edit');
       case 'signature':
         return t('signature');
+      case 'redact':
+        return t('redaction');
       default:
         return type;
     }

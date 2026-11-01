@@ -36,7 +36,7 @@ View, annotate, edit text, sign, organize and protect PDFs — entirely on your 
 
 ## ✨ Why GlossPDF
 
-- **Local-first & private.** Documents are processed on your machine. No account, no cloud, no telemetry. (pdf.js downloads its CMap and standard-font data from the jsDelivr CDN on demand; this only matters for CJK and non-embedded-font PDFs.)
+- **Local-first & private.** Documents are processed on your machine. No account, no cloud, no telemetry. Works fully offline.
 - **Familiar workflow.** Tab-based reader with thumbnails, bookmarks, search and a tool panel, in the spirit of the classic desktop readers.
 - **Real editing, not just viewing.** Annotate, edit existing text, place signatures anywhere, reorganize pages, merge, split, watermark, compress and encrypt.
 - **Multilingual.** Seven interface languages with automatic detection of the system language.
@@ -54,6 +54,9 @@ View, annotate, edit text, sign, organize and protect PDFs — entirely on your 
 
 ### Reading & navigation
 - Multi-tab interface, drag & drop to open, recent documents list
+- Open PDFs from your file manager (double-click or *Open with*); GlossPDF can be set as the default PDF app
+- Clickable links: web addresses open in your browser, in-document links jump to the page
+- Printing with annotations included
 - Page thumbnails, bookmarks outline and full-text search with on-page match highlighting
 - 15 zoom steps from **8.33 % to 800 %**, *Fit Page*, *Fit Width*, `Ctrl` + wheel zoom
 - Password-protected PDFs, interactive form fields (text, checkbox, dropdown)
@@ -64,6 +67,7 @@ View, annotate, edit text, sign, organize and protect PDFs — entirely on your 
 - **Sticky notes**, **freehand pen**, **rectangles** and **text boxes**
 - Annotations are written as standard `/Highlight`, `/Underline`, `/StrikeOut`, `/Text`, `/Ink` and `/Square` annotations **with appearance streams**, so they render the same in other PDF viewers
 - Undo / redo, a comments sidebar, select / move / delete
+- **Redact:** draw boxes over sensitive content; on save the content underneath is permanently removed from the file (see limitations)
 
 ### Edit text
 - Choose **Edit Text**, click a line of text and type the replacement
@@ -181,7 +185,8 @@ Edits are kept as lightweight objects on top of the page and are written into th
 
 ## ⚠️ Known limitations
 
-- **Edit Text replaces, it does not reflow.** The original glyphs are covered, not removed from the file, so the old text can still be found by text extraction or copied from other tools. Do **not** use it to redact sensitive information. The replacement uses Liberation Sans rather than the document's original font, and edits apply to one text run (usually a line) at a time.
+- **Edit Text replaces, it does not reflow.** The original glyphs are covered, not removed from the file, so the old text can still be found by text extraction or copied from other tools. Do **not** use it to hide sensitive information; use **Redact** instead. The replacement uses Liberation Sans rather than the document's original font, and edits apply to one text run (usually a line) at a time.
+- **Redact** converts every page that has a redaction into an image (the rest of the document is untouched): text on those pages can no longer be selected or searched, form fields on them are removed, and the document's accessibility tags are dropped because they can hold a copy of the hidden text.
 - Signatures are **visual** signatures (an image on the page), not cryptographic digital signatures.
 - Password protection is applied when you export / apply it; an encrypted document can't be edited further in the same session.
 - Text typed into text boxes and edits supports Latin, Cyrillic and Greek scripts; Arabic, Chinese and other scripts need a different embedded font.
@@ -210,10 +215,9 @@ Changes from outside contributors are reviewed by a reviewer before they are mer
 
 **Privacy policy**
 
-This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The only network connections it makes are:
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. The only network connection it makes is:
 
 - **Update checks:** on launch and when you click *Check for updates*, the app reads the latest release information from [GitHub Releases](https://github.com/mesubasi/glosspdf/releases) and, if allowed, downloads the update from there. See [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
-- **PDF font data:** pdf.js downloads CMap and standard-font files from the [jsDelivr CDN](https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net) when a document needs them (mainly CJK and non-embedded-font PDFs).
 
 Your documents are never uploaded anywhere.
 

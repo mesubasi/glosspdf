@@ -160,3 +160,47 @@
   background: rgba(37, 99, 235, 0.12);
   outline: 1px dashed #2563eb;
 }
+
+/* Yazdırma: yalnızca handlePrint'in eklediği sayfa görüntüleri basılır (pdf.js görüntüleyicisinin yöntemi) */
+#print-container {
+  display: none;
+}
+
+@media print {
+  html,
+  body {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body > :not(#print-container) {
+    display: none !important;
+  }
+
+  #print-container {
+    display: block;
+    height: 100%;
+  }
+
+  #print-container > div {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    break-after: page;
+    break-inside: avoid;
+  }
+
+  #print-container > div:last-child {
+    break-after: auto;
+  }
+
+  #print-container img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+  }
+}

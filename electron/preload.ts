@@ -41,6 +41,14 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('app:close-requested', listener);
   },
 
+  // İşletim sisteminden açılması istenen PDF'ler (çift tıklama / Birlikte aç)
+  takePendingFiles: () => ipcRenderer.invoke('app:takePendingFiles'),
+  onOpenFile: (callback: (filePath: string) => void) => {
+    const listener = (_event: unknown, filePath: string) => callback(filePath);
+    ipcRenderer.on('app:open-file', listener);
+    return () => ipcRenderer.removeListener('app:open-file', listener);
+  },
+
   // Sürüm ve Güncellemeler
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
   getUpdateState: () => ipcRenderer.invoke('updater:getState'),

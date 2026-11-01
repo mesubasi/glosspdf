@@ -11,6 +11,9 @@ let mainWindow: BrowserWindow | null = null;
 // Renderer'ın bildirdiği kaydedilmemiş değişiklik durumu; confirmClose gelene kadar kapatma engellenir
 let hasUnsaved = false;
 let forceClose = false;
+// İşletim sisteminden gelen PDF yolları (çift tıklama, "Birlikte aç"); renderer hazır olana kadar bekletilir
+let pendingOpenPaths: string[] = [];
+let rendererReady = false;
 
 /** Desteklenen diller (src/i18n/languages.ts ile aynı liste) */
 const SUPPORTED_LANGUAGES = ['tr', 'en', 'de', 'fr', 'es', 'ar', 'zh'] as const;
@@ -203,6 +206,14 @@ function createWindow() {
 
   hasUnsaved = false;
   forceClose = false;
+  rendererReady = false;
+
+  // PDF bağlantıları (target=_blank) uygulama içinde değil varsayılan tarayıcıda / posta istemcisinde açılır
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^(https?|mailto):/i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
   mainWindow.on('close', (event) => {
     // Çöken renderer cevap veremez; pencerenin kapanamaz kalmaması için engelleme
     if (hasUnsaved && !forceClose && !mainWindow?.webContents.isCrashed()) {
@@ -333,12 +344,61 @@ ipcMain.handle('updater:install', () => {
 });
 ipcMain.handle('updater:openReleases', () => shell.openExternal('https://github.com/mesubasi/glosspdf/releases/latest'));
 
+/** Komut satırındaki mevcut .pdf yolları (Windows/Linux dosya ilişkilendirmesi bunları argv ile verir) */
+function pdfPathsFromArgv(argv: string[], workingDirectory: string): string[] {
+  return argv
+    .slice(1)
+    .filter((arg) => !arg.startsWith('-') && arg.toLowerCase().endsWith('.pdf'))
+    .map((arg) => path.resolve(workingDirectory, arg))
+    .filter((filePath) => fs.existsSync(filePath));
+}
+
+function openPdfPaths(paths: string[]) {
+  if (paths.length === 0) return;
+  if (mainWindow && !mainWindow.isDestroyed() && rendererReady) {
+    for (const filePath of paths) mainWindow.webContents.send('app:open-file', filePath);
+  } else {
+    pendingOpenPaths.push(...paths);
+  }
+  // macOS'ta tüm pencereler kapalıyken Finder'dan açılırsa yeni pencere gerekir
+  if (app.isReady() && BrowserWindow.getAllWindows().length === 0) createWindow();
+}
+
+// Tek örnek: ikinci açılış (ör. başka bir PDF'e çift tıklama) mevcut pencerede yeni sekme açar
+const isPrimaryInstance = app.requestSingleInstanceLock();
+if (!isPrimaryInstance) {
+  app.quit();
+} else {
+  pendingOpenPaths.push(...pdfPathsFromArgv(process.argv, process.cwd()));
+  app.on('second-instance', (_event, argv, workingDirectory) => {
+    openPdfPaths(pdfPathsFromArgv(argv, workingDirectory));
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+// macOS dosyaları argv yerine bu olayla verir (uygulama hazır olmadan da gelebilir)
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  openPdfPaths([filePath]);
+});
+
+ipcMain.handle('app:takePendingFiles', () => {
+  rendererReady = true;
+  const paths = pendingOpenPaths;
+  pendingOpenPaths = [];
+  return paths;
+});
+
 // Uygulama hazır olduğunda pencere oluştur
 // Windows görev çubuğu ve bildirimler kısayoldaki kimliği (package.json build.appId) kullanmalı;
 // yoksa bildirimler Electron adı/ikonuyla görünür
 if (process.platform === 'win32') app.setAppUserModelId('io.github.glosspdf');
 
 app.whenReady().then(() => {
+  if (!isPrimaryInstance) return;
   createWindow();
   setupUpdater();
 

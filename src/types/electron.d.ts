@@ -26,6 +26,8 @@ export interface IElectronAPI {
   setHasUnsaved: (hasUnsaved: boolean) => void;
   confirmClose: () => void;
   onCloseRequested: (callback: () => void) => () => void;
+  takePendingFiles: () => Promise<string[]>;
+  onOpenFile: (callback: (filePath: string) => void) => () => void;
   getVersion: () => Promise<string>;
   getUpdateState: () => Promise<UpdateState & { autoDownload: boolean }>;
   setAutoDownload: (autoDownload: boolean) => Promise<void>;

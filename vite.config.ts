@@ -70,8 +70,27 @@ function preloadBuildGuard(): Plugin {
   };
 }
 
+/**
+ * pdf.js'in cmap, standart yazı tipi, wasm çözücü ve renk profili dosyalarını public/pdfjs/'e
+ * kopyalar: hem geliştirmede sunulur hem pakete girer, belgeler CDN olmadan açılır.
+ * Kaynak node_modules olduğu için pdf.js sürümüyle her zaman aynı kalır (public/pdfjs/ git'e girmez).
+ */
+function pdfjsDataCopy(): Plugin {
+  return {
+    name: 'glosspdf:pdfjs-data',
+    buildStart() {
+      for (const dir of ['cmaps', 'standard_fonts', 'wasm', 'iccs']) {
+        fs.cpSync(path.resolve(__dirname, 'node_modules/pdfjs-dist', dir), path.resolve(__dirname, 'public/pdfjs', dir), {
+          recursive: true
+        });
+      }
+    }
+  };
+}
+
 export default defineConfig({
   plugins: [
+    pdfjsDataCopy(),
     react(),
     electron([
       {

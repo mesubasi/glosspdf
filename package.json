@@ -58,6 +58,15 @@
       "dist-electron/**/*",
       "!node_modules"
     ],
+    "fileAssociations": [
+      {
+        "ext": "pdf",
+        "name": "GlossPDF.Document",
+        "description": "PDF Document",
+        "mimeType": "application/pdf",
+        "role": "Editor"
+      }
+    ],
     "directories": {
       "output": "release"
     },

@@ -37,3 +37,6 @@ Thumbs.db
 *.sln
 *.sw?
 
+
+# pdf.js data copied from node_modules at build time (vite.config.ts)
+public/pdfjs/
