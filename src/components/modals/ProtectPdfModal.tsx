@@ -73,7 +73,7 @@ export const ProtectPdfModal: React.FC = () => {
       // AES-256 Şifreleme uygula
       // Bekleyen düzenlemeler şifrelemeden ÖNCE yazılmalı (şifreli PDF sonradan yeniden düzenlenemez)
       const encryptedBytes = await PdfEditService.encryptPdf(
-        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || []),
+        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations),
         password
       );
 
@@ -146,13 +146,14 @@ export const ProtectPdfModal: React.FC = () => {
 
       // Bekleyen düzenlemeler şifrelemeden ÖNCE yazılmalı (şifreli PDF sonradan yeniden düzenlenemez)
       const encryptedBytes = await PdfEditService.encryptPdf(
-        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || []),
+        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations),
         password
       );
 
       updateTab(activeTab.id, {
         data: encryptedBytes,
         annotations: [],
+        importedAnnotations: undefined,
         undoStack: [],
         redoStack: [],
         isModified: true

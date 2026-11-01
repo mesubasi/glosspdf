@@ -1,7 +1,17 @@
 import * as pdfjsLib from 'pdfjs-dist';
 // Worker paketle birlikte derlenir: pdf.js sürümüyle her zaman aynı kalır
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { BookmarkItem, PageDimension } from '../types/pdf';
+import { AnnotationItem, AnnotationType, BookmarkItem, PageDimension } from '../types/pdf';
+
+/** Dosyadaki işaretleme türlerinden düzenlenebilir öğeye çevrilenler */
+const IMPORTED_TYPES: Record<string, AnnotationType> = {
+  Highlight: 'highlight',
+  Underline: 'underline',
+  StrikeOut: 'strikeout',
+  Text: 'note',
+  Ink: 'draw',
+  Square: 'rect'
+};
 
 /**
  * Uygulama varlıklarının (worker, yazı tipleri) mutlak adresi.
@@ -107,7 +117,9 @@ export class PdfRenderService {
     const renderContext = {
       canvas,
       viewport: viewport,
-      transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
+      transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
+      // hideAnnotations ile gizlenen (içe alınan) işaretlemeler çizilmez; onları AnnotationLayer çizer
+      annotationMode: pdfjsLib.AnnotationMode.ENABLE_STORAGE
     };
 
     const renderTask = page.render(renderContext);
@@ -202,6 +214,85 @@ export class PdfRenderService {
       }
     } catch (e) {
       console.warn('Link layer render warning:', e);
+    }
+  }
+
+  /**
+   * Dosyada zaten olan işaretlemeleri (başka uygulamalarda eklenen yorumlar dahil) düzenlenebilir
+   * öğelere çevirir. Çok satırlı vurgu ve çok çizgili kalem birden çok öğe olur; hepsi aynı sourceRef'i taşır.
+   * shortcut: serbest metin, daire, çizgi, damga vb. içe alınmaz (pdf.js çizmeye devam eder); istenirse eklenmeli.
+   */
+  static async importAnnotations(doc: pdfjsLib.PDFDocumentProxy): Promise<AnnotationItem[]> {
+    const items: AnnotationItem[] = [];
+    for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber++) {
+      const page = await doc.getPage(pageNumber);
+      // AnnotationItem koordinatları: /Rotate uygulanmış, sol üst başlangıçlı, 72 DPI
+      const viewport = viewportFor(page, 1);
+      const pt = (x: number, y: number) => {
+        const [vx, vy] = viewport.convertToViewportPoint(x, y);
+        return { x: vx, y: vy };
+      };
+      const box = (x1: number, y1: number, x2: number, y2: number, inset = 0): [number, number, number, number] => {
+        const a = pt(x1, y1);
+        const b = pt(x2, y2);
+        return [
+          Math.min(a.x, b.x) + inset,
+          Math.min(a.y, b.y) + inset,
+          Math.abs(a.x - b.x) - inset * 2,
+          Math.abs(a.y - b.y) - inset * 2
+        ];
+      };
+
+      for (const annot of await page.getAnnotations({ intent: 'display' })) {
+        const type = IMPORTED_TYPES[annot.subtype];
+        // Yanıtlar ayrı not değildir; üst yorum silinince onlar da silinir (removeAnnotations)
+        if (!type || annot.inReplyTo || !annot.rect) continue;
+
+        const date = pdfjsLib.PDFDateString.toDateObject(annot.modificationDate || annot.creationDate);
+        const base = {
+          pageNumber,
+          type,
+          sourceRef: annot.id as string,
+          color: annot.color
+            ? `#${Array.from(annot.color as Uint8ClampedArray, (c) => c.toString(16).padStart(2, '0')).join('')}`
+            : '#ffeb3b',
+          contents: annot.contentsObj?.str || undefined,
+          author: annot.titleObj?.str || undefined,
+          createdAt: (date ?? new Date()).toISOString()
+        };
+        const [x1, y1, x2, y2] = annot.rect;
+        const parts: Partial<AnnotationItem>[] = [];
+
+        if (type === 'note') {
+          const [x, y] = box(x1, y1, x2, y2);
+          parts.push({ rect: [x, y, 24, 24] });
+        } else if (type === 'draw') {
+          for (const list of annot.inkLists || []) {
+            const points = [];
+            for (let i = 0; i + 1 < list.length; i += 2) points.push(pt(list[i], list[i + 1]));
+            if (points.length >= 2) parts.push({ points, strokeWidth: annot.borderStyle?.width || 1 });
+          }
+        } else if (type === 'rect') {
+          const sw = annot.borderStyle?.width ?? 1;
+          parts.push({ rect: box(x1, y1, x2, y2, sw / 2), strokeWidth: sw });
+        } else {
+          // pdf.js her dörtgeni [minX, maxY, maxX, maxY, minX, minY, maxX, minY] olarak verir
+          const q = annot.quadPoints;
+          if (!q) parts.push({ rect: box(x1, y1, x2, y2) });
+          else for (let i = 0; i + 7 < q.length; i += 8) parts.push({ rect: box(q[i], q[i + 1], q[i + 6], q[i + 7]) });
+        }
+
+        parts.forEach((part, i) => items.push({ ...base, ...part, id: `pdf-${annot.id}-${i}` }));
+      }
+      page.cleanup();
+    }
+    return items;
+  }
+
+  /** İçe alınan işaretlemelerin pdf.js çizimini gizler (renderPageToCanvas ENABLE_STORAGE ile çizer) */
+  static hideAnnotations(doc: pdfjsLib.PDFDocumentProxy, items: AnnotationItem[]) {
+    for (const item of items) {
+      if (item.sourceRef) doc.annotationStorage.setValue(item.sourceRef, { noView: true });
     }
   }
 

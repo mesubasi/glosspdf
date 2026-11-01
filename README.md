@@ -67,6 +67,7 @@ View, annotate, edit text, sign, organize and protect PDFs — entirely on your 
 - **Sticky notes**, **freehand pen**, **rectangles** and **text boxes**
 - Annotations are written as standard `/Highlight`, `/Underline`, `/StrikeOut`, `/Text`, `/Ink` and `/Square` annotations **with appearance streams**, so they render the same in other PDF viewers
 - Undo / redo, a comments sidebar, select / move / delete
+- Comments already in the file, including ones added in Acrobat, Preview or other apps (highlights, sticky notes, pen, rectangles), show up in the sidebar and can be edited or deleted; untouched comments are kept exactly as they were
 - **Redact:** draw boxes over sensitive content; on save the content underneath is permanently removed from the file (see limitations)
 
 ### Edit text
@@ -187,6 +188,7 @@ Edits are kept as lightweight objects on top of the page and are written into th
 
 - **Edit Text replaces, it does not reflow.** The original glyphs are covered, not removed from the file, so the old text can still be found by text extraction or copied from other tools. Do **not** use it to hide sensitive information; use **Redact** instead. The replacement uses Liberation Sans rather than the document's original font, and edits apply to one text run (usually a line) at a time.
 - **Redact** converts every page that has a redaction into an image (the rest of the document is untouched): text on those pages can no longer be selected or searched, form fields on them are removed, and the document's accessibility tags are dropped because they can hold a copy of the hidden text.
+- **Existing comments:** free text boxes, circles, lines, stamps and other comment types from other apps are shown but cannot be edited yet. Replies to a comment are not listed; deleting the comment deletes its replies. An edited comment is rewritten as a GlossPDF annotation, so its original custom appearance is replaced.
 - Signatures are **visual** signatures (an image on the page), not cryptographic digital signatures.
 - Password protection is applied when you export / apply it; an encrypted document can't be edited further in the same session.
 - Text typed into text boxes and edits supports Latin, Cyrillic and Greek scripts; Arabic, Chinese and other scripts need a different embedded font.

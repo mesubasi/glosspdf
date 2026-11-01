@@ -49,6 +49,7 @@ export interface AnnotationItem {
   imageData?: string; // İmza PNG'si (data URL)
   originalText?: string; // 'textedit': düzenlenmeden önceki metin
   bgColor?: string; // 'textedit': eski metni örten arka plan rengi
+  sourceRef?: string; // Dosyada zaten olan işaretlemenin pdf.js kimliği (ör. "12R"); kayıtta değişmediyse yerinde kalır
   rect?: [number, number, number, number]; // [x, y, width, height] (72 DPI PDF noktası cinsinden)
   points?: { x: number; y: number }[]; // Serbest çizim için nokta koordinatları (72 DPI)
   createdAt: string;
@@ -69,6 +70,7 @@ export interface PdfTab {
   annotations: AnnotationItem[];
   undoStack: AnnotationItem[][];
   redoStack: AnnotationItem[][];
+  importedAnnotations?: AnnotationItem[]; // Dosyadan içe alınan işaretlemelerin ilk hâli (değişeni/sileneni bulmak için)
   pageDimensions: PageDimension[];
 }
 

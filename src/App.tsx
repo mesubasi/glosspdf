@@ -63,7 +63,7 @@ function base64ToBytes(base64Data: string): Uint8Array {
  * Kaydedilen baytlar işaretlemeleri zaten içerir. Bekleyen listeyi temizlemezsek bir sonraki
  * kayıtta aynı işaretlemeler dosyaya ikinci kez yazılır ve ekranda çift görünür.
  */
-const SAVED_STATE: Partial<PdfTab> = { annotations: [], undoStack: [], redoStack: [] };
+const SAVED_STATE: Partial<PdfTab> = { annotations: [], importedAnnotations: undefined, undoStack: [], redoStack: [] };
 
 export function App() {
   const {
@@ -123,7 +123,23 @@ export function App() {
         openPasswordModal(passwordCallback);
       }
     )
-      .then((doc) => {
+      .then(async (doc) => {
+        // Dosyadaki işaretlemeler her yeni veri için bir kez içe alınır; sekme değişince yalnızca gizlenir.
+        // Filigran/görsel/sıkıştırma pdf-lib ile yerinde yazar, nesne numaraları korunur: kimlikler geçerli kalır.
+        let imported = activeTab.importedAnnotations;
+        if (!imported) {
+          imported = await PdfRenderService.importAnnotations(doc).catch((err) => {
+            console.warn('Existing annotations could not be imported:', err);
+            return [];
+          });
+          if (isCancelled) return;
+          const latest = usePdfStore.getState().tabs.find((tab) => tab.id === activeTab.id);
+          updateTab(activeTab.id, {
+            importedAnnotations: imported,
+            annotations: [...imported, ...(latest?.annotations ?? []).filter((a) => !a.sourceRef)]
+          });
+        }
+        PdfRenderService.hideAnnotations(doc, imported);
         if (!isCancelled) {
           setActivePdfDoc(doc);
         }
@@ -340,7 +356,8 @@ export function App() {
       // pdf-lib ile annotation'ları (Highlight, Text, Ink, Square vb.) PDF'e yaz
       const savedBytes = await PdfEditService.savePdfWithAnnotations(
         activeTab.data.slice(),
-        activeTab.annotations || []
+        activeTab.annotations || [],
+        activeTab.importedAnnotations
       );
 
       if (window.electronAPI) {
@@ -383,7 +400,8 @@ export function App() {
     try {
       const savedBytes = await PdfEditService.savePdfWithAnnotations(
         activeTab.data.slice(),
-        activeTab.annotations || []
+        activeTab.annotations || [],
+        activeTab.importedAnnotations
       );
 
       if (window.electronAPI) {
@@ -435,7 +453,7 @@ export function App() {
 
     try {
       if (activeTab.annotations.length > 0) {
-        const bytes = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations);
+        const bytes = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations, activeTab.importedAnnotations);
         printDoc = await PdfRenderService.loadDocument(bytes, openPasswordModal);
       }
       urls = await PdfRenderService.renderPagesForPrint(printDoc, activeTab.rotation);

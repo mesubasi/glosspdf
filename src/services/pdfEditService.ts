@@ -3,7 +3,7 @@ import {
   PDFDocument,
   PDFName,
   PDFArray,
-  PDFString,
+  PDFHexString,
   PDFPage,
   PDFFont,
   PDFRef,
@@ -139,6 +139,25 @@ function removeUnreachableObjects(doc: PDFDocument) {
   }
 }
 
+/** Verilen işaretlemeleri (pdf.js kimliği, ör. "12R") açılır pencereleri ve yanıtlarıyla birlikte sayfalardan kaldırır */
+function removeAnnotations(doc: PDFDocument, pdfjsIds: Set<string>) {
+  const refs = new Set([...pdfjsIds].map((id) => id.replace(/^(\d+)R(\d*)$/, (_, n, g) => `${n} ${g || 0} R`)));
+  const gone = (v: PDFObject | undefined) => v instanceof PDFRef && refs.has(v.toString());
+  for (const page of doc.getPages()) {
+    const annots = page.node.lookup(PDFName.of('Annots'));
+    if (!(annots instanceof PDFArray)) continue;
+    for (let i = annots.size() - 1; i >= 0; i--) {
+      const annot = annots.lookup(i);
+      if (
+        gone(annots.get(i)) ||
+        (annot instanceof PDFDict && (gone(annot.get(PDFName.of('Parent'))) || gone(annot.get(PDFName.of('IRT')))))
+      ) {
+        annots.remove(i);
+      }
+    }
+  }
+}
+
 export class PdfEditService {
   /**
    * PDF belgesini yükler
@@ -156,12 +175,22 @@ export class PdfEditService {
    */
   static async savePdfWithAnnotations(
     data: Uint8Array,
-    annotations: AnnotationItem[]
+    annotations: AnnotationItem[],
+    imported: AnnotationItem[] = []
   ): Promise<Uint8Array> {
+    // Dosyadan içe alınan işaretlemeler değişmediyse yerinde kalır; bir parçası değişen ya da silinen
+    // işaretleme dosyadan kaldırılır ve kalan parçaları yeni işaretleme olarak yazılır.
+    const current = new Map(annotations.map((a) => [a.id, JSON.stringify(a)]));
+    const replacedRefs = new Set(
+      imported.filter((a) => current.get(a.id) !== JSON.stringify(a)).map((a) => a.sourceRef!)
+    );
+    annotations = annotations.filter((a) => !a.sourceRef || replacedRefs.has(a.sourceRef));
+
     // Hiçbir değişiklik yoksa baytlara dokunma (şifreli belgeyi bozmamak için de gerekli)
-    if (annotations.length === 0) return data;
+    if (annotations.length === 0 && replacedRefs.size === 0) return data;
 
     const doc = await this.loadPdf(data);
+    if (replacedRefs.size > 0) removeAnnotations(doc, replacedRefs);
     const context = doc.context;
     const pages = doc.getPages();
     const needsFont = annotations.some((a) => a.type === 'text' || a.type === 'textedit');
@@ -215,7 +244,7 @@ export class PdfEditService {
       for (const item of pageAnnots) {
         const { r, g, b } = hexToRgb(item.color);
         const col = `${num(r)} ${num(g)} ${num(b)}`;
-        const author = PDFString.of(item.author || t('annotation_author_default'));
+        const author = PDFHexString.fromText(item.author || t('annotation_author_default'));
 
         switch (item.type) {
           case 'highlight':
@@ -231,7 +260,7 @@ export class PdfEditService {
               QuadPoints: q,
               C: [r, g, b],
               T: author,
-              Contents: PDFString.of(item.contents || '')
+              Contents: PDFHexString.fromText(item.contents || '')
             };
             if (item.type === 'highlight') {
               addMarkup(
@@ -268,7 +297,7 @@ export class PdfEditService {
               `${col} rg 0.2 0.2 0.2 RG 1 w ${x + 1} ${y + 1} 22 22 re B ` +
                 `0.15 0.15 0.15 RG ${x + 5} ${y + 16} m ${x + 19} ${y + 16} l ` +
                 `${x + 5} ${y + 12} m ${x + 19} ${y + 12} l ${x + 5} ${y + 8} m ${x + 14} ${y + 8} l S`,
-              { Name: 'Comment', C: [r, g, b], Contents: PDFString.of(item.contents || ''), T: author }
+              { Name: 'Comment', C: [r, g, b], Contents: PDFHexString.fromText(item.contents || ''), T: author }
             );
             break;
           }
@@ -371,6 +400,8 @@ export class PdfEditService {
       }
     }
 
+    // Silinen yorumların metni dosyada sahipsiz nesne olarak kalmasın
+    if (replacedRefs.size > 0) removeUnreachableObjects(doc);
     const saved = await doc.save({ useObjectStreams: true });
     const redactions = annotations.filter((a) => a.type === 'redact' && a.rect);
     return redactions.length > 0 ? await this.applyRedactions(saved, redactions) : saved;

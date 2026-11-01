@@ -179,12 +179,13 @@ async function rotateActiveDocument(clockwise: boolean) {
   if (!tab || isRotating) return;
   isRotating = true;
   try {
-    const baked = await PdfEditService.savePdfWithAnnotations(tab.data.slice(), tab.annotations || []);
+    const baked = await PdfEditService.savePdfWithAnnotations(tab.data.slice(), tab.annotations || [], tab.importedAnnotations);
     const data = await PdfEditService.rotateAllPages(baked, clockwise);
     updateTab(tab.id, {
       data,
       rotation: 0,
       annotations: [],
+      importedAnnotations: undefined,
       undoStack: [],
       redoStack: [],
       isModified: true,
