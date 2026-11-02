@@ -30,9 +30,8 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave
     await onSave();
     // Hâlâ değişmiş görünüyorsa kullanıcı "Farklı Kaydet"ten vazgeçti ya da kayıt başarısız oldu: soruyu açık bırak
     if (usePdfStore.getState().tabs.find((x) => x.id === tab.id)?.isModified) return;
-    // Sekme kapatılırken kaydedilen belge açık kalır; pencere kapanırken sıradaki belgeye geçilir
-    if (closeRequest.closeWindow) advance();
-    else setCloseRequest(null);
+    // Kaydetmek kapatmayı iptal eder: belge de uygulama da açık kalır
+    setCloseRequest(null);
   };
 
   const secondaryClass =
