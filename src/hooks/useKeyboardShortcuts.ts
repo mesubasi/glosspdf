@@ -40,7 +40,8 @@ export function useKeyboardShortcuts({
     shortcutHelpModalOpen,
     setShortcutHelpModalOpen,
     activeTool,
-    setActiveTool
+    setActiveTool,
+    setDocumentPropertiesModalOpen
   } = usePdfStore();
 
   useEffect(() => {
@@ -90,6 +91,13 @@ export function useKeyboardShortcuts({
       if (isCtrl && (e.key === 'q' || e.key === 'Q') && isDesktop()) {
         e.preventDefault();
         window.close();
+        return;
+      }
+
+      // Ctrl + D: Belge Özellikleri
+      if (isCtrl && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        if (activeTabId) setDocumentPropertiesModalOpen(true);
         return;
       }
 
@@ -246,6 +254,7 @@ export function useKeyboardShortcuts({
     activeTool,
     setActiveTool,
     shortcutHelpModalOpen,
-    setShortcutHelpModalOpen
+    setShortcutHelpModalOpen,
+    setDocumentPropertiesModalOpen
   ]);
 }

@@ -39,6 +39,12 @@ export function stripExtension(name: string): string {
   return name.replace(/\.[^./\\]+$/, '');
 }
 
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 /** Gerçek bir disk yolu mu? (sürükle-bırak / kaydedilmemiş sekmelerde yol yalnızca dosya adıdır) */
 export function isRealPath(filePath?: string): filePath is string {
   return !!filePath && (/^[a-zA-Z]:[\\/]/.test(filePath) || filePath.startsWith('/') || filePath.startsWith('\\\\'));

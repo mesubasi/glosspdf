@@ -20,6 +20,8 @@ import { InsertImageModal } from './components/modals/InsertImageModal';
 import { ExportImagesModal } from './components/modals/ExportImagesModal';
 import { ProtectPdfModal } from './components/modals/ProtectPdfModal';
 import { CompressPdfModal } from './components/modals/CompressPdfModal';
+import { ConvertOfficeModal } from './components/modals/ConvertOfficeModal';
+import { DocumentPropertiesModal } from './components/modals/DocumentPropertiesModal';
 import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
 import { UpdateModal } from './components/modals/UpdateModal';
 import { UnsavedChangesModal } from './components/modals/UnsavedChangesModal';
@@ -603,6 +605,8 @@ export function App() {
       <ExportImagesModal />
       <ProtectPdfModal />
       <CompressPdfModal />
+      <ConvertOfficeModal />
+      <DocumentPropertiesModal />
       <ShortcutHelpModal />
       <UpdateModal />
       <UnsavedChangesModal onSave={handleSaveFile} />

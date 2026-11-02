@@ -7,7 +7,7 @@ import {
   type CompressionOptions
 } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
-import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { formatBytes, saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
 import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
 import { t, type MessageKey } from '@/i18n';
 import {
@@ -85,11 +85,6 @@ export const CompressPdfModal: React.FC = () => {
   if (!compressModalOpen || !activeTab) return null;
 
   const currentSizeBytes = activeTab.data.byteLength;
-  const formatBytes = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  };
 
   const handleClose = () => {
     setCompressionResult(null);

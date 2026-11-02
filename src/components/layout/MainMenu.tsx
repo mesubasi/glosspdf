@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { isDesktop } from '../../services/fileSaveService';
-import { useQuickTools } from './RightToolsPanel';
 import { t, LANGUAGES, detectSystemLanguage, getLanguageInfo } from '@/i18n';
 import {
   Menu,
@@ -18,8 +17,9 @@ import {
   Undo2,
   Redo2,
   Eye,
-  Layers,
   Globe,
+  FileOutput,
+  Info,
   Keyboard,
   RefreshCw,
   X,
@@ -118,9 +118,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     languagePreference,
     setLanguagePreference,
     setShortcutHelpModalOpen,
-    setUpdateModalOpen
+    setUpdateModalOpen,
+    setConvertModalOpen,
+    setDocumentPropertiesModalOpen
   } = usePdfStore();
-  const quickTools = useQuickTools();
 
   const [open, setOpen] = useState(false);
   // Alt menü fixed konumlanır: ana menü kaydırılabilir olduğu için içinde kalsa kırpılırdı
@@ -229,6 +230,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     'separator',
     { label: t('save_document'), icon: Save, shortcut: 'Ctrl+S', disabled: noDoc, action: onSaveFile },
     { label: t('save_as'), icon: FileDown, shortcut: 'Ctrl+Shift+S', disabled: noDoc, action: onSaveFileAs },
+    { label: t('convert_to_office'), icon: FileOutput, disabled: noDoc, action: () => setConvertModalOpen(true) },
     {
       label: t('export_pages_to_images'),
       icon: FileImage,
@@ -281,16 +283,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       ]
     },
     {
-      label: t('tools'),
-      icon: Layers,
-      submenu: quickTools.map((tool) => ({
-        label: tool.name,
-        icon: tool.icon,
-        disabled: tool.disabled,
-        action: tool.action
-      }))
-    },
-    {
       label: t('language'),
       icon: Globe,
       hint:
@@ -318,6 +310,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     },
     { label: t('check_for_updates'), icon: RefreshCw, badge: updateReady, action: () => setUpdateModalOpen(true) },
     'separator',
+    {
+      label: t('document_properties'),
+      icon: Info,
+      shortcut: 'Ctrl+D',
+      disabled: noDoc,
+      action: () => setDocumentPropertiesModalOpen(true)
+    },
     {
       label: t('close_active_tab'),
       icon: X,

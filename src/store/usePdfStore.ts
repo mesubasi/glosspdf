@@ -66,6 +66,8 @@ interface PdfStoreState {
   insertImageModalOpen: boolean;
   exportImagesModalOpen: boolean;
   compressModalOpen: boolean;
+  convertModalOpen: boolean;
+  documentPropertiesModalOpen: boolean;
 
   // Eylemler (Actions)
   addTab: (tab: PdfTab) => void;
@@ -125,6 +127,8 @@ interface PdfStoreState {
   setInsertImageModalOpen: (open: boolean) => void;
   setExportImagesModalOpen: (open: boolean) => void;
   setCompressModalOpen: (open: boolean) => void;
+  setConvertModalOpen: (open: boolean) => void;
+  setDocumentPropertiesModalOpen: (open: boolean) => void;
 
   // Son Açılan Belgeler (Recent Files) & Kısayol Yardım Modalı
   recentFiles: { filePath: string; fileName: string; lastOpened: number }[];
@@ -248,6 +252,8 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   insertImageModalOpen: false,
   exportImagesModalOpen: false,
   compressModalOpen: false,
+  convertModalOpen: false,
+  documentPropertiesModalOpen: false,
 
   addTab: (newTab) => {
     set((state) => {
@@ -559,6 +565,8 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   setInsertImageModalOpen: (open) => set({ insertImageModalOpen: open }),
   setExportImagesModalOpen: (open) => set({ exportImagesModalOpen: open }),
   setCompressModalOpen: (open) => set({ compressModalOpen: open }),
+  setConvertModalOpen: (open) => set({ convertModalOpen: open }),
+  setDocumentPropertiesModalOpen: (open) => set({ documentPropertiesModalOpen: open }),
 
   // Son Açılan Belgeler & Kısayol Yardım Eylemleri
   addRecentFile: (file) => {
