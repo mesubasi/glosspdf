@@ -543,6 +543,8 @@ export function App() {
 
       {/* 2. Ana Araç Çubuğu */}
       <HeaderToolbar
+        pdfDocument={activePdfDoc}
+        onPageChange={handlePageClick}
         onOpenFile={handleOpenFile}
         onOpenRecentFile={handleOpenRecentFile}
         onSaveFile={handleSaveFile}

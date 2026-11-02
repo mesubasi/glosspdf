@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { usePdfStore } from '../../store/usePdfStore';
 import type { UpdateState } from '../../types/electron';
+import { readAloudSupported, useReadAloud } from '../../hooks/useReadAloud';
 import { MainMenu } from './MainMenu';
 import { t } from '@/i18n';
 import {
@@ -19,10 +21,15 @@ import {
   FileSignature,
   RefreshCw,
   Undo2,
-  Redo2
+  Redo2,
+  Volume2,
+  Pause,
+  Play,
+  Square
 } from 'lucide-react';
 
 interface HeaderToolbarProps {
+  pdfDocument: PDFDocumentProxy | null;
   onOpenFile: () => void;
   onOpenRecentFile: (filePath: string, fileName: string) => void;
   onSaveFile: () => void;
@@ -30,16 +37,19 @@ interface HeaderToolbarProps {
   onPrint: () => void;
   onFitPage: () => void;
   onFitWidth: () => void;
+  onPageChange: (pageNum: number) => void;
 }
 
 export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
+  pdfDocument,
   onOpenFile,
   onOpenRecentFile,
   onSaveFile,
   onSaveFileAs,
   onPrint,
   onFitPage,
-  onFitWidth
+  onFitWidth,
+  onPageChange
 }) => {
   const {
     tabs,
@@ -77,6 +87,13 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
   const updateReady = updateState.status === 'available' || updateState.status === 'downloaded';
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+
+  const readAloud = useReadAloud(pdfDocument, onPageChange);
+  const handleReadAloud = async () => {
+    if (readAloud.status === 'playing') return readAloud.pause();
+    if (readAloud.status === 'paused') return readAloud.resume();
+    if (activeTab && !(await readAloud.start(activeTab.currentPage))) alert(t('read_aloud_no_text'));
+  };
 
   const handleToggleAnnotationMode = () => {
     const nextState = !annotationModeOpen;
@@ -220,8 +237,37 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         </button>
       </div>
 
-      {/* Sağ Araç Grubu: Arama, Tema ve Geri/İleri Al */}
+      {/* Sağ Araç Grubu: Sesli Okuma, Arama, Tema ve Geri/İleri Al */}
       <div className="flex items-center space-x-1">
+        {/* Sesli Okuma: geçerli sayfadan başlar; okurken duraklat/devam et ve durdur */}
+        <button
+          onClick={handleReadAloud}
+          disabled={!activeTab || !pdfDocument || !readAloudSupported}
+          className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors ${
+            readAloud.status !== 'idle' ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : ''
+          }`}
+          title={t(
+            readAloud.status === 'playing' ? 'pause_reading' : readAloud.status === 'paused' ? 'resume_reading' : 'read_aloud'
+          )}
+        >
+          {readAloud.status === 'playing' ? (
+            <Pause className="w-4 h-4" />
+          ) : readAloud.status === 'paused' ? (
+            <Play className="w-4 h-4" />
+          ) : (
+            <Volume2 className="w-4 h-4" />
+          )}
+        </button>
+        {readAloud.status !== 'idle' && (
+          <button
+            onClick={readAloud.stop}
+            className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+            title={t('stop_reading')}
+          >
+            <Square className="w-3.5 h-3.5 fill-current" />
+          </button>
+        )}
+
         {/* Arama Aç/Kapat */}
         <button
           onClick={() => setSearchBarOpen(!searchBarOpen)}
