@@ -38,6 +38,11 @@ interface PdfStoreState {
   searchResults: SearchMatch[];
   currentSearchIndex: number;
   isFullScreen: boolean;
+  /** Sayfa görünümü: tek sayfa ya da yan yana iki sayfa (kapak sayfası ayrı durabilir) */
+  pageLayout: 'single' | 'two';
+  showCoverPage: boolean;
+  setPageLayout: (layout: 'single' | 'two') => void;
+  setShowCoverPage: (show: boolean) => void;
   /** Yerleştirilmeyi bekleyen imza (Adobe "Fill & Sign" tarzı: önce oluştur, sonra sayfada tıkla) */
   pendingSignature: { dataUrl: string; aspect: number; isImage?: boolean } | null;
   setPendingSignature: (sig: { dataUrl: string; aspect: number; isImage?: boolean } | null) => void;
@@ -99,6 +104,7 @@ interface PdfStoreState {
   nextSearchResult: () => void;
   prevSearchResult: () => void;
   setIsFullScreen: (full: boolean) => void;
+  toggleFullScreen: () => void;
   openPasswordModal: (callback: (pw: string) => void) => void;
   closePasswordModal: () => void;
 
@@ -226,6 +232,8 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   searchResults: [],
   currentSearchIndex: 0,
   isFullScreen: false,
+  pageLayout: 'single',
+  showCoverPage: false,
   pendingSignature: null,
   passwordModalOpen: false,
   passwordCallback: null,
@@ -449,6 +457,15 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   },
 
   setIsFullScreen: (full) => set({ isFullScreen: full }),
+  toggleFullScreen: () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => set({ isFullScreen: true }));
+    } else {
+      document.exitFullscreen().then(() => set({ isFullScreen: false }));
+    }
+  },
+  setPageLayout: (layout) => set({ pageLayout: layout }),
+  setShowCoverPage: (show) => set({ showCoverPage: show }),
 
   openPasswordModal: (callback) =>
     set({ passwordModalOpen: true, passwordCallback: callback }),

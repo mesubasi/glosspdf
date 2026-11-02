@@ -1,24 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { t } from '@/i18n';
+import { DropdownMenu, type MenuEntry } from './DropdownMenu';
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ChevronDown,
   ZoomIn,
   ZoomOut,
-  Expand
+  Expand,
+  RotateCw,
+  RotateCcw,
+  File,
+  BookOpen,
+  Book,
+  Scan,
+  MoveHorizontal,
+  MoveVertical,
+  Maximize2
 } from 'lucide-react';
 
 interface StatusBarProps {
   onPageChange: (pageNum: number) => void;
   onFitPage: () => void;
   onFitWidth: () => void;
+  onFitHeight: () => void;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, onFitWidth }) => {
-  const { tabs, activeTabId, zoomIn, zoomOut, setZoom, language } = usePdfStore();
+export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, onFitWidth, onFitHeight }) => {
+  const {
+    tabs,
+    activeTabId,
+    zoomIn,
+    zoomOut,
+    setZoom,
+    rotateClockwise,
+    rotateCounterClockwise,
+    pageLayout,
+    setPageLayout,
+    showCoverPage,
+    setShowCoverPage,
+    isFullScreen,
+    toggleFullScreen,
+    language
+  } = usePdfStore();
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   const [inputPage, setInputPage] = useState<string>('1');
@@ -42,6 +69,26 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
   };
 
   const zoomPercent = Math.round(activeTab.zoom * 100);
+
+  // Adobe'deki sayfa görünümü menüsü: düzen, yakınlaştırma kipleri ve tam ekran tek yerde
+  const viewEntries: MenuEntry[] = [
+    { label: t('single_page_view'), icon: File, checked: pageLayout === 'single', action: () => setPageLayout('single') },
+    { label: t('two_page_view'), icon: BookOpen, checked: pageLayout === 'two', action: () => setPageLayout('two') },
+    {
+      label: t('show_cover_page'),
+      icon: Book,
+      checked: pageLayout === 'two' && showCoverPage,
+      disabled: pageLayout !== 'two',
+      action: () => setShowCoverPage(!showCoverPage)
+    },
+    'separator',
+    { label: t('actual_size_100'), icon: Scan, shortcut: 'Ctrl+1', checked: activeTab.zoom === 1, action: () => setZoom(1) },
+    { label: t('fit_page'), icon: Expand, shortcut: 'Ctrl+0', action: onFitPage },
+    { label: t('fit_width'), icon: MoveHorizontal, shortcut: 'Ctrl+2', action: onFitWidth },
+    { label: t('fit_height'), icon: MoveVertical, action: onFitHeight },
+    'separator',
+    { label: t('full_screen_mode'), icon: Maximize2, shortcut: 'F11', checked: isFullScreen, action: toggleFullScreen }
+  ];
 
   return (
     <div className="flex items-center justify-between px-3 py-1 bg-acrobat-toolbar dark:bg-acrobat-darkToolbar border-t border-acrobat-border dark:border-acrobat-darkBorder text-slate-700 dark:text-slate-300 text-xs select-none">
@@ -99,23 +146,38 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
         </button>
       </div>
 
-      {/* Sağ: Zoom Kaydırıcı ve Sığdırma Butonları */}
+      {/* Sağ: Döndürme, Sayfa Görünümü Menüsü ve Yakınlaştırma */}
       <div className="flex items-center space-x-2">
         <button
-          onClick={onFitPage}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          title={t('fit_page_ctrl_0')}
+          onClick={rotateCounterClockwise}
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          title={t('rotate_counter_clockwise_ctrl_shift_l')}
         >
-          <Expand className="w-3.5 h-3.5" />
+          <RotateCcw className="w-3.5 h-3.5" />
         </button>
 
         <button
-          onClick={onFitWidth}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          title={t('fit_width_ctrl_2')}
+          onClick={rotateClockwise}
+          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          title={t('rotate_clockwise_ctrl_shift_r')}
         >
-          <span className="font-bold text-[10px] px-1 border border-current rounded-sm">↔</span>
+          <RotateCw className="w-3.5 h-3.5" />
         </button>
+
+        <DropdownMenu
+          label={t('page_display')}
+          title={t('page_display')}
+          entries={viewEntries}
+          checkColumn
+          triggerClassName="flex items-center gap-0.5 p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          panelPositionClassName="bottom-full end-0 mb-1.5"
+          trigger={
+            <>
+              {pageLayout === 'two' ? <BookOpen className="w-3.5 h-3.5" /> : <File className="w-3.5 h-3.5" />}
+              <ChevronDown className="w-3 h-3 text-slate-500" />
+            </>
+          }
+        />
 
         <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
 

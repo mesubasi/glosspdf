@@ -76,6 +76,7 @@ export function App() {
     setActiveTab,
     updateTab,
     setZoom,
+    pageLayout,
     setCurrentPage,
     openPasswordModal,
     annotationModeOpen,
@@ -156,42 +157,32 @@ export function App() {
     };
   }, [activeTab?.id, activeTab?.data]);
 
-  // Sayfaya Sığdır (Fit Page) Hesaplama Fonksiyonu
-  const handleFitPage = useCallback(() => {
-    if (!containerRef.current || !activeTab || activeTab.pageDimensions.length === 0) return;
-    const container = containerRef.current;
-    const padding = 64; // Kenar boşlukları ve kaydırma çubuğu payı
-    const availableWidth = container.clientWidth - padding;
-    const availableHeight = container.clientHeight - padding;
+  // Sayfaya / genişliğe / yüksekliğe sığdır; iki sayfa görünümünde genişlik iki sayfaya bölünür
+  const fitZoom = useCallback(
+    (mode: 'page' | 'width' | 'height') => {
+      if (!containerRef.current || !activeTab || activeTab.pageDimensions.length === 0) return;
+      const container = containerRef.current;
+      const padding = mode === 'width' ? 48 : 64; // Kenar boşlukları ve kaydırma çubuğu payı
+      const columns = pageLayout === 'two' ? 2 : 1;
+      const availableWidth = (container.clientWidth - padding - (columns - 1) * 16) / columns;
+      const availableHeight = container.clientHeight - padding;
 
-    const currentDim =
-      activeTab.pageDimensions[activeTab.currentPage - 1] || activeTab.pageDimensions[0];
-    const isRotated = activeTab.rotation === 90 || activeTab.rotation === 270;
-    const pageWidth = isRotated ? currentDim.originalHeight : currentDim.originalWidth;
-    const pageHeight = isRotated ? currentDim.originalWidth : currentDim.originalHeight;
+      const currentDim =
+        activeTab.pageDimensions[activeTab.currentPage - 1] || activeTab.pageDimensions[0];
+      const isRotated = activeTab.rotation === 90 || activeTab.rotation === 270;
+      const pageWidth = isRotated ? currentDim.originalHeight : currentDim.originalWidth;
+      const pageHeight = isRotated ? currentDim.originalWidth : currentDim.originalHeight;
 
-    const scaleX = availableWidth / pageWidth;
-    const scaleY = availableHeight / pageHeight;
-    const optimalScale = Math.min(scaleX, scaleY);
-
-    setZoom(parseFloat(optimalScale.toFixed(2)));
-  }, [activeTab, setZoom]);
-
-  // Genişliğe Sığdır (Fit Width) Hesaplama Fonksiyonu
-  const handleFitWidth = useCallback(() => {
-    if (!containerRef.current || !activeTab || activeTab.pageDimensions.length === 0) return;
-    const container = containerRef.current;
-    const padding = 48; // Kenar boşlukları
-    const availableWidth = container.clientWidth - padding;
-
-    const currentDim =
-      activeTab.pageDimensions[activeTab.currentPage - 1] || activeTab.pageDimensions[0];
-    const isRotated = activeTab.rotation === 90 || activeTab.rotation === 270;
-    const pageWidth = isRotated ? currentDim.originalHeight : currentDim.originalWidth;
-
-    const optimalScale = availableWidth / pageWidth;
-    setZoom(parseFloat(optimalScale.toFixed(2)));
-  }, [activeTab, setZoom]);
+      const scaleX = availableWidth / pageWidth;
+      const scaleY = availableHeight / pageHeight;
+      const optimalScale = mode === 'width' ? scaleX : mode === 'height' ? scaleY : Math.min(scaleX, scaleY);
+      setZoom(parseFloat(optimalScale.toFixed(2)));
+    },
+    [activeTab, pageLayout, setZoom]
+  );
+  const handleFitPage = useCallback(() => fitZoom('page'), [fitZoom]);
+  const handleFitWidth = useCallback(() => fitZoom('width'), [fitZoom]);
+  const handleFitHeight = useCallback(() => fitZoom('height'), [fitZoom]);
 
   // Yeni PDF Belgesini Açma ve State'e Aktarma
   const openNewPdf = async (filePath: string, fileName: string, rawBytes: Uint8Array) => {
@@ -592,6 +583,7 @@ export function App() {
         onPageChange={handlePageClick}
         onFitPage={handleFitPage}
         onFitWidth={handleFitWidth}
+        onFitHeight={handleFitHeight}
       />
 
       {/* Modallar */}

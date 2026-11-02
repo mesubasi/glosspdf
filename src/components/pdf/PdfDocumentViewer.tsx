@@ -32,7 +32,9 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     language,
     recentFiles,
     clearRecentFiles,
-    removeRecentFile
+    removeRecentFile,
+    pageLayout,
+    showCoverPage
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -337,7 +339,15 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
       />
 
       {/* Sayfa Listesi */}
-      <div className="flex flex-col items-center min-w-max pb-12">
+      <div
+        className={
+          pageLayout === 'two'
+            ? 'grid grid-cols-[repeat(2,max-content)] justify-center items-start gap-x-4 min-w-max pb-12'
+            : 'flex flex-col items-center min-w-max pb-12'
+        }
+      >
+        {/* Kapak sayfası: ilk sayfa sağ sütunda tek başına durur */}
+        {pageLayout === 'two' && showCoverPage && <div aria-hidden />}
         {activeTab.pageDimensions.map((dimension) => (
           <PdfPage
             key={`${dimension.pageNumber}-${activeTab.data.byteLength}`}

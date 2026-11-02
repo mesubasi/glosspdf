@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { usePdfStore, ZOOM_LEVELS } from '../../store/usePdfStore';
+import { usePdfStore } from '../../store/usePdfStore';
 import type { UpdateState } from '../../types/electron';
 import { MainMenu } from './MainMenu';
 import {
@@ -16,17 +16,10 @@ import {
   MousePointer,
   Hand,
   Highlighter,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Minimize2,
-  RotateCw,
-  RotateCcw,
   Search,
   Sun,
   Moon,
   Layout,
-  Expand,
   HelpCircle,
   TextCursorInput,
   FileSignature,
@@ -57,11 +50,6 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     activeTabId,
     activeTool,
     setActiveTool,
-    zoomIn,
-    zoomOut,
-    setZoom,
-    rotateClockwise,
-    rotateCounterClockwise,
     searchBarOpen,
     setSearchBarOpen,
     theme,
@@ -74,8 +62,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     setLeftSidebarTab,
     rightPanelOpen,
     toggleRightPanel,
-    isFullScreen,
-    setIsFullScreen,
+    toggleFullScreen,
     annotationModeOpen,
     setAnnotationModeOpen,
     setSignatureModalOpen,
@@ -95,15 +82,6 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
   const updateReady = updateState.status === 'available' || updateState.status === 'downloaded';
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
-  const currentZoomPercent = activeTab ? Math.round(activeTab.zoom * 100) : 100;
-
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullScreen(true));
-    } else {
-      document.exitFullscreen().then(() => setIsFullScreen(false));
-    }
-  };
 
   const handleToggleAnnotationMode = () => {
     const nextState = !annotationModeOpen;
@@ -247,91 +225,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         </button>
       </div>
 
-      {/* Orta Araç Grubu: Zoom & Sığdırma & Döndürme */}
-      <div className="flex items-center space-x-1">
-        {/* Zoom Out */}
-        <button
-          onClick={zoomOut}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('zoom_out_ctrl')}
-        >
-          <ZoomOut className="w-4 h-4" />
-        </button>
-
-        {/* Zoom Yüzdesi Seçim Açılır Menüsü */}
-        <select
-          value={activeTab?.zoom || 1.0}
-          onChange={(e) => setZoom(parseFloat(e.target.value))}
-          disabled={!activeTab}
-          className="bg-white dark:bg-acrobat-darkBg border border-acrobat-border dark:border-acrobat-darkBorder rounded-sm px-2 py-0.5 text-xs text-center cursor-pointer outline-hidden focus:border-acrobat-red"
-        >
-          {ZOOM_LEVELS.map((lvl) => (
-            <option key={lvl} value={lvl}>
-              {Math.round(lvl * 100)}%
-            </option>
-          ))}
-          {!ZOOM_LEVELS.includes(activeTab?.zoom || 1.0) && (
-            <option value={activeTab?.zoom}>{currentZoomPercent}%</option>
-          )}
-        </select>
-
-        {/* Zoom In */}
-        <button
-          onClick={zoomIn}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('zoom_in_ctrl')}
-        >
-          <ZoomIn className="w-4 h-4" />
-        </button>
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-
-        {/* Sayfaya Sığdır */}
-        <button
-          onClick={onFitPage}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('fit_page_ctrl_0')}
-        >
-          <Expand className="w-4 h-4" />
-        </button>
-
-        {/* Genişliğe Sığdır */}
-        <button
-          onClick={onFitWidth}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('fit_width_ctrl_2')}
-        >
-          <span className="font-semibold text-[11px] px-0.5 border border-current rounded-sm">↔</span>
-        </button>
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-
-        {/* Saat Yönünde Döndür */}
-        <button
-          onClick={rotateClockwise}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('rotate_clockwise_ctrl_shift_r')}
-        >
-          <RotateCw className="w-4 h-4" />
-        </button>
-
-        {/* Saatin Tersine Döndür */}
-        <button
-          onClick={rotateCounterClockwise}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('rotate_counter_clockwise_ctrl_shift_l')}
-        >
-          <RotateCcw className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Sağ Araç Grubu: Arama, Tema, Dil ve Tam Ekran */}
+      {/* Sağ Araç Grubu: Arama, Tema ve Dil */}
       <div className="flex items-center space-x-1">
         {/* Arama Aç/Kapat */}
         <button
@@ -371,15 +265,6 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
             </option>
           ))}
         </select>
-
-        {/* Tam Ekran */}
-        <button
-          onClick={toggleFullScreen}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('full_screen_f11_ctrl_l')}
-        >
-          {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-        </button>
 
         {/* Kısayollar ve Yardım */}
         <button
