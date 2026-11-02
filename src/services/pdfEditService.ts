@@ -169,15 +169,47 @@ export const COMPRESSION_LEVELS = {
 } as const;
 export type CompressionLevel = keyof typeof COMPRESSION_LEVELS;
 
+/** Sıkıştırma ayarları; hazır seviyeler yalnızca maxSide/quality değerlerini belirler */
+export interface CompressionOptions {
+  /** Görüntünün uzun kenarı en fazla bu kadar piksel olur */
+  maxSide: number;
+  /** JPEG kalitesi (0–1) */
+  quality: number;
+  /** Renkli görüntüleri gri tonlamaya çevirir (metin ve vektörler değişmez) */
+  grayscale?: boolean;
+  /** Belge bilgisi (Info) ve XMP üst verisini siler */
+  removeMetadata?: boolean;
+  /** Gömülü sayfa küçük resimlerini (/Thumb) siler */
+  removeThumbnails?: boolean;
+  /** Gömülü dosya eklerini siler */
+  removeAttachments?: boolean;
+  /** Belge ve sayfa JavaScript'ini ve otomatik eylemleri siler */
+  removeJavaScript?: boolean;
+}
+
+export interface CompressionResult {
+  bytes: Uint8Array;
+  /** Sıkıştırılabilir görüntü sayısı (yumuşak maskeler hariç) */
+  imagesTotal: number;
+  /** Yeniden kodlanan görüntü sayısı */
+  imagesOptimized: number;
+  /** Dosyadan çıkarılan nesne sayısı */
+  objectsRemoved: number;
+  /** Sonuç küçülmediyse true; bytes bu durumda özgün veridir */
+  alreadyOptimized: boolean;
+}
+
 /**
  * 8 bit RGB/gri JPEG veya Flate görüntüyü küçültüp JPEG olarak yeniden kodlar; küçülmezse null döner.
  * Maskeli, CMYK, paletli, Decode dizili ve tahminci (predictor) kullanan görüntüler olduğu gibi kalır.
+ * grayscale: renkli görüntü gri tonlamaya çevrilir; bu durumda küçülmese de sonuç kabul edilir.
  * shortcut: boyut sınırı sayfadaki gerçek DPI'ya değil piksele bakar; içerik akışı ayrıştırılırsa DPI'ya geçilmeli.
  */
 async function recompressImage(
   stream: PDFRawStream,
   maxSide: number,
-  quality: number
+  quality: number,
+  grayscale = false
 ): Promise<PDFRawStream | null> {
   const { dict } = stream;
   const get = (key: string) => dict.lookup(PDFName.of(key));
@@ -203,6 +235,7 @@ async function recompressImage(
   }
   const channels = colorSpace === PDFName.of('DeviceRGB') ? 3 : colorSpace === PDFName.of('DeviceGray') ? 1 : 0;
   if (!channels) return null;
+  const toGray = grayscale && channels === 3;
 
   const w = width.asNumber();
   const h = height.asNumber();
@@ -231,10 +264,20 @@ async function recompressImage(
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  if (toGray) {
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      // ITU-R BT.601 parlaklık katsayıları
+      const y = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+      d[i] = d[i + 1] = d[i + 2] = y;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
   if (!blob) return null;
   const jpeg = new Uint8Array(await blob.arrayBuffer());
-  if (jpeg.length >= stream.contents.length) return null;
+  if (!toGray && jpeg.length >= stream.contents.length) return null;
 
   // Tuval her zaman RGB JPEG üretir
   dict.set(PDFName.of('Width'), PDFNumber.of(canvas.width));
@@ -242,6 +285,70 @@ async function recompressImage(
   dict.set(PDFName.of('ColorSpace'), PDFName.of('DeviceRGB'));
   dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
   return PDFRawStream.of(dict, jpeg);
+}
+
+/** Bir eylem sözlüğü (veya Next zinciri) JavaScript içeriyorsa true */
+function isJavaScriptAction(action: PDFObject | undefined, context: PDFDocument['context']): boolean {
+  const dict = action instanceof PDFRef ? context.lookup(action) : action;
+  if (!(dict instanceof PDFDict)) return false;
+  if (dict.lookup(PDFName.of('S')) === PDFName.of('JavaScript')) return true;
+  const next = dict.lookup(PDFName.of('Next'));
+  if (next instanceof PDFArray) return next.asArray().some((a) => isJavaScriptAction(a, context));
+  return isJavaScriptAction(next, context);
+}
+
+/** Sıkıştırma öncesi isteğe bağlı temizlik: üst veri, küçük resimler, ekler, JavaScript */
+function stripOptionalData(doc: PDFDocument, options: CompressionOptions) {
+  const { context, catalog } = doc;
+  const names = catalog.lookup(PDFName.of('Names'));
+  const pages = doc.getPages();
+
+  if (options.removeMetadata) {
+    context.trailerInfo.Info = undefined;
+    for (const [, obj] of context.enumerateIndirectObjects()) {
+      const dict = obj instanceof PDFDict ? obj : obj instanceof PDFStream ? obj.dict : undefined;
+      if (!dict) continue;
+      // Görüntü/sayfa/katalog üzerindeki XMP akışları ve uygulamaya özel veriler
+      dict.delete(PDFName.of('Metadata'));
+      dict.delete(PDFName.of('PieceInfo'));
+    }
+    catalog.delete(PDFName.of('Metadata'));
+  }
+
+  if (options.removeThumbnails) {
+    for (const page of pages) page.node.delete(PDFName.of('Thumb'));
+  }
+
+  if (options.removeAttachments) {
+    if (names instanceof PDFDict) names.delete(PDFName.of('EmbeddedFiles'));
+    catalog.delete(PDFName.of('AF'));
+    for (const page of pages) {
+      const annots = page.node.lookup(PDFName.of('Annots'));
+      if (!(annots instanceof PDFArray)) continue;
+      for (let i = annots.size() - 1; i >= 0; i--) {
+        const annot = annots.lookup(i);
+        if (annot instanceof PDFDict && annot.lookup(PDFName.of('Subtype')) === PDFName.of('FileAttachment')) {
+          annots.remove(i);
+        }
+      }
+    }
+  }
+
+  if (options.removeJavaScript) {
+    if (names instanceof PDFDict) names.delete(PDFName.of('JavaScript'));
+    if (isJavaScriptAction(catalog.get(PDFName.of('OpenAction')), context)) catalog.delete(PDFName.of('OpenAction'));
+    catalog.delete(PDFName.of('AA'));
+    for (const page of pages) page.node.delete(PDFName.of('AA'));
+    // Bağlantı ve form alanlarındaki JavaScript eylemleri
+    for (const [, obj] of context.enumerateIndirectObjects()) {
+      if (!(obj instanceof PDFDict)) continue;
+      if (isJavaScriptAction(obj.get(PDFName.of('A')), context)) obj.delete(PDFName.of('A'));
+      const aa = obj.lookup(PDFName.of('AA'));
+      if (aa instanceof PDFDict && obj.lookup(PDFName.of('Subtype')) === PDFName.of('Widget')) {
+        obj.delete(PDFName.of('AA'));
+      }
+    }
+  }
 }
 
 export class PdfEditService {
@@ -871,35 +978,66 @@ export class PdfEditService {
   }
 
   /**
-   * PDF belgesini nesne akışlarını optimize ederek ve gereksiz verileri temizleyerek sıkıştırır
+   * PDF'i sıkıştırır: görüntüleri küçültüp yeniden kodlar, isteğe bağlı verileri temizler,
+   * erişilemeyen nesneleri atar ve nesne akışlarıyla kaydeder. Sonuç küçülmezse özgün veri döner.
    */
-  static async compressPdf(data: Uint8Array, level: CompressionLevel = 'balanced'): Promise<Uint8Array> {
-    const doc = await this.loadPdf(data);
-    const { maxSide, quality } = COMPRESSION_LEVELS[level];
-    const objects = doc.context.enumerateIndirectObjects();
+  static async compressPdf(
+    data: Uint8Array,
+    options: CompressionOptions = COMPRESSION_LEVELS.balanced,
+    onProgress?: (done: number, total: number) => void
+  ): Promise<CompressionResult> {
+    // Üst veri silinecekse pdf-lib'in Producer/ModDate yazmasını engelle
+    const doc = await PDFDocument.load(data, { ignoreEncryption: true, updateMetadata: !options.removeMetadata });
+    const { maxSide, quality, grayscale = false } = options;
 
+    stripOptionalData(doc, options);
+
+    const objects = doc.context.enumerateIndirectObjects();
     // Yumuşak maskeler gri kalmalı (tuval yalnızca RGB JPEG üretir); onlara dokunulmaz
     const softMasks = new Set<PDFObject | undefined>();
     for (const [, obj] of objects) {
       if (obj instanceof PDFRawStream) softMasks.add(obj.dict.get(PDFName.of('SMask')));
     }
-    for (const [ref, obj] of objects) {
-      if (!(obj instanceof PDFRawStream) || softMasks.has(ref) || obj.dict.lookup(PDFName.of('Subtype')) !== PDFName.of('Image')) {
-        continue;
-      }
-      const smaller = await recompressImage(obj, maxSide, quality).catch((err) => {
+    const images = objects.filter(
+      ([ref, obj]) =>
+        obj instanceof PDFRawStream &&
+        !softMasks.has(ref) &&
+        obj.dict.lookup(PDFName.of('Subtype')) === PDFName.of('Image')
+    ) as [PDFRef, PDFRawStream][];
+
+    let imagesOptimized = 0;
+    onProgress?.(0, images.length);
+    for (let i = 0; i < images.length; i++) {
+      const [ref, obj] = images[i];
+      const smaller = await recompressImage(obj, maxSide, quality, grayscale).catch((err) => {
         console.warn(`Image ${ref} was left as is:`, err);
         return null;
       });
-      if (smaller) doc.context.assign(ref, smaller);
+      if (smaller) {
+        doc.context.assign(ref, smaller);
+        imagesOptimized++;
+      }
+      onProgress?.(i + 1, images.length);
     }
 
-    // Önceki artımlı kayıtlardan kalan sahipsiz nesneler de dosyadan çıkar
+    // Önceki artımlı kayıtlardan kalan ve temizlikten sonra sahipsiz kalan nesneler de dosyadan çıkar
+    const countBefore = doc.context.enumerateIndirectObjects().length;
     removeUnreachableObjects(doc);
-    return await doc.save({
+    const objectsRemoved = countBefore - doc.context.enumerateIndirectObjects().length;
+
+    const bytes = await doc.save({
       useObjectStreams: true,
       addDefaultPage: false
     });
+    // Gri tonlama istendiyse dosya büyüse de sonuç korunur (istenen bir görsel değişiklik)
+    const alreadyOptimized = bytes.byteLength >= data.byteLength && !(grayscale && imagesOptimized > 0);
+    return {
+      bytes: alreadyOptimized ? data : bytes,
+      imagesTotal: images.length,
+      imagesOptimized: alreadyOptimized ? 0 : imagesOptimized,
+      objectsRemoved: alreadyOptimized ? 0 : objectsRemoved,
+      alreadyOptimized
+    };
   }
 
   /**

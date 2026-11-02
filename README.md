@@ -86,7 +86,7 @@ View, annotate, edit text, sign, organize and protect PDFs — entirely on your 
 - **Rotate** the whole document (saved into the file)
 - **Watermark & stamps** (Unicode text supported)
 - **Insert images**, **export pages as PNG / JPEG**
-- **Compress:** three levels (light, balanced, strong) downscale and re-encode images as JPEG and drop unused objects; text and vector graphics are untouched
+- **Compress:** three presets (light, balanced, strong) or custom image resolution and JPEG quality; optional grayscale images and removal of metadata, embedded thumbnails, attachments and JavaScript. Shows how many images were optimized and objects removed; text and vector graphics are untouched
 - **Password protection** with AES-256
 
 ### Internationalization

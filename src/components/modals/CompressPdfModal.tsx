@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { PdfEditService, type CompressionLevel } from '../../services/pdfEditService';
+import {
+  PdfEditService,
+  COMPRESSION_LEVELS,
+  type CompressionLevel,
+  type CompressionOptions
+} from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
-import { t } from '@/i18n';
+import { t, type MessageKey } from '@/i18n';
 import {
   X,
   Minimize2,
@@ -12,8 +17,21 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  ChevronRight,
+  Info
 } from 'lucide-react';
+
+type Preset = CompressionLevel | 'custom';
+type CleanupKey = 'removeMetadata' | 'removeThumbnails' | 'removeAttachments' | 'removeJavaScript';
+
+const CLEANUP_OPTIONS: { key: CleanupKey; label: MessageKey; desc: MessageKey }[] = [
+  { key: 'removeMetadata', label: 'compression_remove_metadata', desc: 'compression_remove_metadata_desc' },
+  { key: 'removeThumbnails', label: 'compression_remove_thumbnails', desc: 'compression_remove_thumbnails_desc' },
+  { key: 'removeAttachments', label: 'compression_remove_attachments', desc: 'compression_remove_attachments_desc' },
+  { key: 'removeJavaScript', label: 'compression_remove_javascript', desc: 'compression_remove_javascript_desc' }
+];
 
 export const CompressPdfModal: React.FC = () => {
   const {
@@ -28,13 +46,34 @@ export const CompressPdfModal: React.FC = () => {
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [level, setLevel] = useState<CompressionLevel>('balanced');
+  const [level, setLevel] = useState<Preset>('balanced');
+  const [customMaxSide, setCustomMaxSide] = useState(1600);
+  const [customQuality, setCustomQuality] = useState(70);
+  const [grayscale, setGrayscale] = useState(false);
+  const [cleanup, setCleanup] = useState<Record<CleanupKey, boolean>>({
+    removeMetadata: false,
+    removeThumbnails: true,
+    removeAttachments: false,
+    removeJavaScript: false
+  });
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [compressionResult, setCompressionResult] = useState<{
     originalSize: number;
     newSize: number;
     savedPercent: number;
     compressedBytes: Uint8Array;
+    imagesTotal: number;
+    imagesOptimized: number;
+    objectsRemoved: number;
+    alreadyOptimized: boolean;
   } | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  // Sonuç, kaydırılabilir gövdenin altında kalabilir; görünür alana getir
+  useEffect(() => {
+    if (compressionResult) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [compressionResult]);
 
   if (!compressModalOpen || !activeTab) return null;
 
@@ -47,17 +86,35 @@ export const CompressPdfModal: React.FC = () => {
 
   const handleClose = () => {
     setCompressionResult(null);
+    setProgress(null);
     setCompressModalOpen(false);
+  };
+
+  /** Ayar değişince eski sonuç geçersiz olur */
+  const changeSetting = (apply: () => void) => {
+    apply();
+    setCompressionResult(null);
+  };
+
+  const buildOptions = (): CompressionOptions => {
+    const base =
+      level === 'custom'
+        ? { maxSide: customMaxSide, quality: customQuality / 100 }
+        : COMPRESSION_LEVELS[level];
+    return { ...base, grayscale, ...cleanup };
   };
 
   const handleRunCompression = async () => {
     try {
       setIsProcessing(true);
+      setProgress(null);
       const originalBytes = activeTab.data.slice();
-      const compressedBytes = await PdfEditService.compressPdf(originalBytes, level);
+      const result = await PdfEditService.compressPdf(originalBytes, buildOptions(), (done, total) =>
+        setProgress({ done, total })
+      );
 
       const originalSize = originalBytes.byteLength;
-      const newSize = compressedBytes.byteLength;
+      const newSize = result.bytes.byteLength;
       const savedPercent = Math.max(
         0,
         Math.round(((originalSize - newSize) / originalSize) * 100)
@@ -67,13 +124,18 @@ export const CompressPdfModal: React.FC = () => {
         originalSize,
         newSize,
         savedPercent,
-        compressedBytes
+        compressedBytes: result.bytes,
+        imagesTotal: result.imagesTotal,
+        imagesOptimized: result.imagesOptimized,
+        objectsRemoved: result.objectsRemoved,
+        alreadyOptimized: result.alreadyOptimized
       });
     } catch (err: any) {
       console.error('Compression error:', err);
       alert(t('error_generic', { message: err.message }));
     } finally {
       setIsProcessing(false);
+      setProgress(null);
     }
   };
 
@@ -147,7 +209,7 @@ export const CompressPdfModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
@@ -165,7 +227,7 @@ export const CompressPdfModal: React.FC = () => {
         </div>
 
         {/* Gövde */}
-        <div className="p-5 flex-1 flex flex-col space-y-4">
+        <div className="p-5 flex-1 flex flex-col space-y-4 overflow-y-auto">
           {/* Mevcut Durum */}
           <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 flex items-center justify-between">
             <div>
@@ -194,11 +256,11 @@ export const CompressPdfModal: React.FC = () => {
           </div>
 
           {/* Sıkıştırma Seviyesi */}
-          <div className="flex flex-col space-y-2">
-            {(['light', 'balanced', 'strong'] as const).map((value) => (
+          <div className="grid grid-cols-2 gap-2">
+            {(['light', 'balanced', 'strong', 'custom'] as const).map((value) => (
               <label
                 key={value}
-                className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                className={`flex items-start space-x-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
                   level === value
                     ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/20'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-acrobat-darkPanel'
@@ -209,10 +271,7 @@ export const CompressPdfModal: React.FC = () => {
                   name="compressionLevel"
                   checked={level === value}
                   disabled={isProcessing}
-                  onChange={() => {
-                    setLevel(value);
-                    setCompressionResult(null);
-                  }}
+                  onChange={() => changeSetting(() => setLevel(value))}
                   className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
                 />
                 <div>
@@ -223,8 +282,112 @@ export const CompressPdfModal: React.FC = () => {
             ))}
           </div>
 
+          {/* Özel Ayarlar */}
+          {level === 'custom' && (
+            <div className="flex flex-col space-y-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-black/20">
+              <label className="flex flex-col space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-slate-700 dark:text-slate-200">{t('compression_max_resolution')}</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400">{customMaxSide} px</span>
+                </div>
+                <input
+                  type="range"
+                  min={400}
+                  max={4000}
+                  step={100}
+                  value={customMaxSide}
+                  disabled={isProcessing}
+                  onChange={(e) => changeSetting(() => setCustomMaxSide(Number(e.target.value)))}
+                  className="accent-indigo-600"
+                />
+              </label>
+              <label className="flex flex-col space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-slate-700 dark:text-slate-200">{t('compression_image_quality')}</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400">{customQuality}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={95}
+                  step={5}
+                  value={customQuality}
+                  disabled={isProcessing}
+                  onChange={(e) => changeSetting(() => setCustomQuality(Number(e.target.value)))}
+                  className="accent-indigo-600"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Gelişmiş Seçenekler */}
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-acrobat-darkPanel rounded-lg transition-colors"
+            >
+              <span>{t('compression_advanced')}</span>
+              {showAdvanced ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+            {showAdvanced && (
+              <div className="flex flex-col space-y-2.5 px-3 pb-3 pt-1">
+                {[
+                  { key: 'grayscale' as const, label: 'compression_grayscale' as MessageKey, desc: 'compression_grayscale_desc' as MessageKey },
+                  ...CLEANUP_OPTIONS
+                ].map(({ key, label, desc }) => {
+                  const checked = key === 'grayscale' ? grayscale : cleanup[key];
+                  return (
+                    <label key={key} className="flex items-start space-x-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={isProcessing}
+                        onChange={(e) =>
+                          changeSetting(() =>
+                            key === 'grayscale'
+                              ? setGrayscale(e.target.checked)
+                              : setCleanup((c) => ({ ...c, [key]: e.target.checked }))
+                          )
+                        }
+                        className="mt-0.5 rounded-sm text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div>
+                        <div className="text-slate-800 dark:text-slate-200">{t(label)}</div>
+                        <div className="text-[11px] text-slate-400">{t(desc)}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* İlerleme */}
+          {isProcessing && progress && progress.total > 0 && (
+            <div className="flex flex-col space-y-1.5">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                {t('compression_progress', [progress.done, progress.total])}
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 transition-all duration-150"
+                  style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Sonuç Alanı */}
-          {compressionResult && (
+          <div ref={resultRef} className="empty:hidden">
+          {compressionResult?.alreadyOptimized && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start space-x-2 text-amber-700 dark:text-amber-300">
+              <Info className="w-5 h-5 shrink-0" />
+              <span className="leading-relaxed">{t('compression_already_optimized')}</span>
+            </div>
+          )}
+
+          {compressionResult && !compressionResult.alreadyOptimized && (
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 flex flex-col space-y-3">
               <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
                 <CheckCircle2 className="w-5 h-5" />
@@ -260,8 +423,22 @@ export const CompressPdfModal: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              <div className="border-t border-emerald-500/20 pt-2 flex flex-col space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                <div className="flex items-center space-x-1.5">
+                  <FileCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>{t('compression_images_optimized', [compressionResult.imagesOptimized, compressionResult.imagesTotal])}</span>
+                </div>
+                {compressionResult.objectsRemoved > 0 && (
+                  <div className="flex items-center space-x-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>{t('compression_objects_removed', [compressionResult.objectsRemoved])}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Butonlar */}
@@ -274,7 +451,7 @@ export const CompressPdfModal: React.FC = () => {
             {t('close')}
           </button>
 
-          {!compressionResult ? (
+          {!compressionResult || compressionResult.alreadyOptimized ? (
             <button
               onClick={handleRunCompression}
               disabled={isProcessing}
@@ -284,7 +461,9 @@ export const CompressPdfModal: React.FC = () => {
               <span>
                 {isProcessing
                   ? t('compressing')
-                  : t('start_compression')}
+                  : compressionResult
+                    ? t('compression_try_again')
+                    : t('start_compression')}
               </span>
             </button>
           ) : (
