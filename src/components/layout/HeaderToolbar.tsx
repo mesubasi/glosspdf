@@ -2,13 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import type { UpdateState } from '../../types/electron';
 import { MainMenu } from './MainMenu';
-import {
-  t,
-  LANGUAGES,
-  detectSystemLanguage,
-  getLanguageInfo,
-  type LanguagePreference
-} from '@/i18n';
+import { t } from '@/i18n';
 import {
   FolderOpen,
   Save,
@@ -23,7 +17,9 @@ import {
   HelpCircle,
   TextCursorInput,
   FileSignature,
-  RefreshCw
+  RefreshCw,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 
 interface HeaderToolbarProps {
@@ -55,9 +51,8 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     theme,
     toggleTheme,
     language,
-    languagePreference,
-    setLanguagePreference,
-    toggleLanguage,
+    undo,
+    redo,
     leftSidebarTab,
     setLeftSidebarTab,
     rightPanelOpen,
@@ -225,7 +220,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         </button>
       </div>
 
-      {/* Sağ Araç Grubu: Arama, Tema ve Dil */}
+      {/* Sağ Araç Grubu: Arama, Tema ve Geri/İleri Al */}
       <div className="flex items-center space-x-1">
         {/* Arama Aç/Kapat */}
         <button
@@ -248,23 +243,24 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        {/* Dil Seçici (Sistem dili + desteklenen diller) */}
-        <select
-          value={languagePreference}
-          onChange={(e) => setLanguagePreference(e.target.value as LanguagePreference)}
-          title={t('language')}
-          aria-label={t('language')}
-          className="px-1.5 py-1 rounded-sm text-[11px] bg-transparent hover:bg-black/10 dark:hover:bg-white/10 border border-slate-300/60 dark:border-slate-600/60 outline-hidden cursor-pointer max-w-[150px] truncate"
+        {/* Geri Al / İleri Al (dil seçimi Menü > Dil altında) */}
+        <button
+          onClick={undo}
+          disabled={!activeTab?.undoStack?.length}
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          title={t('undo_ctrl_z')}
         >
-          <option value="system">
-            {t('system_language')} ({getLanguageInfo(detectSystemLanguage()).nativeLabel})
-          </option>
-          {LANGUAGES.map((lang) => (
-            <option key={lang.code} value={lang.code}>
-              {lang.nativeLabel}
-            </option>
-          ))}
-        </select>
+          <Undo2 className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={redo}
+          disabled={!activeTab?.redoStack?.length}
+          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          title={t('redo_ctrl_y')}
+        >
+          <Redo2 className="w-4 h-4" />
+        </button>
 
         {/* Kısayollar ve Yardım */}
         <button
