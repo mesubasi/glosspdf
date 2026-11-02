@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePdfStore, ZOOM_LEVELS } from '../../store/usePdfStore';
 import type { UpdateState } from '../../types/electron';
+import { MainMenu } from './MainMenu';
 import {
   t,
   LANGUAGES,
@@ -34,6 +35,7 @@ import {
 
 interface HeaderToolbarProps {
   onOpenFile: () => void;
+  onOpenRecentFile: (filePath: string, fileName: string) => void;
   onSaveFile: () => void;
   onSaveFileAs: () => void;
   onPrint: () => void;
@@ -43,6 +45,7 @@ interface HeaderToolbarProps {
 
 export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
   onOpenFile,
+  onOpenRecentFile,
   onSaveFile,
   onSaveFileAs,
   onPrint,
@@ -116,6 +119,20 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     <div className="flex items-center justify-between px-3 py-1.5 bg-acrobat-toolbar dark:bg-acrobat-darkToolbar border-b border-acrobat-border dark:border-acrobat-darkBorder text-slate-700 dark:text-slate-200 select-none text-xs">
       {/* Sol Araç Grubu: Dosya & Yan Panel Butonları */}
       <div className="flex items-center space-x-1">
+        <MainMenu
+          onOpenFile={onOpenFile}
+          onOpenRecentFile={onOpenRecentFile}
+          onSaveFile={onSaveFile}
+          onSaveFileAs={onSaveFileAs}
+          onPrint={onPrint}
+          onFitPage={onFitPage}
+          onFitWidth={onFitWidth}
+          onToggleFullScreen={toggleFullScreen}
+          updateReady={updateReady}
+        />
+
+        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
+
         {/* Sol Panel Aç/Kapat */}
         <button
           onClick={() => setLeftSidebarTab(leftSidebarTab ? null : 'thumbnails')}

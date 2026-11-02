@@ -551,6 +551,7 @@ export function App() {
       {/* 2. Ana Araç Çubuğu */}
       <HeaderToolbar
         onOpenFile={handleOpenFile}
+        onOpenRecentFile={handleOpenRecentFile}
         onSaveFile={handleSaveFile}
         onSaveFileAs={handleSaveFileAs}
         onPrint={handlePrint}

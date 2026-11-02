@@ -16,7 +16,8 @@ export const ShortcutHelpModal: React.FC = () => {
         { keys: ['Ctrl', 'S'], desc: t('save_document') },
         { keys: ['Ctrl', 'Shift', 'S'], desc: t('save_as') },
         { keys: ['Ctrl', 'P'], desc: t('print_document') },
-        { keys: ['Ctrl', 'W'], desc: t('close_active_tab') }
+        { keys: ['Ctrl', 'W'], desc: t('close_active_tab') },
+        { keys: ['Ctrl', 'Q'], desc: t('quit_app') }
       ]
     },
     {

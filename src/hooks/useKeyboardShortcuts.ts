@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { usePdfStore } from '../store/usePdfStore';
+import { isDesktop } from '../services/fileSaveService';
 
 interface ShortcutOptions {
   onOpenFile: () => void;
@@ -82,6 +83,13 @@ export function useKeyboardShortcuts({
         if (activeTabId) {
           requestCloseTab(activeTabId);
         }
+        return;
+      }
+
+      // Ctrl + Q: Uygulamadan çık (kaydedilmemiş değişiklik sorusu ana süreçte)
+      if (isCtrl && (e.key === 'q' || e.key === 'Q') && isDesktop()) {
+        e.preventDefault();
+        window.close();
         return;
       }
 

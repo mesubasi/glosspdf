@@ -20,11 +20,9 @@ import {
   TextCursorInput
 } from 'lucide-react';
 
-export const RightToolsPanel: React.FC = () => {
+/** Sağ panel ve ana menüdeki "Araçlar" alt menüsü aynı listeyi kullanır */
+export function useQuickTools() {
   const {
-    rightPanelOpen,
-    toggleRightPanel,
-    language,
     activeTabId,
     setActiveTool,
     setAnnotationModeOpen,
@@ -38,8 +36,6 @@ export const RightToolsPanel: React.FC = () => {
     setProtectModalOpen,
     setCompressModalOpen
   } = usePdfStore();
-
-  if (!rightPanelOpen) return null;
 
   const selectAnnotationTool = (tool: any) => {
     setActiveTool(tool);
@@ -139,6 +135,16 @@ export const RightToolsPanel: React.FC = () => {
     }
   ];
 
+  // Modals stay mounted-but-hidden without a doc, so clicks here would all pop up once a file opens; merge needs no doc.
+  return tools.map((tool) => ({ ...tool, disabled: !activeTabId && tool.id !== 'merge' }));
+}
+
+export const RightToolsPanel: React.FC = () => {
+  const { rightPanelOpen, toggleRightPanel, language } = usePdfStore();
+  const tools = useQuickTools();
+
+  if (!rightPanelOpen) return null;
+
   return (
     <div className="w-56 bg-acrobat-panel dark:bg-acrobat-darkPanel border-l border-acrobat-border dark:border-acrobat-darkBorder flex flex-col h-full select-none z-10 shadow-md">
       {/* Başlık */}
@@ -160,8 +166,7 @@ export const RightToolsPanel: React.FC = () => {
             <button
               key={t.id}
               onClick={t.action}
-              // Modals stay mounted-but-hidden without a doc, so clicks here would all pop up once a file opens; merge needs no doc.
-              disabled={!activeTabId && t.id !== 'merge'}
+              disabled={t.disabled}
               className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-left text-xs text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
             >
               <IconComponent className="w-4 h-4 text-red-500 shrink-0" />
