@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
-import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
-import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
+import { pickOutputFolder, saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SavedFilesNotice } from '../common/SaveDestination';
 import { t } from '@/i18n';
 import {
   X,
@@ -20,13 +20,9 @@ export const SplitPdfModal: React.FC = () => {
   const [rangeInput, setRangeInput] = useState('1-2, 3-3');
   const [isProcessing, setIsProcessing] = useState(false);
   const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
-  const dest = useSaveDestination({
-    open: splitModalOpen && !!activeTab,
-    suggestedName: activeTab ? stripExtension(activeTab.fileName) : 'Document',
-    sourcePath: activeTab?.filePath
-  });
 
   if (!splitModalOpen || !activeTab) return null;
+  const baseName = stripExtension(activeTab.fileName);
 
   const handleClose = () => {
     setSavedFiles([]);
@@ -36,8 +32,8 @@ export const SplitPdfModal: React.FC = () => {
   /** "rapor_page_3.pdf" / "rapor_pages_1-2.pdf" */
   const partName = (range: { start: number; end: number }) =>
     range.start === range.end
-      ? `${stripExtension(dest.fileName)}_page_${range.start}.pdf`
-      : `${stripExtension(dest.fileName)}_pages_${range.start}-${range.end}.pdf`;
+      ? `${baseName}_page_${range.start}.pdf`
+      : `${baseName}_pages_${range.start}-${range.end}.pdf`;
 
   const handleSplit = async () => {
     try {
@@ -73,10 +69,12 @@ export const SplitPdfModal: React.FC = () => {
 
       const results = await PdfEditService.splitPdf(activeTab.data.slice(), ranges);
 
-      // Seçilen klasöre yaz (mevcut dosyalar korunur, çakışan adlara numara eklenir)
+      // Klasör iş bitince sorulur; mevcut dosyalar korunur, çakışan adlara numara eklenir
+      const directory = await pickOutputFolder(activeTab.filePath);
+      if (directory === null) return;
       const saved: SavedFile[] = [];
       for (let i = 0; i < results.length; i++) {
-        saved.push(await saveBytes(results[i], dest.directory, partName(ranges[i]), { onConflict: 'rename' }));
+        saved.push(await saveBytes(results[i], directory, partName(ranges[i])));
       }
       setSavedFiles(saved);
     } catch (err: any) {
@@ -170,17 +168,7 @@ export const SplitPdfModal: React.FC = () => {
             </div>
           </label>
 
-          {/* Kayıt konumu / sonuç */}
-          {savedFiles.length > 0 ? (
-            <SavedFilesNotice files={savedFiles} />
-          ) : (
-            <SaveDestination
-              dest={dest}
-              mode="folder"
-              exampleFileName={partName({ start: 1, end: splitMode === 'all' ? 1 : 2 })}
-              disabled={isProcessing}
-            />
-          )}
+          <SavedFilesNotice files={savedFiles} />
         </div>
 
         {/* Alt Çubuk */}
@@ -194,7 +182,7 @@ export const SplitPdfModal: React.FC = () => {
           {savedFiles.length === 0 && (
           <button
             onClick={handleSplit}
-            disabled={isProcessing || !dest.isValid}
+            disabled={isProcessing}
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />

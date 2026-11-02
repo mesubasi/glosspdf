@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { saveFileAs, stripExtension, type SavedFile } from '../../services/fileSaveService';
 import { convertPdfToOffice, OFFICE_MIME_TYPES, type OfficeFormat } from '../../services/officeExportService';
-import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
+import { SavedFilesNotice } from '../common/SaveDestination';
 import { t, type MessageKey } from '@/i18n';
 import { X, FileOutput, FileText, FileSpreadsheet, Presentation, type LucideIcon } from 'lucide-react';
 
@@ -20,12 +20,6 @@ export const ConvertOfficeModal: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
-  const dest = useSaveDestination({
-    open: convertModalOpen && !!activeTab,
-    suggestedName: activeTab ? stripExtension(activeTab.fileName) : 'Document',
-    sourcePath: activeTab?.filePath,
-    extension: `.${format}`
-  });
 
   if (!convertModalOpen || !activeTab) return null;
 
@@ -41,7 +35,11 @@ export const ConvertOfficeModal: React.FC = () => {
       const bytes = await convertPdfToOffice(activeTab.data.slice(), format, (current, total) =>
         setProgress({ current, total })
       );
-      setSavedFiles([await saveBytes(bytes, dest.directory, dest.fileName, { mimeType: OFFICE_MIME_TYPES[format] })]);
+      const saved = await saveFileAs(bytes, `${stripExtension(activeTab.fileName)}.${format}`, {
+        sourcePath: activeTab.filePath,
+        mimeType: OFFICE_MIME_TYPES[format]
+      });
+      if (saved) setSavedFiles([saved]);
     } catch (err: any) {
       console.error('Convert error:', err);
       alert(t('error_generic', { message: err.message }));
@@ -103,12 +101,7 @@ export const ConvertOfficeModal: React.FC = () => {
             <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{t('convert_layout_note')}</p>
           </div>
 
-          {/* Kayıt konumu / sonuç */}
-          {savedFiles.length > 0 ? (
-            <SavedFilesNotice files={savedFiles} />
-          ) : (
-            <SaveDestination dest={dest} disabled={isProcessing} />
-          )}
+          <SavedFilesNotice files={savedFiles} />
 
           {isProcessing && (
             <div className="p-3 bg-slate-50 dark:bg-acrobat-darkPanel rounded-lg border border-slate-200 dark:border-slate-700 text-center">
@@ -130,7 +123,7 @@ export const ConvertOfficeModal: React.FC = () => {
           {savedFiles.length === 0 && (
             <button
               onClick={handleConvert}
-              disabled={isProcessing || !dest.isValid}
+              disabled={isProcessing}
               className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
             >
               <FileOutput className="w-3.5 h-3.5" />

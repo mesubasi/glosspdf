@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
-import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
-import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
+import { saveFileAs, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SavedFilesNotice } from '../common/SaveDestination';
 import { t } from '@/i18n';
 import {
   X,
@@ -33,11 +33,6 @@ export const ProtectPdfModal: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
-  const dest = useSaveDestination({
-    open: protectModalOpen && !!activeTab,
-    suggestedName: activeTab ? `${stripExtension(activeTab.fileName)}_protected` : 'protected',
-    sourcePath: activeTab?.filePath
-  });
 
   if (!protectModalOpen || !activeTab) return null;
 
@@ -85,13 +80,11 @@ export const ProtectPdfModal: React.FC = () => {
         password
       );
 
-      if (!dest.isValid) {
-        setStatusMessage({ type: 'error', text: t('file_name_required') });
-        return;
-      }
-
-      // Seçilen klasöre yaz; tam yol pencerede gösterilir
-      const saved = await saveBytes(encryptedBytes, dest.directory, dest.fileName);
+      // Konum "Farklı Kaydet" penceresiyle sorulur; vazgeçilirse parola korunur, yeniden denenebilir
+      const saved = await saveFileAs(encryptedBytes, `${stripExtension(activeTab.fileName)}_protected.pdf`, {
+        sourcePath: activeTab.filePath
+      });
+      if (!saved) return;
       setSavedFiles([saved]);
       setPassword('');
       setConfirmPassword('');
@@ -221,12 +214,7 @@ export const ProtectPdfModal: React.FC = () => {
             <p>• {t('if_forgotten_content_cannot_be_recovered')}</p>
           </div>
 
-          {/* Kayıt konumu / sonuç */}
-          {savedFiles.length > 0 ? (
-            <SavedFilesNotice files={savedFiles} message={t('document_successfully_encrypted_and_saved')} />
-          ) : (
-            <SaveDestination dest={dest} disabled={isProcessing} />
-          )}
+          <SavedFilesNotice files={savedFiles} message={t('document_successfully_encrypted_and_saved')} />
 
           {/* Durum Bildirimi */}
           {statusMessage && (
@@ -259,7 +247,7 @@ export const ProtectPdfModal: React.FC = () => {
           {savedFiles.length === 0 && (
           <button
             onClick={handleProtectAndSaveAs}
-            disabled={isProcessing || !password || !dest.isValid}
+            disabled={isProcessing || !password}
             className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-medium shadow-md transition-colors"
           >
             {isProcessing ? (

@@ -28,12 +28,11 @@ export interface IElectronAPI {
   readFile: (filePath: string) => Promise<OpenPdfResult>;
   getPathForFile?: (file: File) => string;
   savePdf: (filePath: string, base64Data: string) => Promise<SavePdfResult>;
-  savePdfAs: (defaultName: string, base64Data: string, locale?: string) => Promise<SavePdfResult>;
+  /** extension: kayıt penceresinin dosya türü süzgeci (varsayılan "pdf"; ör. "docx") */
+  savePdfAs: (defaultName: string, base64Data: string, locale?: string, extension?: string) => Promise<SavePdfResult>;
   /** Kaynak belgenin klasörü (gerçek bir yolsa), değilse Belgeler klasörü */
   getDefaultSaveDir: (sourcePath?: string) => Promise<string>;
   pickFolder: (defaultPath?: string, locale?: string) => Promise<PickFolderResult>;
-  /** Klasörde zaten bulunan adları döndürür */
-  existingFiles: (dir: string, fileNames: string[]) => Promise<string[]>;
   /** onConflict 'rename' ise mevcut dosyanın üzerine yazılmaz, "ad (2).pdf" kullanılır */
   writeFileTo: (
     dir: string,

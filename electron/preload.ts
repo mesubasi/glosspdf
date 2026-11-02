@@ -24,15 +24,14 @@ const electronAPI = {
   savePdf: (filePath: string, base64Data: string) =>
     ipcRenderer.invoke('dialog:savePdf', { filePath, base64Data }),
 
-  // Farklı Kaydetme (locale: diyalog başlıklarının dili)
-  savePdfAs: (defaultName: string, base64Data: string, locale?: string) =>
-    ipcRenderer.invoke('dialog:savePdfAs', { defaultName, base64Data, locale }),
+  // Farklı Kaydetme (locale: diyalog başlıklarının dili, extension: pdf dışı çıktılar için)
+  savePdfAs: (defaultName: string, base64Data: string, locale?: string, extension?: string) =>
+    ipcRenderer.invoke('dialog:savePdfAs', { defaultName, base64Data, locale, extension }),
 
-  // Kayıt konumu bileşeni: varsayılan klasör, klasör seçme, çakışma denetimi, yazma ve klasörde gösterme
+  // Araç çıktıları: varsayılan klasör, klasör seçme, yazma ve klasörde gösterme
   getDefaultSaveDir: (sourcePath?: string) => ipcRenderer.invoke('fs:getDefaultSaveDir', sourcePath),
   pickFolder: (defaultPath?: string, locale?: string) =>
     ipcRenderer.invoke('dialog:pickFolder', { defaultPath, locale }),
-  existingFiles: (dir: string, fileNames: string[]) => ipcRenderer.invoke('fs:existingFiles', { dir, fileNames }),
   writeFileTo: (dir: string, fileName: string, base64Data: string, onConflict?: 'overwrite' | 'rename') =>
     ipcRenderer.invoke('fs:writeFileTo', { dir, fileName, base64Data, onConflict }),
   showItemInFolder: (targetPath: string) => ipcRenderer.invoke('shell:showItemInFolder', targetPath),

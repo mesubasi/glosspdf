@@ -524,19 +524,23 @@ ipcMain.handle('dialog:savePdf', async (_event, { filePath, base64Data }: { file
   }
 });
 
-// IPC: Farklı Kaydet Diyaloğu
+// IPC: Farklı Kaydet Diyaloğu (extension: araç çıktıları için docx, xlsx, pptx...; varsayılan pdf)
 ipcMain.handle(
   'dialog:savePdfAs',
-  async (_event, { defaultName, base64Data, locale }: { defaultName: string; base64Data: string; locale?: string }) => {
+  async (
+    _event,
+    { defaultName, base64Data, locale, extension }: { defaultName: string; base64Data: string; locale?: string; extension?: string }
+  ) => {
     const texts = dialogTexts(locale);
     if (!mainWindow) return { success: false, error: texts.noWindow };
 
     // Yalnızca ad verilirse diyalog Belgeler klasöründe açılır; tam yol verilirse o klasörde
-    const requested = defaultName || 'Document.pdf';
+    const ext = /^[a-z0-9]{1,8}$/i.test(extension ?? '') ? extension!.toLowerCase() : 'pdf';
+    const requested = defaultName || `Document.${ext}`;
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       title: texts.saveAsTitle,
       defaultPath: path.isAbsolute(requested) ? requested : path.join(app.getPath('documents'), requested),
-      filters: [{ name: `${texts.pdfFilter} (*.pdf)`, extensions: ['pdf'] }]
+      filters: [{ name: ext === 'pdf' ? `${texts.pdfFilter} (*.pdf)` : `${ext.toUpperCase()} (*.${ext})`, extensions: [ext] }]
     });
 
   if (canceled || !filePath) {
@@ -624,12 +628,6 @@ ipcMain.handle('dialog:pickFolder', async (_event, { defaultPath, locale }: { de
 
   if (canceled || filePaths.length === 0) return { success: false, canceled: true };
   return { success: true, folderPath: filePaths[0] };
-});
-
-// IPC: Verilen klasörde bu adlarda dosya var mı? (üzerine yazma uyarısı için)
-ipcMain.handle('fs:existingFiles', (_event, { dir, fileNames }: { dir: string; fileNames: string[] }) => {
-  if (!isExistingDirectory(dir)) return [];
-  return (fileNames || []).filter((name) => fs.existsSync(path.join(dir, sanitizeFileName(name))));
 });
 
 // IPC: Dosyayı seçilen klasöre yaz. onConflict: 'overwrite' (kullanıcı uyarıldı) veya 'rename' (ad (2).pdf)

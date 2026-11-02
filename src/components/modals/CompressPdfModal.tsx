@@ -7,8 +7,8 @@ import {
   type CompressionOptions
 } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
-import { formatBytes, saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
-import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
+import { formatBytes, saveFileAs, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SavedFilesNotice } from '../common/SaveDestination';
 import { t, type MessageKey } from '@/i18n';
 import {
   X,
@@ -71,11 +71,6 @@ export const CompressPdfModal: React.FC = () => {
   } | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
-  const dest = useSaveDestination({
-    open: compressModalOpen && !!activeTab,
-    suggestedName: activeTab ? `${stripExtension(activeTab.fileName)}_compressed` : 'compressed',
-    sourcePath: activeTab?.filePath
-  });
 
   // Sonuç, kaydırılabilir gövdenin altında kalabilir; görünür alana getir
   useEffect(() => {
@@ -144,11 +139,15 @@ export const CompressPdfModal: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!compressionResult || !dest.isValid) return;
+    if (!compressionResult) return;
     try {
       setIsProcessing(true);
-      const saved = await saveBytes(compressionResult.compressedBytes, dest.directory, dest.fileName);
-      setSavedFiles([saved]);
+      const saved = await saveFileAs(
+        compressionResult.compressedBytes,
+        `${stripExtension(activeTab.fileName)}_compressed.pdf`,
+        { sourcePath: activeTab.filePath }
+      );
+      if (saved) setSavedFiles([saved]);
     } catch (err: any) {
       console.error('Save error:', err);
       alert(t('error_generic', { message: err.message }));
@@ -424,14 +423,7 @@ export const CompressPdfModal: React.FC = () => {
           )}
           </div>
 
-          {/* Kayıt konumu: sıkıştırılmış kopyanın nereye yazılacağı */}
-          {compressionResult && !compressionResult.alreadyOptimized && (
-            savedFiles.length > 0 ? (
-              <SavedFilesNotice files={savedFiles} />
-            ) : (
-              <SaveDestination dest={dest} disabled={isProcessing} />
-            )
-          )}
+          <SavedFilesNotice files={savedFiles} />
         </div>
 
         {/* Butonlar */}
@@ -471,7 +463,7 @@ export const CompressPdfModal: React.FC = () => {
               {savedFiles.length === 0 && (
                 <button
                   onClick={handleSave}
-                  disabled={isProcessing || !dest.isValid}
+                  disabled={isProcessing}
                   className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium shadow-md transition-colors"
                 >
                   <Download className="w-4 h-4" />

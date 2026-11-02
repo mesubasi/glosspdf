@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfRenderService } from '../../services/pdfRenderService';
-import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
-import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
+import { pickOutputFolder, saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SavedFilesNotice } from '../common/SaveDestination';
 import { t } from '@/i18n';
 import {
   X,
@@ -25,16 +25,11 @@ export const ExportImagesModal: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
-  const dest = useSaveDestination({
-    open: exportImagesModalOpen && !!activeTab,
-    suggestedName: activeTab ? stripExtension(activeTab.fileName) : 'Document',
-    sourcePath: activeTab?.filePath
-  });
 
   if (!exportImagesModalOpen || !activeTab) return null;
 
   const ext = format === 'image/png' ? 'png' : 'jpg';
-  const imageName = (pageNum: number) => `${stripExtension(dest.fileName)}_page_${pageNum}.${ext}`;
+  const imageName = (pageNum: number) => `${stripExtension(activeTab.fileName)}_page_${pageNum}.${ext}`;
 
   const handleClose = () => {
     setSavedFiles([]);
@@ -43,6 +38,8 @@ export const ExportImagesModal: React.FC = () => {
 
   const handleExport = async () => {
     try {
+      const directory = await pickOutputFolder(activeTab.filePath);
+      if (directory === null) return;
       setIsProcessing(true);
       const doc = await PdfRenderService.loadDocument(activeTab.data.slice());
       const pageNumbers =
@@ -73,7 +70,7 @@ export const ExportImagesModal: React.FC = () => {
           const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format, 0.95));
           if (!blob) throw new Error('Canvas export failed');
           const bytes = new Uint8Array(await blob.arrayBuffer());
-          saved.push(await saveBytes(bytes, dest.directory, imageName(pageNum), { onConflict: 'rename', mimeType: format }));
+          saved.push(await saveBytes(bytes, directory, imageName(pageNum), format));
         }
       }
 
@@ -199,17 +196,7 @@ export const ExportImagesModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Kayıt konumu / sonuç */}
-          {savedFiles.length > 0 ? (
-            <SavedFilesNotice files={savedFiles} />
-          ) : (
-            <SaveDestination
-              dest={dest}
-              mode="folder"
-              exampleFileName={imageName(exportScope === 'current' ? activeTab.currentPage : 1)}
-              disabled={isProcessing}
-            />
-          )}
+          <SavedFilesNotice files={savedFiles} />
 
           {/* İlerleme Durumu */}
           {isProcessing && (
@@ -232,7 +219,7 @@ export const ExportImagesModal: React.FC = () => {
           {savedFiles.length === 0 && (
           <button
             onClick={handleExport}
-            disabled={isProcessing || !dest.isValid}
+            disabled={isProcessing}
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />

@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
-import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
-import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
+import { saveFileAs, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SavedFilesNotice } from '../common/SaveDestination';
 import { t } from '@/i18n';
 import type { PdfTab } from '../../types/pdf';
 import {
@@ -64,11 +64,7 @@ export const MergePdfModal: React.FC = () => {
   }, [mergeModalOpen]);
 
   const first = items[0];
-  const dest = useSaveDestination({
-    open: mergeModalOpen,
-    suggestedName: first ? `${stripExtension(first.name)}_merged` : 'merged',
-    sourcePath: first?.path
-  });
+  const mergedName = first ? `${stripExtension(first.name)}_merged.pdf` : 'merged.pdf';
 
   if (!mergeModalOpen) return null;
 
@@ -188,8 +184,6 @@ export const MergePdfModal: React.FC = () => {
       alert(t('please_add_at_least_2_pdf_files_to_merge'));
       return;
     }
-    if (outputMode === 'save' && !dest.isValid) return;
-
     try {
       setIsProcessing(true);
       const buffers: Uint8Array[] = [];
@@ -197,14 +191,15 @@ export const MergePdfModal: React.FC = () => {
       const mergedBytes = await PdfEditService.mergePdfs(buffers);
 
       if (outputMode === 'tab') {
-        const name = uniqueTabName(dest.fileName);
+        const name = uniqueTabName(mergedName);
         // Yol = ad: Kaydet komutu bu sekme için "Farklı Kaydet" diyaloğunu açar
         await openMerged(mergedBytes, name, name, false);
         handleClose();
         return;
       }
 
-      const saved = await saveBytes(mergedBytes, dest.directory, dest.fileName, { onConflict: 'overwrite' });
+      const saved = await saveFileAs(mergedBytes, mergedName, { sourcePath: first?.path });
+      if (!saved) return;
       if (openAfterSave) await openMerged(mergedBytes, saved.filePath, saved.fileName, true);
       setSavedFiles([saved]);
     } catch (err: any) {
@@ -393,30 +388,16 @@ export const MergePdfModal: React.FC = () => {
                 </div>
               </div>
 
-              {outputMode === 'save' ? (
-                <>
-                  <SaveDestination dest={dest} disabled={isProcessing} />
-                  <label className="flex items-center space-x-2 px-1 cursor-pointer text-slate-700 dark:text-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={openAfterSave}
-                      onChange={(e) => setOpenAfterSave(e.target.checked)}
-                      disabled={isProcessing}
-                      className="rounded-sm text-red-600 focus:ring-red-500"
-                    />
-                    <span>{t('merge_open_after_save')}</span>
-                  </label>
-                </>
-              ) : (
-                <label className="flex flex-col space-y-1">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 px-1">{t('file_name')}</span>
+              {outputMode === 'save' && (
+                <label className="flex items-center space-x-2 px-1 cursor-pointer text-slate-700 dark:text-slate-200">
                   <input
-                    type="text"
-                    value={dest.baseName}
-                    onChange={(e) => dest.setBaseName(e.target.value)}
+                    type="checkbox"
+                    checked={openAfterSave}
+                    onChange={(e) => setOpenAfterSave(e.target.checked)}
                     disabled={isProcessing}
-                    className="w-full px-2.5 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-black/20 text-xs outline-hidden focus:border-red-500"
+                    className="rounded-sm text-red-600 focus:ring-red-500"
                   />
+                  <span>{t('merge_open_after_save')}</span>
                 </label>
               )}
             </>
@@ -435,7 +416,7 @@ export const MergePdfModal: React.FC = () => {
           {!done && (
             <button
               onClick={handleMerge}
-              disabled={items.length < 2 || isProcessing || (outputMode === 'save' && !dest.isValid)}
+              disabled={items.length < 2 || isProcessing}
               className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
             >
               {outputMode === 'save' ? <Save className="w-3.5 h-3.5" /> : <PanelTop className="w-3.5 h-3.5" />}

@@ -1,9 +1,10 @@
 /**
- * Araç pencerelerinin (birleştir, böl, sıkıştır, koru, görüntü dışa aktar) ortak kayıt katmanı.
+ * Araç pencerelerinin (birleştir, böl, sıkıştır, koru, dışa aktar, dönüştür) ortak kayıt katmanı.
  *
- * Masaüstünde dosyalar kullanıcının gördüğü ve değiştirebildiği klasöre doğrudan yazılır;
- * tarayıcıda (electronAPI yok) indirme klasörüne indirilir.
+ * Masaüstünde konum, iş bitince işletim sisteminin kayıt penceresiyle sorulur (tek dosya: "Farklı
+ * Kaydet", çok dosya: klasör seçimi); tarayıcıda (electronAPI yok) indirme klasörüne indirilir.
  */
+import { getLanguage } from '@/i18n';
 
 export interface SavedFile {
   /** Masaüstünde tam yol; tarayıcıda yalnızca dosya adı */
@@ -77,24 +78,50 @@ function downloadInBrowser(bytes: Uint8Array, fileName: string, mimeType: string
 }
 
 /**
- * Dosyayı seçilen klasöre yazar.
- * onConflict 'overwrite': kullanıcı bileşende uyarıldı, üzerine yazılır.
- * onConflict 'rename': çoklu çıktılarda mevcut dosyalar korunur ("ad (2).pdf").
+ * Tek dosya: "Farklı Kaydet" penceresi kaynak belgenin klasöründe, önerilen adla açılır
+ * (üzerine yazma onayını pencere kendisi sorar). Kullanıcı vazgeçerse null döner.
  */
+export async function saveFileAs(
+  bytes: Uint8Array,
+  suggestedName: string,
+  options: { sourcePath?: string; mimeType?: string } = {}
+): Promise<SavedFile | null> {
+  const { sourcePath, mimeType = 'application/pdf' } = options;
+  const fileName = sanitizeFileName(suggestedName) || 'Document';
+
+  if (!isDesktop()) {
+    downloadInBrowser(bytes, fileName, mimeType);
+    return { filePath: fileName, fileName };
+  }
+
+  const extension = fileName.match(/\.([a-z0-9]+)$/i)?.[1];
+  const defaultPath = joinPath(await getDefaultSaveDir(sourcePath), fileName);
+  const res = await window.electronAPI!.savePdfAs(defaultPath, bytesToBase64(bytes), getLanguage(), extension);
+  if (res.canceled) return null;
+  if (!res.success || !res.filePath) throw new Error(res.error || 'Unknown error');
+  return { filePath: res.filePath, fileName: res.fileName || fileName };
+}
+
+/** Çok dosyalı çıktı: klasör seçme penceresi. Vazgeçilirse null; tarayıcıda '' (indirme klasörü) */
+export async function pickOutputFolder(sourcePath?: string): Promise<string | null> {
+  if (!isDesktop()) return '';
+  const res = await window.electronAPI!.pickFolder(await getDefaultSaveDir(sourcePath), getLanguage());
+  return res.success && res.folderPath ? res.folderPath : null;
+}
+
+/** pickOutputFolder ile seçilen klasöre yazar; aynı adda dosya varsa korunur ("ad (2).pdf") */
 export async function saveBytes(
   bytes: Uint8Array,
   dir: string,
   fileName: string,
-  options: { onConflict?: 'overwrite' | 'rename'; mimeType?: string } = {}
+  mimeType = 'application/pdf'
 ): Promise<SavedFile> {
-  const { onConflict = 'overwrite', mimeType = 'application/pdf' } = options;
-
   if (!isDesktop() || !dir) {
     downloadInBrowser(bytes, fileName, mimeType);
     return { filePath: fileName, fileName };
   }
 
-  const res = await window.electronAPI!.writeFileTo(dir, fileName, bytesToBase64(bytes), onConflict);
+  const res = await window.electronAPI!.writeFileTo(dir, fileName, bytesToBase64(bytes), 'rename');
   if (!res.success || !res.filePath) {
     throw new Error(res.error || 'Unknown error');
   }
