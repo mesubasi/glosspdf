@@ -275,9 +275,14 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
       if (state.activeTabId === tabId) {
         newActiveId = remaining.length > 0 ? remaining[remaining.length - 1].id : null;
       }
+      // Son belge kapanınca düzenleme modları da kapanır; araç düğmeleri belge yokken devre dışıdır
+      const resetEditing = remaining.length === 0
+        ? { annotationModeOpen: false, activeTool: 'select' as const, pendingSignature: null, selectedAnnotationId: null }
+        : {};
       return {
         tabs: remaining,
-        activeTabId: newActiveId
+        activeTabId: newActiveId,
+        ...resetEditing
       };
     });
   },

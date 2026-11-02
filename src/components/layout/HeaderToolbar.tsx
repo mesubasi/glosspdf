@@ -205,7 +205,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         <button
           onClick={handleToggleAnnotationMode}
           disabled={!activeTab}
-          className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors ${
+          className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
             annotationModeOpen
               ? 'bg-acrobat-red text-white font-medium shadow-xs'
               : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
