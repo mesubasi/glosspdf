@@ -25,6 +25,7 @@ const DIALOG_TEXTS: Record<
   {
     openTitle: string;
     saveAsTitle: string;
+    pickFolderTitle: string;
     pdfFilter: string;
     noWindow: string;
     noPath: string;
@@ -37,6 +38,7 @@ const DIALOG_TEXTS: Record<
   tr: {
     openTitle: 'PDF Dosyası Aç',
     saveAsTitle: 'PDF Dosyasını Farklı Kaydet',
+    pickFolderTitle: 'Kayıt Klasörünü Seç',
     pdfFilter: 'PDF Dosyaları',
     noWindow: 'Pencere bulunamadı',
     noPath: 'Dosya yolu belirtilmedi',
@@ -48,6 +50,7 @@ const DIALOG_TEXTS: Record<
   en: {
     openTitle: 'Open PDF File',
     saveAsTitle: 'Save PDF As',
+    pickFolderTitle: 'Choose Save Folder',
     pdfFilter: 'PDF Files',
     noWindow: 'Window not found',
     noPath: 'No file path provided',
@@ -59,6 +62,7 @@ const DIALOG_TEXTS: Record<
   de: {
     openTitle: 'PDF-Datei öffnen',
     saveAsTitle: 'PDF speichern unter',
+    pickFolderTitle: 'Speicherordner wählen',
     pdfFilter: 'PDF-Dateien',
     noWindow: 'Fenster nicht gefunden',
     noPath: 'Kein Dateipfad angegeben',
@@ -70,6 +74,7 @@ const DIALOG_TEXTS: Record<
   fr: {
     openTitle: 'Ouvrir un fichier PDF',
     saveAsTitle: 'Enregistrer le PDF sous',
+    pickFolderTitle: 'Choisir le dossier de destination',
     pdfFilter: 'Fichiers PDF',
     noWindow: 'Fenêtre introuvable',
     noPath: 'Aucun chemin de fichier fourni',
@@ -81,6 +86,7 @@ const DIALOG_TEXTS: Record<
   es: {
     openTitle: 'Abrir archivo PDF',
     saveAsTitle: 'Guardar PDF como',
+    pickFolderTitle: 'Elegir carpeta de destino',
     pdfFilter: 'Archivos PDF',
     noWindow: 'Ventana no encontrada',
     noPath: 'No se proporcionó ninguna ruta de archivo',
@@ -92,6 +98,7 @@ const DIALOG_TEXTS: Record<
   ar: {
     openTitle: 'فتح ملف PDF',
     saveAsTitle: 'حفظ PDF باسم',
+    pickFolderTitle: 'اختر مجلد الحفظ',
     pdfFilter: 'ملفات PDF',
     noWindow: 'لم يتم العثور على النافذة',
     noPath: 'لم يتم تحديد مسار الملف',
@@ -103,6 +110,7 @@ const DIALOG_TEXTS: Record<
   zh: {
     openTitle: '打开 PDF 文件',
     saveAsTitle: 'PDF 另存为',
+    pickFolderTitle: '选择保存文件夹',
     pdfFilter: 'PDF 文件',
     noWindow: '未找到窗口',
     noPath: '未提供文件路径',
@@ -523,9 +531,11 @@ ipcMain.handle(
     const texts = dialogTexts(locale);
     if (!mainWindow) return { success: false, error: texts.noWindow };
 
+    // Yalnızca ad verilirse diyalog Belgeler klasöründe açılır; tam yol verilirse o klasörde
+    const requested = defaultName || 'Document.pdf';
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       title: texts.saveAsTitle,
-      defaultPath: defaultName || 'Document.pdf',
+      defaultPath: path.isAbsolute(requested) ? requested : path.join(app.getPath('documents'), requested),
       filters: [{ name: `${texts.pdfFilter} (*.pdf)`, extensions: ['pdf'] }]
     });
 
@@ -557,4 +567,98 @@ ipcMain.handle('app:print', async () => {
       }
     );
   });
+});
+
+
+/* ------------------------------------------------------------------ */
+/* Kayıt konumu: araç pencerelerindeki "Kayıt konumu" bileşeni için     */
+/* ------------------------------------------------------------------ */
+
+/** Yalnızca dosya adı kabul edilir: klasör ayırıcıları ve geçersiz karakterler temizlenir */
+function sanitizeFileName(name: string): string {
+  const cleaned = path
+    .basename(String(name || ''))
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+    .replace(/^[.\s]+|[.\s]+$/g, '');
+  return cleaned || 'Document';
+}
+
+/** "ad.pdf" mevcutsa "ad (2).pdf", "ad (3).pdf"... şeklinde boş bir ad bulur */
+function uniquePath(dir: string, fileName: string): string {
+  const ext = path.extname(fileName);
+  const base = fileName.slice(0, fileName.length - ext.length);
+  let candidate = path.join(dir, fileName);
+  for (let n = 2; fs.existsSync(candidate); n++) {
+    candidate = path.join(dir, `${base} (${n})${ext}`);
+  }
+  return candidate;
+}
+
+function isExistingDirectory(dir: string | undefined | null): dir is string {
+  try {
+    return !!dir && path.isAbsolute(dir) && fs.statSync(dir).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+// IPC: Varsayılan kayıt klasörü (kaynak belgenin klasörü, yoksa Belgeler)
+ipcMain.handle('fs:getDefaultSaveDir', (_event, sourcePath?: string) => {
+  if (sourcePath && path.isAbsolute(sourcePath)) {
+    const dir = path.dirname(sourcePath);
+    if (isExistingDirectory(dir)) return dir;
+  }
+  return app.getPath('documents');
+});
+
+// IPC: Klasör seçme diyaloğu
+ipcMain.handle('dialog:pickFolder', async (_event, { defaultPath, locale }: { defaultPath?: string; locale?: string }) => {
+  const texts = dialogTexts(locale);
+  if (!mainWindow) return { success: false, error: texts.noWindow };
+
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: texts.pickFolderTitle,
+    defaultPath: isExistingDirectory(defaultPath) ? defaultPath : app.getPath('documents'),
+    properties: ['openDirectory', 'createDirectory', 'promptToCreate']
+  });
+
+  if (canceled || filePaths.length === 0) return { success: false, canceled: true };
+  return { success: true, folderPath: filePaths[0] };
+});
+
+// IPC: Verilen klasörde bu adlarda dosya var mı? (üzerine yazma uyarısı için)
+ipcMain.handle('fs:existingFiles', (_event, { dir, fileNames }: { dir: string; fileNames: string[] }) => {
+  if (!isExistingDirectory(dir)) return [];
+  return (fileNames || []).filter((name) => fs.existsSync(path.join(dir, sanitizeFileName(name))));
+});
+
+// IPC: Dosyayı seçilen klasöre yaz. onConflict: 'overwrite' (kullanıcı uyarıldı) veya 'rename' (ad (2).pdf)
+ipcMain.handle(
+  'fs:writeFileTo',
+  async (
+    _event,
+    { dir, fileName, base64Data, onConflict }: { dir: string; fileName: string; base64Data: string; onConflict?: 'overwrite' | 'rename' }
+  ) => {
+    try {
+      if (!dir || !path.isAbsolute(dir)) return { success: false, error: 'Invalid folder' };
+      await fs.promises.mkdir(dir, { recursive: true });
+      const safeName = sanitizeFileName(fileName);
+      const targetPath = onConflict === 'overwrite' ? path.join(dir, safeName) : uniquePath(dir, safeName);
+      await fs.promises.writeFile(targetPath, Buffer.from(base64Data, 'base64'));
+      return { success: true, filePath: targetPath, fileName: path.basename(targetPath) };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+// IPC: Kaydedilen dosyayı dosya yöneticisinde göster
+ipcMain.handle('shell:showItemInFolder', (_event, targetPath: string) => {
+  if (!targetPath || !path.isAbsolute(targetPath)) return false;
+  if (isExistingDirectory(targetPath)) {
+    shell.openPath(targetPath);
+  } else {
+    shell.showItemInFolder(targetPath);
+  }
+  return true;
 });

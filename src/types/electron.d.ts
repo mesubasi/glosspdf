@@ -15,6 +15,13 @@ export interface SavePdfResult {
   error?: string;
 }
 
+export interface PickFolderResult {
+  success: boolean;
+  canceled?: boolean;
+  folderPath?: string;
+  error?: string;
+}
+
 export interface IElectronAPI {
   /** locale: yerel diyalog başlıklarının dili (örn. 'tr', 'de') */
   openPdf: (locale?: string) => Promise<OpenPdfResult>;
@@ -22,6 +29,19 @@ export interface IElectronAPI {
   getPathForFile?: (file: File) => string;
   savePdf: (filePath: string, base64Data: string) => Promise<SavePdfResult>;
   savePdfAs: (defaultName: string, base64Data: string, locale?: string) => Promise<SavePdfResult>;
+  /** Kaynak belgenin klasörü (gerçek bir yolsa), değilse Belgeler klasörü */
+  getDefaultSaveDir: (sourcePath?: string) => Promise<string>;
+  pickFolder: (defaultPath?: string, locale?: string) => Promise<PickFolderResult>;
+  /** Klasörde zaten bulunan adları döndürür */
+  existingFiles: (dir: string, fileNames: string[]) => Promise<string[]>;
+  /** onConflict 'rename' ise mevcut dosyanın üzerine yazılmaz, "ad (2).pdf" kullanılır */
+  writeFileTo: (
+    dir: string,
+    fileName: string,
+    base64Data: string,
+    onConflict?: 'overwrite' | 'rename'
+  ) => Promise<SavePdfResult>;
+  showItemInFolder: (targetPath: string) => Promise<boolean>;
   print: () => Promise<boolean>;
   setHasUnsaved: (hasUnsaved: boolean) => void;
   confirmClose: () => void;

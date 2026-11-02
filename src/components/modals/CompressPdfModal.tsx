@@ -7,6 +7,8 @@ import {
   type CompressionOptions
 } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
 import { t, type MessageKey } from '@/i18n';
 import {
   X,
@@ -39,8 +41,7 @@ export const CompressPdfModal: React.FC = () => {
     setCompressModalOpen,
     tabs,
     activeTabId,
-    updateTab,
-    language
+    updateTab
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -69,6 +70,12 @@ export const CompressPdfModal: React.FC = () => {
     alreadyOptimized: boolean;
   } | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
+  const dest = useSaveDestination({
+    open: compressModalOpen && !!activeTab,
+    suggestedName: activeTab ? `${stripExtension(activeTab.fileName)}_compressed` : 'compressed',
+    sourcePath: activeTab?.filePath
+  });
 
   // Sonuç, kaydırılabilir gövdenin altında kalabilir; görünür alana getir
   useEffect(() => {
@@ -86,6 +93,7 @@ export const CompressPdfModal: React.FC = () => {
 
   const handleClose = () => {
     setCompressionResult(null);
+    setSavedFiles([]);
     setProgress(null);
     setCompressModalOpen(false);
   };
@@ -94,6 +102,7 @@ export const CompressPdfModal: React.FC = () => {
   const changeSetting = (apply: () => void) => {
     apply();
     setCompressionResult(null);
+    setSavedFiles([]);
   };
 
   const buildOptions = (): CompressionOptions => {
@@ -139,38 +148,18 @@ export const CompressPdfModal: React.FC = () => {
     }
   };
 
-  const handleSaveAs = async () => {
-    if (!compressionResult) return;
-    const baseName = activeTab.fileName.replace(/\.pdf$/i, '');
-    const compressedFileName = `${baseName}_compressed.pdf`;
-    const bytes = compressionResult.compressedBytes;
-
-    if (window.electronAPI) {
-      let binary = '';
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const b64 = window.btoa(binary);
-
-      const res = await window.electronAPI.savePdfAs(compressedFileName, b64, language);
-      if (res.success) {
-        handleClose();
-        return;
-      } else if (res.canceled) {
-        return;
-      }
+  const handleSave = async () => {
+    if (!compressionResult || !dest.isValid) return;
+    try {
+      setIsProcessing(true);
+      const saved = await saveBytes(compressionResult.compressedBytes, dest.directory, dest.fileName);
+      setSavedFiles([saved]);
+    } catch (err: any) {
+      console.error('Save error:', err);
+      alert(t('error_generic', { message: err.message }));
+    } finally {
+      setIsProcessing(false);
     }
-
-    // Web/Fallback İndirme
-    const blob = new Blob([bytes as any], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = compressedFileName;
-    a.click();
-    URL.revokeObjectURL(url);
-    handleClose();
   };
 
   const handleApplyToActive = async () => {
@@ -439,6 +428,15 @@ export const CompressPdfModal: React.FC = () => {
             </div>
           )}
           </div>
+
+          {/* Kayıt konumu: sıkıştırılmış kopyanın nereye yazılacağı */}
+          {compressionResult && !compressionResult.alreadyOptimized && (
+            savedFiles.length > 0 ? (
+              <SavedFilesNotice files={savedFiles} />
+            ) : (
+              <SaveDestination dest={dest} disabled={isProcessing} />
+            )
+          )}
         </div>
 
         {/* Butonlar */}
@@ -475,13 +473,16 @@ export const CompressPdfModal: React.FC = () => {
                 <Save className="w-4 h-4" />
                 <span>{t('apply_to_document')}</span>
               </button>
-              <button
-                onClick={handleSaveAs}
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>{t('save_as')}</span>
-              </button>
+              {savedFiles.length === 0 && (
+                <button
+                  onClick={handleSave}
+                  disabled={isProcessing || !dest.isValid}
+                  className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium shadow-md transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{t('save_copy')}</span>
+                </button>
+              )}
             </>
           )}
         </div>

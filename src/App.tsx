@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePdfStore } from './store/usePdfStore';
 import { PdfRenderService } from './services/pdfRenderService';
+import { isRealPath } from './services/fileSaveService';
 import { PdfEditService } from './services/pdfEditService';
 import { TabBar } from './components/layout/TabBar';
 import { HeaderToolbar } from './components/layout/HeaderToolbar';
@@ -412,7 +413,12 @@ export function App() {
         }
         const base64Data = btoa(binary);
 
-        const res = await window.electronAPI.savePdfAs(activeTab.fileName, base64Data, language);
+        // Diyalog belgenin kendi klasöründe açılır (kaydedilmemiş belgede Belgeler klasöründe)
+        const res = await window.electronAPI.savePdfAs(
+          isRealPath(activeTab.filePath) ? activeTab.filePath : activeTab.fileName,
+          base64Data,
+          language
+        );
         if (res.success && res.filePath && res.fileName) {
           updateTab(activeTab.id, {
             filePath: res.filePath,

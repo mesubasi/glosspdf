@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
 import { t } from '@/i18n';
 import {
   X,
@@ -13,8 +15,7 @@ export const ExportImagesModal: React.FC = () => {
     exportImagesModalOpen,
     setExportImagesModalOpen,
     tabs,
-    activeTabId,
-    language
+    activeTabId
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -23,8 +24,22 @@ export const ExportImagesModal: React.FC = () => {
   const [scaleMultiplier, setScaleMultiplier] = useState<number>(2.0); // 2x = Yüksek çözünürlük
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
+  const dest = useSaveDestination({
+    open: exportImagesModalOpen && !!activeTab,
+    suggestedName: activeTab ? stripExtension(activeTab.fileName) : 'Document',
+    sourcePath: activeTab?.filePath
+  });
 
   if (!exportImagesModalOpen || !activeTab) return null;
+
+  const ext = format === 'image/png' ? 'png' : 'jpg';
+  const imageName = (pageNum: number) => `${stripExtension(dest.fileName)}_page_${pageNum}.${ext}`;
+
+  const handleClose = () => {
+    setSavedFiles([]);
+    setExportImagesModalOpen(false);
+  };
 
   const handleExport = async () => {
     try {
@@ -36,6 +51,7 @@ export const ExportImagesModal: React.FC = () => {
           : Array.from({ length: doc.numPages }, (_, i) => i + 1);
 
       setProgress({ current: 0, total: pageNumbers.length });
+      const saved: SavedFile[] = [];
 
       for (let i = 0; i < pageNumbers.length; i++) {
         const pageNum = pageNumbers[i];
@@ -54,18 +70,14 @@ export const ExportImagesModal: React.FC = () => {
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           await page.render({ canvas, viewport }).promise;
 
-          const ext = format === 'image/png' ? 'png' : 'jpg';
-          const dataUrl = canvas.toDataURL(format, 0.95);
-          const fileName = `${activeTab.fileName.replace('.pdf', '')}_sayfa_${pageNum}.${ext}`;
-
-          const a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = fileName;
-          a.click();
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, format, 0.95));
+          if (!blob) throw new Error('Canvas export failed');
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          saved.push(await saveBytes(bytes, dest.directory, imageName(pageNum), { onConflict: 'rename', mimeType: format }));
         }
       }
 
-      setExportImagesModalOpen(false);
+      setSavedFiles(saved);
     } catch (err: any) {
       console.error('Export error:', err);
       alert(t('error_generic', { message: err.message }));
@@ -76,7 +88,7 @@ export const ExportImagesModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
@@ -86,7 +98,7 @@ export const ExportImagesModal: React.FC = () => {
             </h2>
           </div>
           <button
-            onClick={() => setExportImagesModalOpen(false)}
+            onClick={() => handleClose()}
             className="p-1.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -94,7 +106,7 @@ export const ExportImagesModal: React.FC = () => {
         </div>
 
         {/* Gövde */}
-        <div className="p-5 flex-1 flex flex-col space-y-4">
+        <div className="p-5 flex-1 flex flex-col space-y-4 overflow-y-auto">
           {/* Kapsam Seçimi */}
           <div>
             <span className="block font-medium text-slate-600 dark:text-slate-300 mb-1.5">
@@ -187,6 +199,18 @@ export const ExportImagesModal: React.FC = () => {
             </div>
           </div>
 
+          {/* Kayıt konumu / sonuç */}
+          {savedFiles.length > 0 ? (
+            <SavedFilesNotice files={savedFiles} />
+          ) : (
+            <SaveDestination
+              dest={dest}
+              mode="folder"
+              exampleFileName={imageName(exportScope === 'current' ? activeTab.currentPage : 1)}
+              disabled={isProcessing}
+            />
+          )}
+
           {/* İlerleme Durumu */}
           {isProcessing && (
             <div className="p-3 bg-slate-50 dark:bg-acrobat-darkPanel rounded-lg border border-slate-200 dark:border-slate-700 text-center">
@@ -200,19 +224,21 @@ export const ExportImagesModal: React.FC = () => {
         {/* Alt Çubuk */}
         <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <button
-            onClick={() => setExportImagesModalOpen(false)}
+            onClick={() => handleClose()}
             className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
           >
-            {t('cancel')}
+            {savedFiles.length > 0 ? t('close') : t('cancel')}
           </button>
+          {savedFiles.length === 0 && (
           <button
             onClick={handleExport}
-            disabled={isProcessing}
+            disabled={isProcessing || !dest.isValid}
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isProcessing ? t('exporting') : (t('export'))}</span>
+            <span>{isProcessing ? t('exporting') : t('export')}</span>
           </button>
+          )}
         </div>
       </div>
     </div>

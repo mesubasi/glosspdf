@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { PdfEditService } from '../../services/pdfEditService';
+import { saveBytes, stripExtension, type SavedFile } from '../../services/fileSaveService';
+import { SaveDestination, SavedFilesNotice, useSaveDestination } from '../common/SaveDestination';
 import { t } from '@/i18n';
 import {
   X,
@@ -11,14 +13,31 @@ import {
 } from 'lucide-react';
 
 export const SplitPdfModal: React.FC = () => {
-  const { splitModalOpen, setSplitModalOpen, tabs, activeTabId, language } = usePdfStore();
+  const { splitModalOpen, setSplitModalOpen, tabs, activeTabId } = usePdfStore();
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   const [splitMode, setSplitMode] = useState<'all' | 'ranges'>('all');
   const [rangeInput, setRangeInput] = useState('1-2, 3-3');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
+  const dest = useSaveDestination({
+    open: splitModalOpen && !!activeTab,
+    suggestedName: activeTab ? stripExtension(activeTab.fileName) : 'Document',
+    sourcePath: activeTab?.filePath
+  });
 
   if (!splitModalOpen || !activeTab) return null;
+
+  const handleClose = () => {
+    setSavedFiles([]);
+    setSplitModalOpen(false);
+  };
+
+  /** "rapor_page_3.pdf" / "rapor_pages_1-2.pdf" */
+  const partName = (range: { start: number; end: number }) =>
+    range.start === range.end
+      ? `${stripExtension(dest.fileName)}_page_${range.start}.pdf`
+      : `${stripExtension(dest.fileName)}_pages_${range.start}-${range.end}.pdf`;
 
   const handleSplit = async () => {
     try {
@@ -54,22 +73,12 @@ export const SplitPdfModal: React.FC = () => {
 
       const results = await PdfEditService.splitPdf(activeTab.data.slice(), ranges);
 
-      // İndir veya Electron ile kaydet
+      // Seçilen klasöre yaz (mevcut dosyalar korunur, çakışan adlara numara eklenir)
+      const saved: SavedFile[] = [];
       for (let i = 0; i < results.length; i++) {
-        const chunk = results[i];
-        const range = ranges[i];
-        const fileName = `${activeTab.fileName.replace('.pdf', '')}_sayfa_${range.start}-${range.end}.pdf`;
-
-        const blob = new Blob([chunk.buffer as ArrayBuffer], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
+        saved.push(await saveBytes(results[i], dest.directory, partName(ranges[i]), { onConflict: 'rename' }));
       }
-
-      setSplitModalOpen(false);
+      setSavedFiles(saved);
     } catch (err: any) {
       console.error('Split error:', err);
       alert(t('error_generic', { message: err.message }));
@@ -80,7 +89,7 @@ export const SplitPdfModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Başlık */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <div className="flex items-center space-x-2">
@@ -90,7 +99,7 @@ export const SplitPdfModal: React.FC = () => {
             </h2>
           </div>
           <button
-            onClick={() => setSplitModalOpen(false)}
+            onClick={() => handleClose()}
             className="p-1.5 rounded-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -98,11 +107,11 @@ export const SplitPdfModal: React.FC = () => {
         </div>
 
         {/* Gövde */}
-        <div className="p-5 flex-1 flex flex-col space-y-4 text-xs">
+        <div className="p-5 flex-1 flex flex-col space-y-4 text-xs overflow-y-auto">
           <div className="p-3 bg-slate-50 dark:bg-acrobat-darkPanel rounded-lg border border-slate-200 dark:border-slate-700 flex items-center space-x-2 text-slate-600 dark:text-slate-300">
             <FileText className="w-4 h-4 text-slate-400" />
             <span>
-              <strong>{activeTab.fileName}</strong> ({activeTab.numPages} sayfa)
+              <strong>{activeTab.fileName}</strong> ({t('merge_page_count', [activeTab.numPages])})
             </span>
           </div>
 
@@ -160,24 +169,38 @@ export const SplitPdfModal: React.FC = () => {
               )}
             </div>
           </label>
+
+          {/* Kayıt konumu / sonuç */}
+          {savedFiles.length > 0 ? (
+            <SavedFilesNotice files={savedFiles} />
+          ) : (
+            <SaveDestination
+              dest={dest}
+              mode="folder"
+              exampleFileName={partName({ start: 1, end: splitMode === 'all' ? 1 : 2 })}
+              disabled={isProcessing}
+            />
+          )}
         </div>
 
         {/* Alt Çubuk */}
         <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
           <button
-            onClick={() => setSplitModalOpen(false)}
+            onClick={() => handleClose()}
             className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
           >
-            {t('cancel')}
+            {savedFiles.length > 0 ? t('close') : t('cancel')}
           </button>
+          {savedFiles.length === 0 && (
           <button
             onClick={handleSplit}
-            disabled={isProcessing}
+            disabled={isProcessing || !dest.isValid}
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isProcessing ? t('splitting') : (t('split_download'))}</span>
+            <span>{isProcessing ? t('splitting') : t('split_save')}</span>
           </button>
+          )}
         </div>
       </div>
     </div>
