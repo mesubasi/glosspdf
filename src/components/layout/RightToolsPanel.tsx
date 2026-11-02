@@ -46,95 +46,111 @@ export const RightToolsPanel: React.FC = () => {
     setAnnotationModeOpen(true);
   };
 
+  // Adobe gibi her araç kendi renginde; hepsi kırmızı olunca ayırt edilmiyordu
   const tools = [
     {
       id: 'highlight',
       name: t('highlight_text'),
       icon: Highlighter,
+      color: 'text-amber-500',
       action: () => selectAnnotationTool('highlight')
     },
     {
       id: 'note',
       name: t('add_sticky_note'),
       icon: MessageSquare,
+      color: 'text-yellow-500',
       action: () => selectAnnotationTool('note')
     },
     {
       id: 'draw',
       name: t('freehand_drawing'),
       icon: PenTool,
+      color: 'text-orange-500',
       action: () => selectAnnotationTool('draw')
     },
     {
       id: 'rect',
       name: t('draw_rectangle'),
       icon: Square,
+      color: 'text-sky-500',
       action: () => selectAnnotationTool('rect')
     },
     {
       id: 'text',
       name: t('add_text_box'),
       icon: Type,
+      color: 'text-pink-500',
       action: () => selectAnnotationTool('text')
     },
     {
       id: 'edittext',
       name: t('edit_text'),
       icon: TextCursorInput,
+      color: 'text-fuchsia-500',
       action: () => setActiveTool('edittext')
     },
     {
       id: 'organize',
       name: t('organize_pages'),
       icon: Layers,
+      color: 'text-lime-500',
       action: () => setOrganizeModalOpen(true)
     },
     {
       id: 'merge',
       name: t('merge_pdfs'),
       icon: FolderSync,
+      color: 'text-indigo-400',
       action: () => setMergeModalOpen(true)
     },
     {
       id: 'split',
       name: t('split_pdf'),
       icon: Scissors,
+      color: 'text-emerald-500',
       action: () => setSplitModalOpen(true)
     },
     {
       id: 'watermark',
       name: t('stamp_watermark'),
       icon: Stamp,
+      color: 'text-rose-400',
       action: () => setWatermarkModalOpen(true)
     },
     {
       id: 'sign',
       name: t('sign'),
       icon: FileCheck,
+      color: 'text-violet-500',
       action: () => setSignatureModalOpen(true)
     },
     {
       id: 'insertImage',
       name: t('insert_image'),
       icon: ImageIcon,
+      color: 'text-cyan-500',
       action: () => setInsertImageModalOpen(true)
     },
     {
       id: 'exportImages',
       name: t('export_pages_to_images'),
       icon: FileImage,
+      color: 'text-teal-500',
       action: () => setExportImagesModalOpen(true)
     },
     {
       id: 'protect',
       name: t('protect_with_password'),
       icon: Lock,
+      color: 'text-blue-500',
       action: () => setProtectModalOpen(true)
     },
     {
       id: 'compress',
       name: t('compress_pdf'),
       icon: Minimize2,
+      color: 'text-red-500',
       action: () => setCompressModalOpen(true)
     }
   ];
@@ -164,7 +180,7 @@ export const RightToolsPanel: React.FC = () => {
               disabled={!activeTabId && t.id !== 'merge'}
               className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-left text-xs text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
             >
-              <IconComponent className="w-4 h-4 text-red-500 shrink-0" />
+              <IconComponent className={`w-4 h-4 shrink-0 ${t.color}`} />
               <span className="truncate">{t.name}</span>
             </button>
           );
