@@ -329,6 +329,8 @@ export const tr: Record<MessageKey, string> = {
   "edit_text_hint": "Düzenlemek için sayfadaki herhangi bir metne tıklayın · Bitirmek için Esc",
   "sign": "İmzala",
   "place_signature_hint": "İmzanızı yerleştirmek istediğiniz yere tıklayın · İptal için Esc",
+  "place_image_by_click": "Sayfada Tıklayarak Yerleştir",
+  "place_image_hint": "Resmi yerleştirmek istediğiniz yere tıklayın · İptal için Esc",
   "text_edit": "Metin düzenleme",
   "check_for_updates": "Güncellemeleri kontrol et",
   "app_version": "Sürüm {version}",

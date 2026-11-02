@@ -26,7 +26,8 @@ const PALETTE_COLORS: { nameKey: MessageKey; hex: string }[] = [
   { nameKey: 'color_pink', hex: '#e91e63' },
   { nameKey: 'color_orange', hex: '#ff9800' },
   { nameKey: 'color_purple', hex: '#9c27b0' },
-  { nameKey: 'color_red', hex: '#f44336' }
+  { nameKey: 'color_red', hex: '#f44336' },
+  { nameKey: 'color_black', hex: '#000000' }
 ];
 
 const STROKE_WIDTHS = [1, 2, 4, 8];
@@ -40,6 +41,8 @@ export const AnnotationToolbar: React.FC = () => {
     setAnnotationColor,
     annotationStrokeWidth,
     setAnnotationStrokeWidth,
+    highlightOpacity,
+    setHighlightOpacity,
     annotationFontSize,
     setAnnotationFontSize,
     selectedAnnotationId,
@@ -117,6 +120,23 @@ export const AnnotationToolbar: React.FC = () => {
             />
           ))}
         </div>
+
+        {/* Vurgu Opaklığı (Vurgula için) */}
+        {activeTool === 'highlight' && (
+          <div className="flex items-center space-x-1">
+            <span className="text-[10px] text-slate-500">{t('opacity')}</span>
+            <input
+              type="range"
+              min={10}
+              max={100}
+              step={5}
+              value={Math.round(highlightOpacity * 100)}
+              onChange={(e) => setHighlightOpacity(parseInt(e.target.value, 10) / 100)}
+              className="w-20"
+            />
+            <span className="text-[10px] w-8">{Math.round(highlightOpacity * 100)}%</span>
+          </div>
+        )}
 
         {/* Çizgi Kalınlığı (Kalem ve Dikdörtgen için) */}
         {(activeTool === 'draw' || activeTool === 'rect') && (

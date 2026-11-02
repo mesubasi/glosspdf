@@ -329,6 +329,8 @@ export const fr: Record<MessageKey, string> = {
   "edit_text_hint": "Cliquez sur un texte pour le modifier · Échap pour terminer",
   "sign": "Signer",
   "place_signature_hint": "Cliquez à l’endroit où placer votre signature · Échap pour annuler",
+  "place_image_by_click": "Placer en cliquant sur la page",
+  "place_image_hint": "Cliquez à l’endroit où placer l’image · Échap pour annuler",
   "text_edit": "Modification de texte",
   "check_for_updates": "Rechercher des mises à jour",
   "app_version": "Version {version}",

@@ -327,6 +327,8 @@ export const en = {
   "edit_text_hint": "Click any text on the page to edit it · Esc to finish",
   "sign": "Sign",
   "place_signature_hint": "Click where you want to place your signature · Esc to cancel",
+  "place_image_by_click": "Place by Clicking on Page",
+  "place_image_hint": "Click where you want to place the image · Esc to cancel",
   "text_edit": "Text edit",
   "check_for_updates": "Check for updates",
   "app_version": "Version {version}",

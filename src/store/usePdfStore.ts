@@ -39,8 +39,8 @@ interface PdfStoreState {
   currentSearchIndex: number;
   isFullScreen: boolean;
   /** Yerleştirilmeyi bekleyen imza (Adobe "Fill & Sign" tarzı: önce oluştur, sonra sayfada tıkla) */
-  pendingSignature: { dataUrl: string; aspect: number } | null;
-  setPendingSignature: (sig: { dataUrl: string; aspect: number } | null) => void;
+  pendingSignature: { dataUrl: string; aspect: number; isImage?: boolean } | null;
+  setPendingSignature: (sig: { dataUrl: string; aspect: number; isImage?: boolean } | null) => void;
   /** Geri alınabilir bir değişiklik öncesi anlık görüntü al (sürükleme gibi sürekli düzenlemeler için) */
   pushUndoSnapshot: () => void;
   passwordModalOpen: boolean;
@@ -50,6 +50,7 @@ interface PdfStoreState {
   annotationModeOpen: boolean;
   annotationColor: string;
   annotationStrokeWidth: number;
+  highlightOpacity: number;
   annotationFontSize: number;
   selectedAnnotationId: string | null;
 
@@ -103,6 +104,7 @@ interface PdfStoreState {
   setAnnotationModeOpen: (open: boolean) => void;
   setAnnotationColor: (color: string) => void;
   setAnnotationStrokeWidth: (width: number) => void;
+  setHighlightOpacity: (opacity: number) => void;
   setAnnotationFontSize: (size: number) => void;
   setSelectedAnnotationId: (id: string | null) => void;
   addAnnotation: (annotation: AnnotationItem) => void;
@@ -232,6 +234,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   annotationModeOpen: false,
   annotationColor: '#ffeb3b', // Varsayılan fosforlu sarı
   annotationStrokeWidth: 2,
+  highlightOpacity: 0.35,
   annotationFontSize: 14,
   selectedAnnotationId: null,
 
@@ -447,6 +450,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   setAnnotationColor: (color) => set({ annotationColor: color }),
 
   setAnnotationStrokeWidth: (width) => set({ annotationStrokeWidth: width }),
+  setHighlightOpacity: (opacity) => set({ highlightOpacity: opacity }),
 
   setAnnotationFontSize: (size) => set({ annotationFontSize: size }),
 

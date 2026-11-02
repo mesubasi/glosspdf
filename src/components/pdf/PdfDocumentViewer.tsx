@@ -320,7 +320,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
       {((activeTool === 'signature' && pendingSignature) || activeTool === 'edittext') && (
         <div className="sticky top-2 z-40 flex justify-center pointer-events-none">
           <div className="px-4 py-1.5 rounded-full bg-black/80 text-white text-xs shadow-lg">
-            {t(activeTool === 'edittext' ? 'edit_text_hint' : 'place_signature_hint')}
+            {t(activeTool === 'edittext' ? 'edit_text_hint' : pendingSignature?.isImage ? 'place_image_hint' : 'place_signature_hint')}
           </div>
         </div>
       )}

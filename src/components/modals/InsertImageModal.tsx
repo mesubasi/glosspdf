@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { PdfEditService } from '../../services/pdfEditService';
-import { PdfRenderService } from '../../services/pdfRenderService';
+import type { AnnotationItem } from '../../types/pdf';
 import { t } from '@/i18n';
 import {
   X,
@@ -16,7 +15,10 @@ export const InsertImageModal: React.FC = () => {
     setInsertImageModalOpen,
     tabs,
     activeTabId,
-    updateTab,
+    addAnnotation,
+    setSelectedAnnotationId,
+    setPendingSignature,
+    setActiveTool,
     language
   } = usePdfStore();
 
@@ -63,7 +65,7 @@ export const InsertImageModal: React.FC = () => {
     };
   };
 
-  const handleInsert = async () => {
+  const handleInsert = async (byClick = false) => {
     if (!imageBytes) return;
 
     try {
@@ -98,25 +100,36 @@ export const InsertImageModal: React.FC = () => {
           break;
       }
 
-      const updatedBytes = await PdfEditService.insertImage(
-        activeTab.data.slice(),
-        targetPage,
-        imageBytes,
-        isJpg,
-        posX,
-        posY,
-        imgWidth,
-        imgHeight
-      );
-
-      const doc = await PdfRenderService.loadDocument(updatedBytes.slice());
-      const dims = await PdfRenderService.getAllPageDimensions(doc);
-
-      updateTab(activeTab.id, {
-        data: updatedBytes,
-        pageDimensions: dims,
-        isModified: true
+      // PDF'e gömmek yerine anotasyon olarak ekle: Ctrl+Z ile geri alınabilir, taşınıp silinebilir
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = () => reject(fr.error);
+        fr.readAsDataURL(new Blob([imageBytes.slice()],{ type: isJpg ? 'image/jpeg' : 'image/png' }));
       });
+
+      if (byClick) {
+        // Sayfada tıklanan noktaya yerleştir (imza yerleştirme akışı)
+        setPendingSignature({ dataUrl, aspect: imgWidth / imgHeight, isImage: true });
+        setActiveTool('signature');
+        setInsertImageModalOpen(false);
+        setImageBytes(null);
+        setImagePreview(null);
+        return;
+      }
+
+      const newImage: AnnotationItem = {
+        id: `annot-img-${Date.now()}`,
+        pageNumber: targetPage,
+        type: 'signature',
+        color: '#000000',
+        imageData: dataUrl,
+        rect: [posX, posY, imgWidth, imgHeight],
+        createdAt: new Date().toISOString(),
+        author: t('annotation_author_default')
+      };
+      addAnnotation(newImage);
+      setSelectedAnnotationId(newImage.id);
 
       setInsertImageModalOpen(false);
       setImageBytes(null);
@@ -266,7 +279,14 @@ export const InsertImageModal: React.FC = () => {
             {t('cancel')}
           </button>
           <button
-            onClick={handleInsert}
+            onClick={() => handleInsert(true)}
+            disabled={!imageBytes || isProcessing}
+            className="px-4 py-1.5 rounded-sm border border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 font-medium transition-colors disabled:opacity-40"
+          >
+            {t('place_image_by_click')}
+          </button>
+          <button
+            onClick={() => handleInsert()}
             disabled={!imageBytes || isProcessing}
             className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >

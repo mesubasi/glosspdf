@@ -577,7 +577,11 @@ export class PdfEditService {
             if (!item.rect || !item.imageData) break;
             const [x, y, w, h] = item.rect;
             if (!images.has(item.imageData)) {
-              images.set(item.imageData, await doc.embedPng(dataUrlToBytes(item.imageData)));
+              const bytes = dataUrlToBytes(item.imageData);
+              images.set(
+                item.imageData,
+                item.imageData.startsWith('data:image/jpeg') ? await doc.embedJpg(bytes) : await doc.embedPng(bytes)
+              );
             }
             const origin = map.pt(x, y + h);
             page.drawImage(images.get(item.imageData)!, {

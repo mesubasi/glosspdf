@@ -329,6 +329,8 @@ export const es: Record<MessageKey, string> = {
   "edit_text_hint": "Haga clic en un texto para editarlo · Esc para terminar",
   "sign": "Firmar",
   "place_signature_hint": "Haga clic donde quiera colocar su firma · Esc para cancelar",
+  "place_image_by_click": "Colocar haciendo clic en la página",
+  "place_image_hint": "Haga clic donde quiera colocar la imagen · Esc para cancelar",
   "text_edit": "Edición de texto",
   "check_for_updates": "Buscar actualizaciones",
   "app_version": "Versión {version}",

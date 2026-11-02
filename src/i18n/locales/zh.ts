@@ -329,6 +329,8 @@ export const zh: Record<MessageKey, string> = {
   "edit_text_hint": "点击页面上的任意文本进行编辑 · 按 Esc 结束",
   "sign": "签名",
   "place_signature_hint": "点击要放置签名的位置 · 按 Esc 取消",
+  "place_image_by_click": "在页面上点击放置",
+  "place_image_hint": "点击要放置图片的位置 · 按 Esc 取消",
   "text_edit": "文本编辑",
   "check_for_updates": "检查更新",
   "app_version": "版本 {version}",

@@ -329,6 +329,8 @@ export const ar: Record<MessageKey, string> = {
   "edit_text_hint": "انقر على أي نص في الصفحة لتعديله · Esc للإنهاء",
   "sign": "توقيع",
   "place_signature_hint": "انقر حيث تريد وضع توقيعك · Esc للإلغاء",
+  "place_image_by_click": "وضع بالنقر على الصفحة",
+  "place_image_hint": "انقر حيث تريد وضع الصورة · Esc للإلغاء",
   "text_edit": "تعديل نص",
   "check_for_updates": "التحقق من التحديثات",
   "app_version": "الإصدار {version}",

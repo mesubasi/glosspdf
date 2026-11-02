@@ -38,6 +38,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
   const {
     activeTool,
     annotationColor,
+    highlightOpacity,
     annotationStrokeWidth,
     annotationFontSize,
     selectedAnnotationId,
@@ -211,7 +212,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
           pageNumber,
           type: activeTool,
           color: annotationColor,
-          opacity: activeTool === 'highlight' ? 0.35 : 1.0,
+          opacity: activeTool === 'highlight' ? highlightOpacity : 1.0,
           strokeWidth: activeTool === 'highlight' ? 0 : 2,
           rect: [box.x, box.y, box.w, box.h],
           contents: selectedText,
@@ -230,7 +231,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     return () => {
       document.removeEventListener('mouseup', handleTextSelectionMouseUp);
     };
-  }, [activeTool, pageNumber, pxToPt, annotationColor, addAnnotation]);
+  }, [activeTool, pageNumber, pxToPt, annotationColor, highlightOpacity, addAnnotation]);
 
   // Metin Düzenleme Aracı: metin katmanındaki bir parçaya (span) tıklanınca düzenleyiciyi aç
   useEffect(() => {
