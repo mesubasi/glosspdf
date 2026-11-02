@@ -80,7 +80,7 @@ export const CompressPdfModal: React.FC = () => {
   const handleSaveAs = async () => {
     if (!compressionResult) return;
     const baseName = activeTab.fileName.replace(/\.pdf$/i, '');
-    const compressedFileName = `${baseName}_sikistirilmis.pdf`;
+    const compressedFileName = `${baseName}_compressed.pdf`;
     const bytes = compressionResult.compressedBytes;
 
     if (window.electronAPI) {
