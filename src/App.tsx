@@ -609,7 +609,7 @@ export function App() {
       <DocumentPropertiesModal />
       <ShortcutHelpModal />
       <UpdateModal />
-      <UnsavedChangesModal onSave={handleSaveFile} />
+      <UnsavedChangesModal onSave={handleSaveFileAs} />
     </div>
   );
 }

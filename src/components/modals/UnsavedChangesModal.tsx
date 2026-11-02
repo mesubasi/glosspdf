@@ -3,7 +3,7 @@ import { usePdfStore } from '../../store/usePdfStore';
 import { t } from '@/i18n';
 
 interface UnsavedChangesModalProps {
-  /** Etkin sekmeyi kaydeder; kullanıcı vazgeçerse ya da hata olursa sekme değişmiş kalır */
+  /** Etkin sekme için "Farklı Kaydet" penceresini açar; kullanıcı vazgeçerse ya da hata olursa sekme değişmiş kalır */
   onSave: () => Promise<void>;
 }
 
