@@ -1,38 +1,38 @@
 import React from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { t } from '@/i18n';
+import { formatBytes } from '../../services/fileSaveService';
 import {
-  Highlighter,
-  MessageSquare,
-  PenTool,
-  Square,
-  Type,
-  Layers,
+  LayoutGrid,
+  Merge,
   Scissors,
-  X,
-  FileCheck,
+  ImagePlus,
   Stamp,
-  FolderSync,
-  Image as ImageIcon,
-  FileImage,
+  ImageDown,
   Lock,
-  Minimize2,
-  TextCursorInput
+  Shrink,
+  ChevronRight
 } from 'lucide-react';
 
+interface InspectorTool {
+  id: string;
+  name: string;
+  icon: React.ComponentType<any>;
+  /** System Settings tarzı renkli simge kutusu; anlamı etiket taşır */
+  tint: string;
+  action: () => void;
+}
+
+/** Sağ inceleyici: belge bilgisi ve gruplu araçlar (işaretleme araçları yüzen çubukta) */
 export const RightToolsPanel: React.FC = () => {
   const {
     rightPanelOpen,
-    toggleRightPanel,
-    language,
+    tabs,
     activeTabId,
-    setActiveTool,
-    setAnnotationModeOpen,
     setOrganizeModalOpen,
     setMergeModalOpen,
     setSplitModalOpen,
     setWatermarkModalOpen,
-    setSignatureModalOpen,
     setInsertImageModalOpen,
     setExportImagesModalOpen,
     setProtectModalOpen,
@@ -41,151 +41,89 @@ export const RightToolsPanel: React.FC = () => {
 
   if (!rightPanelOpen) return null;
 
-  const selectAnnotationTool = (tool: any) => {
-    setActiveTool(tool);
-    setAnnotationModeOpen(true);
-  };
+  const activeTab = tabs.find((tab) => tab.id === activeTabId);
 
-  // Adobe gibi her araç kendi renginde; hepsi kırmızı olunca ayırt edilmiyordu
-  const tools = [
+  const groups: { title: string; tools: InspectorTool[] }[] = [
     {
-      id: 'highlight',
-      name: t('highlight_text'),
-      icon: Highlighter,
-      color: 'text-amber-500',
-      action: () => selectAnnotationTool('highlight')
+      title: t('section_pages'),
+      tools: [
+        { id: 'organize', name: t('organize_pages'), icon: LayoutGrid, tint: 'bg-[#007AFF]', action: () => setOrganizeModalOpen(true) },
+        { id: 'merge', name: t('merge_pdfs'), icon: Merge, tint: 'bg-[#5856D6]', action: () => setMergeModalOpen(true) },
+        { id: 'split', name: t('split_pdf'), icon: Scissors, tint: 'bg-[#FF9500]', action: () => setSplitModalOpen(true) }
+      ]
     },
     {
-      id: 'note',
-      name: t('add_sticky_note'),
-      icon: MessageSquare,
-      color: 'text-yellow-500',
-      action: () => selectAnnotationTool('note')
+      title: t('section_content'),
+      tools: [
+        { id: 'insertImage', name: t('insert_image'), icon: ImagePlus, tint: 'bg-[#34C759]', action: () => setInsertImageModalOpen(true) },
+        { id: 'watermark', name: t('stamp_watermark'), icon: Stamp, tint: 'bg-[#AF52DE]', action: () => setWatermarkModalOpen(true) },
+        { id: 'exportImages', name: t('export_pages_to_images'), icon: ImageDown, tint: 'bg-[#30B0C7]', action: () => setExportImagesModalOpen(true) }
+      ]
     },
     {
-      id: 'draw',
-      name: t('freehand_drawing'),
-      icon: PenTool,
-      color: 'text-orange-500',
-      action: () => selectAnnotationTool('draw')
-    },
-    {
-      id: 'rect',
-      name: t('draw_rectangle'),
-      icon: Square,
-      color: 'text-sky-500',
-      action: () => selectAnnotationTool('rect')
-    },
-    {
-      id: 'text',
-      name: t('add_text_box'),
-      icon: Type,
-      color: 'text-pink-500',
-      action: () => selectAnnotationTool('text')
-    },
-    {
-      id: 'edittext',
-      name: t('edit_text'),
-      icon: TextCursorInput,
-      color: 'text-fuchsia-500',
-      action: () => setActiveTool('edittext')
-    },
-    {
-      id: 'organize',
-      name: t('organize_pages'),
-      icon: Layers,
-      color: 'text-lime-500',
-      action: () => setOrganizeModalOpen(true)
-    },
-    {
-      id: 'merge',
-      name: t('merge_pdfs'),
-      icon: FolderSync,
-      color: 'text-indigo-400',
-      action: () => setMergeModalOpen(true)
-    },
-    {
-      id: 'split',
-      name: t('split_pdf'),
-      icon: Scissors,
-      color: 'text-emerald-500',
-      action: () => setSplitModalOpen(true)
-    },
-    {
-      id: 'watermark',
-      name: t('stamp_watermark'),
-      icon: Stamp,
-      color: 'text-rose-400',
-      action: () => setWatermarkModalOpen(true)
-    },
-    {
-      id: 'sign',
-      name: t('sign'),
-      icon: FileCheck,
-      color: 'text-violet-500',
-      action: () => setSignatureModalOpen(true)
-    },
-    {
-      id: 'insertImage',
-      name: t('insert_image'),
-      icon: ImageIcon,
-      color: 'text-cyan-500',
-      action: () => setInsertImageModalOpen(true)
-    },
-    {
-      id: 'exportImages',
-      name: t('export_pages_to_images'),
-      icon: FileImage,
-      color: 'text-teal-500',
-      action: () => setExportImagesModalOpen(true)
-    },
-    {
-      id: 'protect',
-      name: t('protect_with_password'),
-      icon: Lock,
-      color: 'text-blue-500',
-      action: () => setProtectModalOpen(true)
-    },
-    {
-      id: 'compress',
-      name: t('compress_pdf'),
-      icon: Minimize2,
-      color: 'text-red-500',
-      action: () => setCompressModalOpen(true)
+      title: t('section_protection_size'),
+      tools: [
+        { id: 'protect', name: t('protect_with_password'), icon: Lock, tint: 'bg-[#8E8E93]', action: () => setProtectModalOpen(true) },
+        { id: 'compress', name: t('compress_pdf'), icon: Shrink, tint: 'bg-[#FF3B30]', action: () => setCompressModalOpen(true) }
+      ]
     }
   ];
 
   return (
-    <div className="w-56 bg-acrobat-panel dark:bg-acrobat-darkPanel border-l border-acrobat-border dark:border-acrobat-darkBorder flex flex-col h-full select-none z-10 shadow-md">
-      {/* Başlık */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-acrobat-border dark:border-acrobat-darkBorder text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-        <span>{t('quick_tools')}</span>
-        <button
-          onClick={toggleRightPanel}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
+    <aside
+      aria-label={t('inspector')}
+      className="w-[272px] shrink-0 h-full overflow-y-auto bg-inspector border-l border-separator text-label text-[13px] select-none"
+    >
+      <div className="flex flex-col gap-2 p-4">
+        {activeTab && (
+          <>
+            <SectionTitle>{t('section_document')}</SectionTitle>
+            <div className="rounded-[10px] bg-group ring-1 ring-group-sep overflow-hidden">
+              <InfoRow label={t('section_pages')} value={String(activeTab.numPages)} />
+              <InfoRow label={t('file_size')} value={formatBytes(activeTab.data.byteLength)} divider />
+            </div>
+          </>
+        )}
 
-      {/* Araç Listesi */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {tools.map((t) => {
-          const IconComponent = t.icon;
-          return (
-            <button
-              key={t.id}
-              onClick={t.action}
-              // Modals stay mounted-but-hidden without a doc, so clicks here would all pop up once a file opens; merge needs no doc.
-              disabled={!activeTabId && t.id !== 'merge'}
-              className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-left text-xs text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <IconComponent className={`w-4 h-4 shrink-0 ${t.color}`} />
-              <span className="truncate">{t.name}</span>
-            </button>
-          );
-        })}
+        {groups.map((group, gi) => (
+          <React.Fragment key={group.title}>
+            <SectionTitle spaced={gi > 0 || !!activeTab}>{group.title}</SectionTitle>
+            <div className="rounded-[10px] bg-group ring-1 ring-group-sep overflow-hidden">
+              {group.tools.map((tool, i) => {
+                const Icon = tool.icon;
+                return (
+                  <button
+                    key={tool.id}
+                    onClick={tool.action}
+                    // Modallar belge yokken de bağlı kalır; tıklamalar belge açılınca hepsini açardı. Birleştir belge istemez.
+                    disabled={!activeTabId && tool.id !== 'merge'}
+                    className={`flex items-center gap-2.5 w-full h-[38px] px-2.5 text-left hover:bg-hover disabled:opacity-40 disabled:hover:bg-transparent ${
+                      i > 0 ? 'border-t border-group-sep' : ''
+                    }`}
+                  >
+                    <span className={`grid place-items-center w-[22px] h-[22px] rounded-md text-white shrink-0 ${tool.tint}`}>
+                      <Icon className="w-[13px] h-[13px]" strokeWidth={2.2} />
+                    </span>
+                    <span className="flex-1 truncate">{tool.name}</span>
+                    <ChevronRight className="w-3 h-3 text-secondary shrink-0" strokeWidth={2.4} />
+                  </button>
+                );
+              })}
+            </div>
+          </React.Fragment>
+        ))}
       </div>
-    </div>
+    </aside>
   );
 };
+
+const SectionTitle: React.FC<{ children: React.ReactNode; spaced?: boolean }> = ({ children, spaced }) => (
+  <h2 className={`mx-1 text-[11px] font-semibold tracking-wide text-secondary ${spaced ? 'mt-3' : ''}`}>{children}</h2>
+);
+
+const InfoRow: React.FC<{ label: string; value: string; divider?: boolean }> = ({ label, value, divider }) => (
+  <div className={`flex items-center justify-between h-8 px-3 ${divider ? 'border-t border-group-sep' : ''}`}>
+    <span className="text-secondary">{label}</span>
+    <span>{value}</span>
+  </div>
+);

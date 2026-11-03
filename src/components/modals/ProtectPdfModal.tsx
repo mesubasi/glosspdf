@@ -144,10 +144,10 @@ export const ProtectPdfModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-md rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
             <Lock className="w-5 h-5 text-amber-500" />
             <h2 className="font-semibold text-sm">
@@ -236,7 +236,7 @@ export const ProtectPdfModal: React.FC = () => {
         </div>
 
         {/* Butonlar */}
-        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             onClick={handleClose}
             disabled={isProcessing}

@@ -404,6 +404,19 @@ export const en = {
   "doc_producer": "PDF producer",
   "pdf_version": "PDF version",
   "page_size": "Page size",
+  "mode_view": "View",
+  "edited": "Edited",
+  "more_options": "More",
+  "inspector": "Inspector",
+  "section_document": "Document",
+  "section_pages": "Pages",
+  "section_content": "Content",
+  "section_protection_size": "Protection & Size",
+  "welcome_title": "Welcome to GlossPDF",
+  "drop_pdf_here": "Drop a PDF here",
+  "or_choose_from_computer": "or choose a file from your computer",
+  "open_pdf": "Open PDF…",
+  "done": "Done",
 };
 
 /** Sözlükteki tüm anahtarların birleşimi (tip güvenliği için). */

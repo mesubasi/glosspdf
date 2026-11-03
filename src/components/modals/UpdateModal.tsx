@@ -41,15 +41,15 @@ export const UpdateModal: React.FC = () => {
   };
 
   const buttonClass =
-    'px-4 py-1.5 rounded-lg bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium transition-colors disabled:opacity-50';
+    'px-4 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-medium transition-colors disabled:opacity-50';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-md rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <RefreshCw className="w-5 h-5 text-acrobat-red" />
+            <RefreshCw className="w-5 h-5 text-accent" />
             <h2 className="font-semibold text-sm">{t('check_for_updates')}</h2>
           </div>
           <button
@@ -82,7 +82,7 @@ export const UpdateModal: React.FC = () => {
                   name="update-mode"
                   checked={autoDownload}
                   onChange={() => changeMode(true)}
-                  className="mt-0.5 accent-acrobat-red"
+                  className="mt-0.5 accent-accent"
                 />
                 <span>{t('update_mode_auto')}</span>
               </label>
@@ -92,7 +92,7 @@ export const UpdateModal: React.FC = () => {
                   name="update-mode"
                   checked={!autoDownload}
                   onChange={() => changeMode(false)}
-                  className="mt-0.5 accent-acrobat-red"
+                  className="mt-0.5 accent-accent"
                 />
                 <span>{t('update_mode_ask')}</span>
               </label>
@@ -101,7 +101,7 @@ export const UpdateModal: React.FC = () => {
         </div>
 
         {/* Alt Bilgi */}
-        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-group-sep bg-sheet">
           {state.status === 'unsupported' ? (
             api?.openReleases && (
               <button onClick={() => api.openReleases()} className={buttonClass}>

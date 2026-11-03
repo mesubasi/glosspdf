@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { ActiveTool } from '../../types/pdf';
 import { t } from '@/i18n';
@@ -8,15 +8,14 @@ import {
   Underline,
   Strikethrough,
   MessageSquare,
-  PenTool,
+  Pencil,
   Square,
   Type,
   EyeOff,
   Undo2,
   Redo2,
   Trash2,
-  MousePointer,
-  X
+  MousePointer2
 } from 'lucide-react';
 
 const PALETTE_COLORS: { nameKey: MessageKey; hex: string }[] = [
@@ -33,6 +32,9 @@ const PALETTE_COLORS: { nameKey: MessageKey; hex: string }[] = [
 const STROKE_WIDTHS = [1, 2, 4, 8];
 const FONT_SIZES = [10, 12, 14, 18, 24];
 
+const Divider = () => <span aria-hidden="true" className="shrink-0 w-px h-5 mx-1.5 bg-group-sep" />;
+
+/** İşaretleme modunda belgenin üstünde yüzen araç kapsülü */
 export const AnnotationToolbar: React.FC = () => {
   const {
     activeTool,
@@ -51,80 +53,94 @@ export const AnnotationToolbar: React.FC = () => {
     activeTabId,
     undo,
     redo,
-    setAnnotationModeOpen,
-    language
+    setAnnotationModeOpen
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const canUndo = (activeTab?.undoStack?.length || 0) > 0;
   const canRedo = (activeTab?.redoStack?.length || 0) > 0;
 
-  const tools: { id: ActiveTool; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'select', label: t('select'), icon: MousePointer },
+  const tools: { id: ActiveTool; label: string; icon: React.ComponentType<any> }[] = [
+    { id: 'select', label: t('select'), icon: MousePointer2 },
     { id: 'highlight', label: t('highlight'), icon: Highlighter },
     { id: 'underline', label: t('underline'), icon: Underline },
     { id: 'strikeout', label: t('strikeout'), icon: Strikethrough },
     { id: 'note', label: t('sticky_note'), icon: MessageSquare },
-    { id: 'draw', label: t('pen'), icon: PenTool },
+    { id: 'draw', label: t('pen'), icon: Pencil },
     { id: 'rect', label: t('rectangle'), icon: Square },
     { id: 'text', label: t('text_box'), icon: Type },
     { id: 'redact', label: t('redact'), icon: EyeOff }
   ];
 
-  return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-[#f0f0f0] dark:bg-[#202020] border-b border-acrobat-border dark:border-acrobat-darkBorder text-slate-700 dark:text-slate-200 select-none text-xs shadow-inner">
-      {/* Sol Grup: Araçlar */}
-      <div className="flex items-center space-x-1">
-        <span className="font-semibold text-slate-500 dark:text-slate-400 mr-2 uppercase tracking-wider text-[11px]">
-          {t('annotate')}:
-        </span>
+  const iconBtn = 'grid place-items-center shrink-0 w-8 h-8 rounded-full transition-colors disabled:opacity-35';
 
-        {tools.map((t) => {
-          const Icon = t.icon;
-          const isActive = activeTool === t.id;
+  // Üzerine gelinen kontrolün adı kapsülün altında gösterilir. Kapsül yatay kaydığı için
+  // (overflow) etiket kapsülün içinde değil dışındaki sarmalayıcıda konumlanır.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [tip, setTip] = useState<{ label: string; x: number } | null>(null);
+  const showTip = (e: React.SyntheticEvent) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('button[aria-label], select[aria-label]');
+    const wrap = wrapRef.current;
+    if (!el || !wrap) return setTip(null);
+    const r = el.getBoundingClientRect();
+    setTip({ label: el.getAttribute('aria-label') || '', x: r.left + r.width / 2 - wrap.getBoundingClientRect().left });
+  };
+  const hideTip = () => setTip(null);
+
+  return (
+    <div ref={wrapRef} className="absolute left-1/2 top-3.5 -translate-x-1/2 z-30 max-w-[calc(100%-2rem)]">
+      <div
+        role="toolbar"
+        aria-label={t('annotate')}
+        onMouseOver={showTip}
+        onFocus={showTip}
+        onMouseLeave={hideTip}
+        onBlur={hideTip}
+        onScroll={hideTip}
+        className="flex items-center h-11 px-1.5 max-w-full overflow-x-auto no-scrollbar rounded-full bg-hud shadow-hud backdrop-blur-xl text-label text-xs select-none whitespace-nowrap"
+      >
+        {tools.map((tool) => {
+          const Icon = tool.icon;
+          const isActive = activeTool === tool.id;
           return (
             <button
-              key={t.id}
-              onClick={() => setActiveTool(t.id)}
-              className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors ${
-                isActive
-                  ? 'bg-acrobat-red text-white font-medium shadow-xs'
-                  : 'hover:bg-black/10 dark:hover:bg-white/10'
+              key={tool.id}
+              onClick={() => setActiveTool(tool.id)}
+              aria-label={tool.label}
+              aria-pressed={isActive}
+              className={`${iconBtn} w-[34px] ${
+                isActive ? 'bg-accent/15 text-accent-text' : 'text-secondary hover:bg-hover hover:text-label'
               }`}
-              title={t.label}
             >
-              <Icon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{t.label}</span>
+              <Icon className="w-[17px] h-[17px]" strokeWidth={1.8} />
             </button>
           );
         })}
-      </div>
 
-      {/* Orta Grup: Renk Paleti ve Özellikler */}
-      <div className="flex items-center space-x-2">
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
+        <Divider />
 
-        {/* Renk Seçimi */}
-        <div className="flex items-center space-x-1 bg-white/70 dark:bg-black/30 p-0.5 rounded-sm border border-slate-300 dark:border-slate-700">
-          {PALETTE_COLORS.map((c) => (
-            <button
-              key={c.hex}
-              onClick={() => setAnnotationColor(c.hex)}
-              style={{ backgroundColor: c.hex }}
-              className={`w-4 h-4 rounded-full transition-transform ${
-                annotationColor.toLowerCase() === c.hex.toLowerCase()
-                  ? 'ring-2 ring-slate-800 dark:ring-white scale-125 z-10'
-                  : 'hover:scale-110'
-              }`}
-              title={t(c.nameKey)}
-            />
-          ))}
+        <div className="flex items-center gap-1.5 px-1">
+          {PALETTE_COLORS.map((c) => {
+            const on = annotationColor.toLowerCase() === c.hex.toLowerCase();
+            return (
+              <button
+                key={c.hex}
+                onClick={() => setAnnotationColor(c.hex)}
+                style={{ backgroundColor: c.hex }}
+                aria-label={t(c.nameKey)}
+                aria-pressed={on}
+                className={`shrink-0 w-[18px] h-[18px] rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.15)] ${
+                  on ? 'ring-2 ring-offset-2 ring-offset-group ring-accent' : 'hover:scale-110 transition-transform'
+                }`}
+              />
+            );
+          })}
         </div>
 
-        {/* Vurgu Opaklığı (Vurgula için) */}
+        {/* Vurgu opaklığı (vurgula) */}
         {activeTool === 'highlight' && (
-          <div className="flex items-center space-x-1">
-            <span className="text-[10px] text-slate-500">{t('opacity')}</span>
+          <label className="flex items-center gap-1.5 shrink-0 ml-1.5 px-1 text-secondary">
+            <span className="text-[11px]">{t('opacity')}</span>
             <input
               type="range"
               min={10}
@@ -132,96 +148,83 @@ export const AnnotationToolbar: React.FC = () => {
               step={5}
               value={Math.round(highlightOpacity * 100)}
               onChange={(e) => setHighlightOpacity(parseInt(e.target.value, 10) / 100)}
+              aria-label={t('opacity')}
               className="w-20"
             />
-            <span className="text-[10px] w-8">{Math.round(highlightOpacity * 100)}%</span>
-          </div>
+            <span className="w-8 text-[11px] tabular-nums text-label">{Math.round(highlightOpacity * 100)}%</span>
+          </label>
         )}
 
-        {/* Çizgi Kalınlığı (Kalem ve Dikdörtgen için) */}
+        {/* Çizgi kalınlığı (kalem ve dikdörtgen) */}
         {(activeTool === 'draw' || activeTool === 'rect') && (
-          <div className="flex items-center space-x-1">
-            <span className="text-[10px] text-slate-500">{t('thickness')}</span>
-            <select
-              value={annotationStrokeWidth}
-              onChange={(e) => setAnnotationStrokeWidth(parseInt(e.target.value, 10))}
-              className="bg-white dark:bg-[#1a1a1a] border border-slate-300 dark:border-slate-700 rounded-sm px-1.5 py-0.5 text-xs outline-hidden"
-            >
-              {STROKE_WIDTHS.map((w) => (
-                <option key={w} value={w}>
-                  {w} px
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={annotationStrokeWidth}
+            onChange={(e) => setAnnotationStrokeWidth(parseInt(e.target.value, 10))}
+            aria-label={t('thickness')}
+            className="shrink-0 h-7 ml-1.5 px-2 rounded-md bg-fill text-label outline-hidden cursor-pointer"
+          >
+            {STROKE_WIDTHS.map((w) => (
+              <option key={w} value={w}>
+                {w} px
+              </option>
+            ))}
+          </select>
         )}
 
-        {/* Yazı Boyutu (Metin Kutusu için) */}
+        {/* Yazı boyutu (metin kutusu) */}
         {activeTool === 'text' && (
-          <div className="flex items-center space-x-1">
-            <span className="text-[10px] text-slate-500">{t('font_size')}</span>
-            <select
-              value={annotationFontSize}
-              onChange={(e) => setAnnotationFontSize(parseInt(e.target.value, 10))}
-              className="bg-white dark:bg-[#1a1a1a] border border-slate-300 dark:border-slate-700 rounded-sm px-1.5 py-0.5 text-xs outline-hidden"
-            >
-              {FONT_SIZES.map((s) => (
-                <option key={s} value={s}>
-                  {s} pt
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={annotationFontSize}
+            onChange={(e) => setAnnotationFontSize(parseInt(e.target.value, 10))}
+            aria-label={t('font_size')}
+            className="shrink-0 h-7 ml-1.5 px-2 rounded-md bg-fill text-label outline-hidden cursor-pointer"
+          >
+            {FONT_SIZES.map((s) => (
+              <option key={s} value={s}>
+                {s} pt
+              </option>
+            ))}
+          </select>
         )}
 
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
+        <Divider />
 
-        {/* Geri Al (Undo) */}
-        <button
-          onClick={undo}
-          disabled={!canUndo}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('undo_ctrl_z')}
-        >
-          <Undo2 className="w-4 h-4" />
+        <button onClick={undo} disabled={!canUndo} aria-label={t('undo_ctrl_z')} className={`${iconBtn} text-secondary hover:bg-hover hover:text-label`}>
+          <Undo2 className="w-4 h-4" strokeWidth={1.8} />
         </button>
-
-        {/* İleri Al (Redo) */}
-        <button
-          onClick={redo}
-          disabled={!canRedo}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('redo_ctrl_y')}
-        >
-          <Redo2 className="w-4 h-4" />
+        <button onClick={redo} disabled={!canRedo} aria-label={t('redo_ctrl_y')} className={`${iconBtn} text-secondary hover:bg-hover hover:text-label`}>
+          <Redo2 className="w-4 h-4" strokeWidth={1.8} />
         </button>
-
-        {/* Seçili Olanı Sil */}
         {selectedAnnotationId && (
           <button
             onClick={() => deleteAnnotation(selectedAnnotationId)}
-            className="flex items-center space-x-1 px-2 py-1 rounded-sm bg-red-500 hover:bg-red-600 text-white transition-colors"
-            title={t('delete_selected_annotation')}
+            aria-label={t('delete_selected_annotation')}
+            className={`${iconBtn} text-red-600 dark:text-red-400 hover:bg-red-500/10`}
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span className="text-[11px]">{t('delete')}</span>
+            <Trash2 className="w-4 h-4" strokeWidth={1.8} />
           </button>
         )}
-      </div>
 
-      {/* Sağ Grup: Araç Çubuğunu Kapat */}
-      <div className="flex items-center">
         <button
           onClick={() => {
             setAnnotationModeOpen(false);
             setActiveTool('select');
           }}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           title={t('close_annotation_toolbar')}
+          className="shrink-0 h-[30px] ml-1.5 px-3.5 rounded-full bg-accent hover:bg-accent-hover text-white text-[13px] font-semibold"
         >
-          <X className="w-4 h-4" />
+          {t('done')}
         </button>
       </div>
+      {tip && (
+        <span
+          role="tooltip"
+          style={{ left: tip.x }}
+          className="absolute top-full mt-1.5 -translate-x-1/2 px-2 py-1 rounded-md bg-label text-window text-[11px] font-medium whitespace-nowrap pointer-events-none shadow-hud"
+        >
+          {tip.label}
+        </span>
+      )}
     </div>
   );
 };

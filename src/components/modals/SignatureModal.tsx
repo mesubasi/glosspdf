@@ -251,7 +251,7 @@ export const SignatureModal: React.FC = () => {
           onClick={() => setPenColor(c.hex)}
           style={{ backgroundColor: c.hex }}
           className={`w-5 h-5 rounded-full border-2 transition-transform ${
-            penColor === c.hex ? 'border-white scale-110 shadow-xs ring-2 ring-red-500' : 'border-transparent'
+            penColor === c.hex ? 'border-white scale-110 shadow-xs ring-2 ring-accent' : 'border-transparent'
           }`}
           title={t(c.labelKey)}
         />
@@ -260,12 +260,12 @@ export const SignatureModal: React.FC = () => {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-lg rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <FileSignature className="w-5 h-5 text-red-500" />
+            <FileSignature className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">{t('create_signature')}</h2>
           </div>
           <button
@@ -285,7 +285,7 @@ export const SignatureModal: React.FC = () => {
                 {saved.map((s) => (
                   <div
                     key={s.id}
-                    className="group relative h-12 px-3 flex items-center rounded-sm border border-slate-300 dark:border-slate-600 bg-white hover:border-red-500 cursor-pointer"
+                    className="group relative h-12 px-3 flex items-center rounded-sm border border-slate-300 dark:border-slate-600 bg-white hover:border-accent cursor-pointer"
                     onClick={() => beginPlacing(s)}
                     title={t('place_signature')}
                   >
@@ -318,7 +318,7 @@ export const SignatureModal: React.FC = () => {
                   onClick={() => setTab(tb.id)}
                   className={`flex items-center space-x-1.5 px-4 py-2 -mb-px border-b-2 font-medium transition-colors ${
                     tab === tb.id
-                      ? 'border-red-500 text-red-600 dark:text-red-400'
+                      ? 'border-accent text-accent-text'
                       : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
@@ -378,7 +378,7 @@ export const SignatureModal: React.FC = () => {
                 value={typedName}
                 onChange={(e) => setTypedName(e.target.value)}
                 autoFocus
-                className="w-full px-3 py-2 rounded-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-hidden focus:border-red-500 text-sm"
+                className="w-full px-3 py-2 rounded-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-hidden focus:border-accent text-sm"
               />
               <div className="grid gap-2">
                 {SCRIPT_FONTS.map((font, i) => (
@@ -388,7 +388,7 @@ export const SignatureModal: React.FC = () => {
                     onClick={() => setFontIndex(i)}
                     style={{ fontFamily: font, color: penColor }}
                     className={`h-14 px-4 rounded border text-2xl text-left truncate bg-white ${
-                      fontIndex === i ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-300 dark:border-slate-600'
+                      fontIndex === i ? 'border-accent ring-1 ring-accent' : 'border-slate-300 dark:border-slate-600'
                     }`}
                   >
                     {typedName.trim() || t('signature')}
@@ -400,7 +400,7 @@ export const SignatureModal: React.FC = () => {
 
           {tab === 'image' && (
             <div className="space-y-3">
-              <label className="flex items-center justify-center h-28 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer hover:border-red-500 bg-white overflow-hidden">
+              <label className="flex items-center justify-center h-28 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer hover:border-accent bg-white overflow-hidden">
                 {imageResult ? (
                   <img src={imageResult.dataUrl} alt="" className="max-h-24 max-w-full object-contain" />
                 ) : (
@@ -425,7 +425,7 @@ export const SignatureModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-group-sep bg-sheet">
           <label className="flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
             <input type="checkbox" checked={saveForLater} onChange={(e) => setSaveForLater(e.target.checked)} />
             <span>{t('save_signature_for_later')}</span>
@@ -440,7 +440,7 @@ export const SignatureModal: React.FC = () => {
             <button
               onClick={handleApply}
               disabled={!canApply}
-              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{t('place_signature')}</span>

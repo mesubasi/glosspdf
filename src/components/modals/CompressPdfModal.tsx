@@ -191,12 +191,12 @@ export const CompressPdfModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-lg max-h-[90vh] rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <Minimize2 className="w-5 h-5 text-indigo-500" />
+            <Minimize2 className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">
               {t('compress_optimize_pdf')}
             </h2>
@@ -212,7 +212,7 @@ export const CompressPdfModal: React.FC = () => {
         {/* Gövde */}
         <div className="p-5 flex-1 flex flex-col space-y-4 overflow-y-auto">
           {/* Mevcut Durum */}
-          <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 flex items-center justify-between">
+          <div className="bg-slate-50 dark:bg-black/20 border border-group-sep rounded-lg p-3.5 flex items-center justify-between">
             <div>
               <span className="text-slate-400 block text-[11px]">
                 {t('current_file_size')}
@@ -245,7 +245,7 @@ export const CompressPdfModal: React.FC = () => {
                 key={value}
                 className={`flex items-start space-x-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
                   level === value
-                    ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-950/20'
+                    ? 'border-accent bg-accent/10'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-acrobat-darkPanel'
                 }`}
               >
@@ -255,7 +255,7 @@ export const CompressPdfModal: React.FC = () => {
                   checked={level === value}
                   disabled={isProcessing}
                   onChange={() => changeSetting(() => setLevel(value))}
-                  className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                  className="mt-0.5 text-accent-text focus:ring-accent"
                 />
                 <div>
                   <div className="font-semibold text-slate-800 dark:text-slate-200">{t(`compression_${value}`)}</div>
@@ -271,7 +271,7 @@ export const CompressPdfModal: React.FC = () => {
               <label className="flex flex-col space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-700 dark:text-slate-200">{t('compression_max_resolution')}</span>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400">{customMaxSide} px</span>
+                  <span className="font-mono text-accent-text">{customMaxSide} px</span>
                 </div>
                 <input
                   type="range"
@@ -281,13 +281,13 @@ export const CompressPdfModal: React.FC = () => {
                   value={customMaxSide}
                   disabled={isProcessing}
                   onChange={(e) => changeSetting(() => setCustomMaxSide(Number(e.target.value)))}
-                  className="accent-indigo-600"
+                  className="accent-accent"
                 />
               </label>
               <label className="flex flex-col space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-700 dark:text-slate-200">{t('compression_image_quality')}</span>
-                  <span className="font-mono text-indigo-600 dark:text-indigo-400">{customQuality}%</span>
+                  <span className="font-mono text-accent-text">{customQuality}%</span>
                 </div>
                 <input
                   type="range"
@@ -297,7 +297,7 @@ export const CompressPdfModal: React.FC = () => {
                   value={customQuality}
                   disabled={isProcessing}
                   onChange={(e) => changeSetting(() => setCustomQuality(Number(e.target.value)))}
-                  className="accent-indigo-600"
+                  className="accent-accent"
                 />
               </label>
             </div>
@@ -333,7 +333,7 @@ export const CompressPdfModal: React.FC = () => {
                               : setCleanup((c) => ({ ...c, [key]: e.target.checked }))
                           )
                         }
-                        className="mt-0.5 rounded-sm text-indigo-600 focus:ring-indigo-500"
+                        className="mt-0.5 rounded-sm text-accent-text focus:ring-accent"
                       />
                       <div>
                         <div className="text-slate-800 dark:text-slate-200">{t(label)}</div>
@@ -354,7 +354,7 @@ export const CompressPdfModal: React.FC = () => {
               </div>
               <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                 <div
-                  className="h-full bg-indigo-500 transition-all duration-150"
+                  className="h-full bg-accent transition-all duration-150"
                   style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
                 />
               </div>
@@ -427,7 +427,7 @@ export const CompressPdfModal: React.FC = () => {
         </div>
 
         {/* Butonlar */}
-        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             onClick={handleClose}
             disabled={isProcessing}
@@ -440,7 +440,7 @@ export const CompressPdfModal: React.FC = () => {
             <button
               onClick={handleRunCompression}
               disabled={isProcessing}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium shadow-md transition-colors"
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-medium shadow-md transition-colors"
             >
               <Sparkles className="w-4 h-4" />
               <span>
@@ -464,7 +464,7 @@ export const CompressPdfModal: React.FC = () => {
                 <button
                   onClick={handleSave}
                   disabled={isProcessing}
-                  className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium shadow-md transition-colors"
+                  className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-medium shadow-md transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   <span>{t('save_copy')}</span>

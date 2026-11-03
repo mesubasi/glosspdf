@@ -84,12 +84,12 @@ export const ExportImagesModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-md max-h-[90vh] rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <FileImage className="w-5 h-5 text-red-500" />
+            <FileImage className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">
               {t('export_pages_as_images')}
             </h2>
@@ -115,7 +115,7 @@ export const ExportImagesModal: React.FC = () => {
                 onClick={() => setExportScope('current')}
                 className={`p-2.5 rounded-lg border font-medium text-center transition-colors ${
                   exportScope === 'current'
-                    ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                    ? 'border-accent bg-accent/10 text-accent-text'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
@@ -128,7 +128,7 @@ export const ExportImagesModal: React.FC = () => {
                 onClick={() => setExportScope('all')}
                 className={`p-2.5 rounded-lg border font-medium text-center transition-colors ${
                   exportScope === 'all'
-                    ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                    ? 'border-accent bg-accent/10 text-accent-text'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
@@ -149,7 +149,7 @@ export const ExportImagesModal: React.FC = () => {
                 onClick={() => setFormat('image/png')}
                 className={`py-2 px-3 rounded-lg border font-medium transition-colors ${
                   format === 'image/png'
-                    ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                    ? 'border-accent bg-accent/10 text-accent-text'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
@@ -160,7 +160,7 @@ export const ExportImagesModal: React.FC = () => {
                 onClick={() => setFormat('image/jpeg')}
                 className={`py-2 px-3 rounded-lg border font-medium transition-colors ${
                   format === 'image/jpeg'
-                    ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                    ? 'border-accent bg-accent/10 text-accent-text'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
@@ -186,7 +186,7 @@ export const ExportImagesModal: React.FC = () => {
                   onClick={() => setScaleMultiplier(res.scale)}
                   className={`py-1.5 rounded border text-center font-medium transition-colors ${
                     scaleMultiplier === res.scale
-                      ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                      ? 'border-accent bg-accent/10 text-accent-text'
                       : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -200,8 +200,8 @@ export const ExportImagesModal: React.FC = () => {
 
           {/* İlerleme Durumu */}
           {isProcessing && (
-            <div className="p-3 bg-slate-50 dark:bg-acrobat-darkPanel rounded-lg border border-slate-200 dark:border-slate-700 text-center">
-              <span className="font-semibold text-red-500">
+            <div className="p-3 bg-sheet rounded-lg border border-slate-200 dark:border-slate-700 text-center">
+              <span className="font-semibold text-accent-text">
                 {t('exporting_pages', [progress.current, progress.total])}
               </span>
             </div>
@@ -209,7 +209,7 @@ export const ExportImagesModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             onClick={() => handleClose()}
             className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
@@ -220,7 +220,7 @@ export const ExportImagesModal: React.FC = () => {
           <button
             onClick={handleExport}
             disabled={isProcessing}
-            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
+            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
             <span>{isProcessing ? t('exporting') : t('export')}</span>

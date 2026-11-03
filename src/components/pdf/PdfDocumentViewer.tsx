@@ -1,9 +1,9 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { usePdfStore, MAX_ZOOM } from '../../store/usePdfStore';
 import { PdfPage } from './PdfPage';
 import { SearchBar } from './SearchBar';
 import * as pdfjsLib from 'pdfjs-dist';
-import { FileUp, UploadCloud, FileText, Clock, Trash2, FolderOpen, X } from 'lucide-react';
+import { Upload, FileText, FolderOpen, X } from 'lucide-react';
 import { t } from '@/i18n';
 
 interface PdfDocumentViewerProps {
@@ -34,7 +34,8 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     clearRecentFiles,
     removeRecentFile,
     pageLayout,
-    showCoverPage
+    showCoverPage,
+    setMergeModalOpen
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -122,15 +123,105 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [handleScroll, containerRef, activeTab?.zoom, activeTab?.rotation]);
 
-  // Ctrl + Fare Tekerleği ile Odaklı Zoom
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!e.ctrlKey || !activeTab) return;
-    e.preventDefault();
+  // Yumuşak yakınlaştırma: görünen ölçek (--z) her karede yalnızca CSS ile değişir; sayfalar
+  // yakınlaştırma durunca yeni ölçekte arka planda yeniden çizilir. İmleç (tekerlek) ya da ekran
+  // ortası (düğmeler, kısayollar) altındaki nokta yerinde kalır.
+  const targetZoom = activeTab?.zoom ?? 1;
+  const listRef = useRef<HTMLDivElement>(null);
+  const displayZoomRef = useRef(targetZoom);
+  const anchorRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
+  const tabIdRef = useRef(activeTab?.id);
+  const [renderZoom, setRenderZoom] = useState(targetZoom);
 
-    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-    const newZoom = Math.max(0.0833, Math.min(activeTab.zoom * zoomFactor, MAX_ZOOM));
-    setZoom(parseFloat(newZoom.toFixed(3)));
-  };
+  const applyDisplayZoom = useCallback(
+    (z: number, anchor: { x: number; y: number } | null) => {
+      displayZoomRef.current = z;
+      const container = containerRef.current;
+      const list = listRef.current;
+      if (!container || !list) return;
+      const ax = anchor?.x ?? container.clientWidth / 2;
+      const ay = anchor?.y ?? container.clientHeight / 2;
+      const cx = container.scrollLeft + ax;
+      const cy = container.scrollTop + ay;
+      // Sayfa araları ölçeklenmediği için konum, odak noktasının bulunduğu sayfaya göre korunur
+      const pages = list.querySelectorAll<HTMLElement>('[data-page-number]');
+      let page: HTMLElement | null = null;
+      for (const p of pages) {
+        if (p.offsetTop + p.offsetHeight >= cy) {
+          page = p;
+          break;
+        }
+      }
+      page ??= pages[pages.length - 1] ?? null;
+      const fx = page ? (cx - page.offsetLeft) / page.offsetWidth : 0;
+      const fy = page ? (cy - page.offsetTop) / page.offsetHeight : 0;
+      list.style.setProperty('--z', String(z));
+      if (page) {
+        container.scrollLeft = page.offsetLeft + fx * page.offsetWidth - ax;
+        container.scrollTop = page.offsetTop + fy * page.offsetHeight - ay;
+      }
+    },
+    [containerRef]
+  );
+
+  // Boyama öncesi çalışır: sekme değişiminde yeni sekme bir kare bile eski ölçekle görünmez
+  useLayoutEffect(() => {
+    // Sekme değişince animasyon yok
+    if (tabIdRef.current !== activeTab?.id) {
+      tabIdRef.current = activeTab?.id;
+      displayZoomRef.current = targetZoom;
+      listRef.current?.style.setProperty('--z', String(targetZoom));
+      setRenderZoom(targetZoom);
+      return;
+    }
+    const from = displayZoomRef.current;
+    const anchor = anchorRef.current?.zoom === targetZoom ? anchorRef.current : null;
+    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180;
+    const start = performance.now();
+    let frame = 0;
+    const step = (now: number) => {
+      // rAF zaman damgası karenin başlangıcıdır ve `start`tan önce olabilir; negatif ilerleme
+      // yakınlaştırırken bir an uzaklaştırıyordu, bu yüzden 0'ın altına inmez
+      const p = duration ? Math.min(1, Math.max(0, (now - start) / duration)) : 1;
+      const eased = 1 - Math.pow(1 - p, 3);
+      applyDisplayZoom(from + (targetZoom - from) * eased, anchor);
+      if (p < 1) frame = requestAnimationFrame(step);
+    };
+    if (from !== targetZoom) frame = requestAnimationFrame(step);
+    // Keskin çizim, yakınlaştırma durduktan sonra (tekerlekte her çentikte değil)
+    const timer = setTimeout(() => {
+      // Pencere arka plandayken rAF durur; görünen ölçek hedefte değilse burada tamamlanır
+      if (displayZoomRef.current !== targetZoom) applyDisplayZoom(targetZoom, anchor);
+      setRenderZoom(targetZoom);
+    }, duration + 150);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [targetZoom, activeTab?.id, applyDisplayZoom]);
+
+  // Ctrl + tekerlek / dokunmatik yüzey kıstırma. React'in wheel dinleyicisi pasif olduğundan
+  // preventDefault çalışmaz ve sayfa aynı anda kayardı; bu yüzden yerel, pasif olmayan dinleyici.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      const { tabs: allTabs, activeTabId: id } = usePdfStore.getState();
+      const tab = allTabs.find((tb) => tb.id === id);
+      if (!tab) return;
+      e.preventDefault();
+      // Tekerlek çentiği (~100) ≈ %22; kıstırmanın küçük adımları orantılı ve akıcı kalır
+      const delta = Math.max(-100, Math.min(100, e.deltaY));
+      const newZoom = parseFloat(Math.max(0.0833, Math.min(tab.zoom * Math.exp(-delta * 0.002), MAX_ZOOM)).toFixed(3));
+      if (newZoom === tab.zoom) return;
+      const rect = el.getBoundingClientRect();
+      anchorRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top, zoom: newZoom };
+      setZoom(newZoom);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [containerRef, activeTab?.id, setZoom]);
 
   // El Aracı (Pan) Mouse Event İşleyicileri
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -182,107 +273,96 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     }
   };
 
-  // Açık Belge Yoksa Boş Karşılama Ekranı
+  // Açık Belge Yoksa Karşılama Ekranı
   if (!activeTab) {
     return (
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`flex-1 flex flex-col items-center justify-center p-6 bg-acrobat-bg dark:bg-acrobat-darkBg text-slate-300 transition-colors overflow-y-auto ${
-          isDraggingFile ? 'ring-4 ring-acrobat-red ring-inset bg-black/40' : ''
-        }`}
+        className="flex-1 overflow-y-auto bg-window text-label"
       >
-        <div className="max-w-xl w-full flex flex-col items-center space-y-6">
-          {/* Logo & Başlık Alanı */}
-          <div className="flex flex-col items-center text-center">
-            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="GlossPDF" className="w-16 h-16 rounded-2xl shadow-xl mb-3" />
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Gloss<span className="text-acrobat-red">PDF</span>
-            </h1>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm">
+        <div className="w-full max-w-[960px] mx-auto px-6 pt-14 pb-12 flex flex-col gap-10">
+          <div className="flex flex-col items-center gap-3.5 text-center">
+            <img
+              src={`${import.meta.env.BASE_URL}logo.png`}
+              alt=""
+              className="w-[76px] h-[76px] rounded-[18px] shadow-[0_1px_2px_rgba(0,0,0,0.12),0_10px_24px_rgba(0,0,0,0.14)]"
+            />
+            <h1 className="mt-1.5 text-[26px] font-bold tracking-tight">{t('welcome_title')}</h1>
+            <p className="max-w-[460px] text-[15px] text-secondary">
               {t('fast_modern_and_privacy_respecting_desktop_pdf_workstati')}
             </p>
           </div>
 
-          {/* Sürükle Bırak / Dosya Aç Kartı */}
-          <div className="w-full border-2 border-dashed border-slate-500/40 rounded-2xl p-6 flex flex-col items-center text-center bg-black/15 backdrop-blur-xs shadow-lg">
-            <div className="w-12 h-12 rounded-full bg-acrobat-red/10 flex items-center justify-center text-acrobat-red mb-3">
-              <UploadCloud className="w-6 h-6" />
+          {/* Sürükle-bırak alanı */}
+          <div
+            className={`flex flex-col items-center justify-center gap-2.5 min-h-[184px] px-6 py-7 rounded-2xl border-[1.5px] border-dashed text-center transition-colors ${
+              isDraggingFile ? 'border-accent bg-accent/10' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-white/[0.03]'
+            }`}
+          >
+            <Upload className="w-[30px] h-[30px] text-secondary" strokeWidth={1.6} />
+            <span className="text-[15px] font-semibold">{t('drop_pdf_here')}</span>
+            <span className="text-xs text-secondary">{t('or_choose_from_computer')}</span>
+            <div className="flex flex-wrap justify-center gap-2 mt-2">
+              <button
+                onClick={onOpenFile}
+                className="flex items-center gap-2 h-[30px] px-4 rounded-[7px] bg-accent hover:bg-accent-hover text-white text-[13px] font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
+              >
+                <FolderOpen className="w-4 h-4" strokeWidth={1.8} />
+                {t('open_pdf')}
+              </button>
+              <button
+                onClick={() => setMergeModalOpen(true)}
+                className="h-[30px] px-4 rounded-[7px] bg-group text-label text-[13px] shadow-btn hover:bg-hover"
+              >
+                {t('merge_pdfs')}
+              </button>
             </div>
-
-            <p className="text-xs text-slate-300 mb-4">
-              {t('drag_and_drop_your_pdf_here_or_select_from_your_computer')}
-            </p>
-
-            <button
-              onClick={onOpenFile}
-              className="flex items-center space-x-2 px-6 py-2.5 bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium text-xs rounded-xl shadow-lg hover:shadow-red-500/25 transition-all active:scale-95 cursor-pointer"
-            >
-              <FileUp className="w-4 h-4" />
-              <span>{t('open_file_ctrl_o')}</span>
-            </button>
           </div>
 
-          {/* Son Açılan Belgeler (Recent Files) */}
+          {/* Son Açılan Belgeler */}
           {recentFiles.length > 0 && (
-            <div className="w-full bg-black/20 border border-slate-700/50 rounded-2xl p-4 shadow-md text-left">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/50">
-                <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-300">
-                  <Clock className="w-3.5 h-3.5 text-acrobat-red" />
-                  <span>{t('recent_documents')}</span>
-                </div>
-                <button
-                  onClick={clearRecentFiles}
-                  className="flex items-center space-x-1 text-[11px] text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
-                  title={t('clear_recent_list')}
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span>{t('clear')}</span>
+            <section className="flex flex-col gap-3.5">
+              <div className="flex items-baseline justify-between">
+                <h2 className="text-[17px] font-semibold">{t('recent_documents')}</h2>
+                <button onClick={clearRecentFiles} className="h-6 px-1.5 text-[13px] text-accent-text hover:underline">
+                  {t('clear_recent_list')}
                 </button>
               </div>
-
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {recentFiles.map((file, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => onOpenRecentFile && onOpenRecentFile(file.filePath, file.fileName)}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/10 active:bg-white/15 transition-colors cursor-pointer group select-none"
-                  >
-                    <div className="flex items-center space-x-2.5 overflow-hidden flex-1 min-w-0 mr-2">
-                      <FileText className="w-4 h-4 text-acrobat-red shrink-0" />
-                      <div className="truncate">
-                        <span className="text-xs font-medium text-slate-200 group-hover:text-white block truncate">
-                          {file.fileName}
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-5">
+                {recentFiles.map((file) => (
+                  <div key={file.filePath} className="group relative">
+                    <button
+                      onClick={() => onOpenRecentFile && onOpenRecentFile(file.filePath, file.fileName)}
+                      title={file.filePath}
+                      className="flex flex-col gap-2 w-full text-left"
+                    >
+                      <span className="flex justify-center items-end w-full h-[148px] pt-4 rounded-[10px] bg-sidebar overflow-hidden group-hover:ring-2 group-hover:ring-accent transition-shadow">
+                        <span className="flex items-start justify-center w-[100px] h-[132px] pt-9 bg-white rounded-t-[3px] shadow-[0_0_0_1px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.08)]">
+                          <FileText className="w-8 h-8 text-slate-300" strokeWidth={1.4} />
                         </span>
-                        <span className="text-[10px] text-slate-500 block truncate" title={file.filePath}>
-                          {file.filePath}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-1.5 shrink-0">
-                      <span className="text-[10px] text-slate-500">
-                        {new Date(file.lastOpened).toLocaleDateString([], {
-                          month: 'short',
-                          day: 'numeric'
-                        })}
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeRecentFile(file.filePath);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded-sm hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"
-                        title={t('remove_from_list')}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
+                      <span className="flex flex-col gap-px px-0.5 min-w-0">
+                        <span className="text-[13px] font-medium truncate">{file.fileName}</span>
+                        <span className="text-[11px] text-secondary">
+                          {new Date(file.lastOpened).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRecentFile(file.filePath)}
+                      className="absolute top-2 right-2 grid place-items-center w-6 h-6 rounded-full bg-hud shadow-hud text-secondary hover:text-label opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                      title={t('remove_from_list')}
+                      aria-label={t('remove_from_list')}
+                    >
+                      <X className="w-3.5 h-3.5" strokeWidth={2.2} />
+                    </button>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
         </div>
       </div>
@@ -292,10 +372,10 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   // Belge seçildi ancak PDF.js motoru hazırlanıyorsa yükleniyor göstergesi
   if (!pdfDocument) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-acrobat-bg dark:bg-acrobat-darkBg text-slate-300">
-        <div className="flex flex-col items-center space-y-3 bg-black/20 px-8 py-6 rounded-xl backdrop-blur-xs shadow-lg">
-          <div className="w-8 h-8 border-3 border-acrobat-red border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-medium text-slate-300">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-canvas text-secondary">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 border-[2.5px] border-accent border-t-transparent rounded-full animate-spin" />
+          <span className="text-[13px] font-medium">
             {t('preparing_document')}
           </span>
         </div>
@@ -307,21 +387,20 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   return (
     <div
       ref={containerRef}
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative flex-1 overflow-auto bg-acrobat-bg dark:bg-acrobat-darkBg p-4 ${
+      className={`relative flex-1 overflow-auto bg-canvas p-4 ${
         activeTool === 'hand' ? 'cursor-grab active:cursor-grabbing select-none' : 'cursor-default'
       }`}
     >
       {/* Araç ipucu: imza yerleştirme / metin düzenleme */}
       {((activeTool === 'signature' && pendingSignature) || activeTool === 'edittext') && (
         <div className="sticky top-2 z-40 flex justify-center pointer-events-none">
-          <div className="px-4 py-1.5 rounded-full bg-black/80 text-white text-xs shadow-lg">
+          <div className="px-4 py-1.5 rounded-full bg-hud shadow-hud backdrop-blur-xl text-label text-xs">
             {t(activeTool === 'edittext' ? 'edit_text_hint' : pendingSignature?.isImage ? 'place_image_hint' : 'place_signature_hint')}
           </div>
         </div>
@@ -340,10 +419,13 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
 
       {/* Sayfa Listesi */}
       <div
+        // --z yalnızca applyDisplayZoom ile yazılır; React'e verilseydi animasyon sırasındaki her yeniden
+        // çizim (ör. kaydırmayla sayfa no. değişince) eski, daha küçük değeri geri yazar ve sayfa bir an küçülürdü
+        ref={listRef}
         className={
           pageLayout === 'two'
-            ? 'grid grid-cols-[repeat(2,max-content)] justify-center items-start gap-x-4 min-w-max pb-12'
-            : 'flex flex-col items-center min-w-max pb-12'
+            ? 'grid grid-cols-[repeat(2,max-content)] justify-center items-start gap-x-4 min-w-max pb-24'
+            : 'flex flex-col items-center min-w-max pb-24'
         }
       >
         {/* Kapak sayfası: ilk sayfa sağ sütunda tek başına durur */}
@@ -354,7 +436,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
             pageNumber={dimension.pageNumber}
             pdfDocument={pdfDocument}
             dimension={dimension}
-            scale={activeTab.zoom}
+            scale={renderZoom}
             rotation={activeTab.rotation}
             isVisible={visiblePages.includes(dimension.pageNumber)}
           />

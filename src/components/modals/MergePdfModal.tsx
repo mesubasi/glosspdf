@@ -216,17 +216,17 @@ export const MergePdfModal: React.FC = () => {
   const optionClass = (selected: boolean) =>
     `flex items-start space-x-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
       selected
-        ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20'
+        ? 'border-accent bg-accent/10'
         : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-acrobat-darkPanel'
     }`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-2xl max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-2xl max-h-[90vh] rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-red-500" />
+            <Layers className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">{t('merge_pdf_files')}</h2>
           </div>
           <button
@@ -255,16 +255,16 @@ export const MergePdfModal: React.FC = () => {
                     {items.map((item, idx) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-acrobat-darkPanel rounded-lg border border-slate-200 dark:border-slate-700"
+                        className="flex items-center justify-between p-2.5 bg-sheet rounded-lg border border-slate-200 dark:border-slate-700"
                       >
                         <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-3" title={item.path || item.name}>
-                          <span className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                          <span className="w-5 h-5 rounded-full bg-accent/10 text-accent-text flex items-center justify-center text-[10px] font-bold shrink-0">
                             {idx + 1}
                           </span>
                           <FileText className="w-4 h-4 text-slate-400 shrink-0" />
                           <span className="truncate font-medium text-slate-700 dark:text-slate-200">{item.name}</span>
                           {item.source.kind === 'tab' && item.source.tabId === activeTabId && (
-                            <span className="px-1.5 py-px rounded-sm bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-semibold shrink-0">
+                            <span className="px-1.5 py-px rounded-sm bg-accent/10 text-accent-text text-[10px] font-semibold shrink-0">
                               {t('merge_current_document')}
                             </span>
                           )}
@@ -316,9 +316,9 @@ export const MergePdfModal: React.FC = () => {
                         onClick={() => addOpenTab(tab)}
                         disabled={isProcessing}
                         title={tab.filePath}
-                        className="flex items-center space-x-1 max-w-[240px] px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 hover:border-red-500 hover:bg-red-50/40 dark:hover:bg-red-950/20 transition-colors"
+                        className="flex items-center space-x-1 max-w-[240px] px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 hover:border-accent hover:bg-accent/10 dark:hover:bg-red-950/20 transition-colors"
                       >
-                        <Plus className="w-3 h-3 text-red-500 shrink-0" />
+                        <Plus className="w-3 h-3 text-accent-text shrink-0" />
                         <span className="truncate">{tab.fileName}</span>
                       </button>
                     ))}
@@ -335,8 +335,8 @@ export const MergePdfModal: React.FC = () => {
                 }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-50 dark:bg-acrobat-darkPanel/50 ${
-                  isDragging ? 'border-red-500' : 'border-slate-300 dark:border-slate-700 hover:border-red-500'
+                className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-colors bg-sheet/50 ${
+                  isDragging ? 'border-red-500' : 'border-slate-300 dark:border-slate-700 hover:border-accent'
                 }`}
               >
                 <UploadCloud className="w-7 h-7 text-slate-400 mb-1.5" />
@@ -364,7 +364,7 @@ export const MergePdfModal: React.FC = () => {
                       checked={outputMode === 'save'}
                       onChange={() => setOutputMode('save')}
                       disabled={isProcessing}
-                      className="mt-0.5 text-red-600 focus:ring-red-500"
+                      className="mt-0.5 accent-accent"
                     />
                     <div>
                       <div className="font-semibold text-slate-800 dark:text-slate-200">{t('merge_output_save')}</div>
@@ -378,7 +378,7 @@ export const MergePdfModal: React.FC = () => {
                       checked={outputMode === 'tab'}
                       onChange={() => setOutputMode('tab')}
                       disabled={isProcessing}
-                      className="mt-0.5 text-red-600 focus:ring-red-500"
+                      className="mt-0.5 accent-accent"
                     />
                     <div>
                       <div className="font-semibold text-slate-800 dark:text-slate-200">{t('merge_output_tab')}</div>
@@ -395,7 +395,7 @@ export const MergePdfModal: React.FC = () => {
                     checked={openAfterSave}
                     onChange={(e) => setOpenAfterSave(e.target.checked)}
                     disabled={isProcessing}
-                    className="rounded-sm text-red-600 focus:ring-red-500"
+                    className="rounded-sm accent-accent"
                   />
                   <span>{t('merge_open_after_save')}</span>
                 </label>
@@ -405,7 +405,7 @@ export const MergePdfModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             onClick={handleClose}
             disabled={isProcessing}
@@ -417,7 +417,7 @@ export const MergePdfModal: React.FC = () => {
             <button
               onClick={handleMerge}
               disabled={items.length < 2 || isProcessing}
-              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
             >
               {outputMode === 'save' ? <Save className="w-3.5 h-3.5" /> : <PanelTop className="w-3.5 h-3.5" />}
               <span>

@@ -71,7 +71,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
   if (!searchBarOpen) return null;
 
   return (
-    <div className="absolute top-3 right-5 z-30 flex items-center bg-white dark:bg-acrobat-darkPanel border border-acrobat-border dark:border-acrobat-darkBorder rounded-md shadow-xl px-2.5 py-1.5 space-x-2 text-xs select-none">
+    <div className="absolute top-3.5 right-5 z-30 flex items-center h-11 bg-hud shadow-hud backdrop-blur-xl rounded-full pl-4 pr-2 space-x-2 text-xs text-label select-none">
       <Search className="w-4 h-4 text-slate-400 shrink-0" />
 
       {/* Arama Girişi */}
@@ -93,7 +93,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
             setSearchBarOpen(false);
           }
         }}
-        className="w-44 bg-transparent border-none outline-hidden text-slate-800 dark:text-slate-100 placeholder-slate-400"
+        className="w-44 bg-transparent border-none outline-hidden text-[13px] text-label placeholder:text-secondary"
       />
 
       {/* Sonuç Sayısı */}
@@ -109,7 +109,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ pdfDocument, onJumpToPage 
       <button
         onClick={() => setMatchCase(!matchCase)}
         className={`p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-          matchCase ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : 'text-slate-400'
+          matchCase ? 'bg-black/15 dark:bg-white/15 text-accent' : 'text-slate-400'
         }`}
         title={t('match_case')}
       >

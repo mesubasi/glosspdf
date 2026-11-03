@@ -31,12 +31,12 @@ interface DropdownMenuProps {
 }
 
 const panelClass =
-  'p-1 rounded-lg border border-acrobat-border dark:border-acrobat-darkBorder bg-white dark:bg-acrobat-darkPanel shadow-[0_16px_40px_rgba(0,0,0,0.25)]';
+  'p-1.5 rounded-[10px] bg-group shadow-hud backdrop-blur-xl';
 const itemClass =
-  'w-full flex items-center gap-2.5 px-2.5 rounded-[5px] text-start text-[12.5px] whitespace-nowrap text-slate-700 dark:text-slate-200 outline-hidden hover:bg-black/5 dark:hover:bg-white/10 focus-visible:bg-black/5 dark:focus-visible:bg-white/10 aria-expanded:bg-black/5 dark:aria-expanded:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent';
-const mutedClass = 'shrink-0 text-[11.5px] text-slate-500 dark:text-slate-400';
+  'group w-full flex items-center gap-2.5 px-2.5 rounded-md text-start text-[13px] whitespace-nowrap text-label outline-hidden hover:bg-accent hover:text-white focus-visible:bg-accent focus-visible:text-white aria-expanded:bg-accent aria-expanded:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-label';
+const mutedClass = 'shrink-0 text-[11.5px] text-secondary group-hover:text-white/80 group-focus-visible:text-white/80 group-aria-expanded:text-white/80';
 
-const Separator = () => <div role="separator" className="h-px my-1 mx-1.5 bg-acrobat-border dark:bg-acrobat-darkBorder" />;
+const Separator = () => <div role="separator" className="h-px my-1 mx-2 bg-group-sep" />;
 
 const isRtl = () => document.documentElement.dir === 'rtl';
 
@@ -57,7 +57,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   title,
   disabled,
   checkColumn,
-  triggerClassName = 'flex items-center gap-1.5 px-2 py-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors',
+  triggerClassName = 'flex items-center gap-1.5 h-7 px-2 rounded-md text-secondary hover:bg-hover hover:text-label transition-colors',
   panelPositionClassName = 'top-full start-0 mt-1.5'
 }) => {
   const [open, setOpen] = useState(false);
@@ -155,14 +155,14 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       >
         {checkColumn &&
           (item.checked ? (
-            <Check className="w-[15px] h-[15px] shrink-0 text-acrobat-red" />
+            <Check className="w-[15px] h-[15px] shrink-0 text-accent-text group-hover:text-white group-focus-visible:text-white" />
           ) : (
             <span className="w-[15px] shrink-0" />
           ))}
         {Icon ? (
           <Icon
             className={`w-[15px] h-[15px] shrink-0 ${
-              item.icon ? 'text-slate-500 dark:text-slate-400' : 'text-acrobat-red'
+              item.icon ? 'text-secondary group-hover:text-white/80 group-focus-visible:text-white/80 group-aria-expanded:text-white/80' : 'text-accent-text group-hover:text-white group-focus-visible:text-white'
             }`}
           />
         ) : (
@@ -171,10 +171,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         <span className="flex-1 min-w-0">
           <span className="block truncate">{item.label}</span>
           {item.detail && (
-            <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{item.detail}</span>
+            <span className="block truncate text-[11px] text-secondary group-hover:text-white/80 group-focus-visible:text-white/80 group-aria-expanded:text-white/80">{item.detail}</span>
           )}
         </span>
-        {item.badge && <span className="w-[7px] h-[7px] rounded-full bg-acrobat-red shrink-0" />}
+        {item.badge && <span className="w-[7px] h-[7px] rounded-full bg-accent shrink-0 group-hover:bg-white" />}
         {item.hint && <span className={mutedClass}>{item.hint}</span>}
         {item.shortcut && (
           <span className={`ms-5 ${mutedClass}`} dir="ltr">
@@ -182,7 +182,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
           </span>
         )}
         {item.submenu && (
-          <ChevronRight className="w-3.5 h-3.5 shrink-0 text-slate-500 dark:text-slate-400 rtl:rotate-180" />
+          <ChevronRight className="w-3.5 h-3.5 shrink-0 text-secondary group-hover:text-white/80 group-focus-visible:text-white/80 group-aria-expanded:text-white/80 rtl:rotate-180" />
         )}
       </button>
     );
@@ -199,7 +199,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         disabled={disabled}
         onClick={() => (open ? close() : setOpen(true))}
         className={`${triggerClassName} disabled:opacity-30 disabled:hover:bg-transparent ${
-          open ? 'bg-black/15 dark:bg-white/15' : ''
+          open ? 'bg-hover text-label' : ''
         }`}
       >
         {trigger}

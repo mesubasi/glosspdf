@@ -86,12 +86,12 @@ export const SplitPdfModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-lg max-h-[90vh] rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <Scissors className="w-5 h-5 text-red-500" />
+            <Scissors className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">
               {t('split_pdf_document')}
             </h2>
@@ -106,7 +106,7 @@ export const SplitPdfModal: React.FC = () => {
 
         {/* Gövde */}
         <div className="p-5 flex-1 flex flex-col space-y-4 text-xs overflow-y-auto">
-          <div className="p-3 bg-slate-50 dark:bg-acrobat-darkPanel rounded-lg border border-slate-200 dark:border-slate-700 flex items-center space-x-2 text-slate-600 dark:text-slate-300">
+          <div className="p-3 bg-sheet rounded-lg border border-slate-200 dark:border-slate-700 flex items-center space-x-2 text-slate-600 dark:text-slate-300">
             <FileText className="w-4 h-4 text-slate-400" />
             <span>
               <strong>{activeTab.fileName}</strong> ({t('merge_page_count', [activeTab.numPages])})
@@ -116,7 +116,7 @@ export const SplitPdfModal: React.FC = () => {
           {/* Seçenek 1: Her sayfayı ayrı PDF yap */}
           <label className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
             splitMode === 'all'
-              ? 'border-red-500 bg-red-50/20 dark:bg-red-950/10'
+              ? 'border-accent bg-accent/10'
               : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-acrobat-darkPanel'
           }`}>
             <input
@@ -124,7 +124,7 @@ export const SplitPdfModal: React.FC = () => {
               name="splitMode"
               checked={splitMode === 'all'}
               onChange={() => setSplitMode('all')}
-              className="mt-0.5 text-red-600 focus:ring-red-500"
+              className="mt-0.5 accent-accent"
             />
             <div>
               <div className="font-semibold text-slate-800 dark:text-slate-200">
@@ -139,7 +139,7 @@ export const SplitPdfModal: React.FC = () => {
           {/* Seçenek 2: Belirtilen Sayfa Aralıklarına Göre Böl */}
           <label className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
             splitMode === 'ranges'
-              ? 'border-red-500 bg-red-50/20 dark:bg-red-950/10'
+              ? 'border-accent bg-accent/10'
               : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-acrobat-darkPanel'
           }`}>
             <input
@@ -147,7 +147,7 @@ export const SplitPdfModal: React.FC = () => {
               name="splitMode"
               checked={splitMode === 'ranges'}
               onChange={() => setSplitMode('ranges')}
-              className="mt-0.5 text-red-600 focus:ring-red-500"
+              className="mt-0.5 accent-accent"
             />
             <div className="flex-1">
               <div className="font-semibold text-slate-800 dark:text-slate-200">
@@ -162,7 +162,7 @@ export const SplitPdfModal: React.FC = () => {
                   value={rangeInput}
                   onChange={(e) => setRangeInput(e.target.value)}
                   placeholder="1-2, 3-5"
-                  className="w-full px-2.5 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] text-xs outline-hidden focus:border-red-500 font-mono"
+                  className="w-full px-2.5 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] text-xs outline-hidden focus:border-accent font-mono"
                 />
               )}
             </div>
@@ -172,7 +172,7 @@ export const SplitPdfModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             onClick={() => handleClose()}
             className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
@@ -183,7 +183,7 @@ export const SplitPdfModal: React.FC = () => {
           <button
             onClick={handleSplit}
             disabled={isProcessing}
-            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
             <span>{isProcessing ? t('splitting') : t('split_save')}</span>

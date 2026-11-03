@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Notification, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Notification, shell, nativeTheme } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -203,7 +203,9 @@ function createWindow() {
     minHeight: 600,
     title: 'GlossPDF - Sleek Desktop PDF Workstation',
     icon: iconPath,
-    backgroundColor: '#525659',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff',
+    // macOS: başlık çubuğu gizlenir, trafik ışıkları 52 px'lik araç çubuğunun içinde ortalanır
+    ...(process.platform === 'darwin' && { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 20, y: 20 } }),
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -229,6 +231,10 @@ function createWindow() {
       mainWindow?.webContents.send('app:close-requested');
     }
   });
+
+  // macOS yerel tam ekranında trafik ışıkları gizlenir; araç çubuğu onlara ayırdığı boşluğu kapatır
+  mainWindow.on('enter-full-screen', () => mainWindow?.webContents.send('window:fullscreen', true));
+  mainWindow.on('leave-full-screen', () => mainWindow?.webContents.send('window:fullscreen', false));
 
   // Preload yüklenemezse sessizce devam etme: nedeni konsola yaz
   mainWindow.webContents.on('preload-error', (_event, failedPath, error) => {

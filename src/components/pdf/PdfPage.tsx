@@ -68,18 +68,19 @@ export const PdfPage: React.FC<PdfPageProps> = ({
           activeRenderTaskRef.current = null;
         }
 
-        // 1. Canvas Çizimi
-        const { renderTask } = PdfRenderService.renderPageToCanvas(
-          page,
-          canvasRef.current,
-          scale,
-          rotation
-        );
+        // 1. Canvas Çizimi: ekran dışı tuvale çizilip bitince kopyalanır; yakınlaştırmada
+        // görünen tuval boşalıp beyaz yanıp sönmez, eski görüntü yenisi hazır olana dek kalır
+        const offscreen = document.createElement('canvas');
+        const { renderTask } = PdfRenderService.renderPageToCanvas(page, offscreen, scale, rotation);
         activeRenderTaskRef.current = renderTask;
 
         await renderTask.promise;
         activeRenderTaskRef.current = null;
-        if (isCancelled) return;
+        if (isCancelled || !canvasRef.current) return;
+        const visible = canvasRef.current;
+        visible.width = offscreen.width;
+        visible.height = offscreen.height;
+        visible.getContext('2d')?.drawImage(offscreen, 0, 0);
 
         // Çizim tamamlandığında yükleniyor göstergesini kaldır ve sayfayı göster
         setIsRendered(true);
@@ -175,54 +176,69 @@ export const PdfPage: React.FC<PdfPageProps> = ({
     }
   }, [searchResults, currentSearchIndex, searchQuery, searchMatchCase, textLayerVersion, pageNumber]);
 
+  // Görünen boyut listenin --z değişkeninden gelir (yumuşak yakınlaştırma); içerik `scale` ile
+  // çizilir ve aradaki fark CSS ölçeğiyle kapatılır, katmanlar birlikte büyüyüp küçülür
+  const baseWidth = isRotated90or270 ? dimension.originalHeight : dimension.originalWidth;
+  const baseHeight = isRotated90or270 ? dimension.originalWidth : dimension.originalHeight;
+
   return (
     <div
-      ref={containerRef}
       id={`pdf-page-${pageNumber}`}
       data-page-number={pageNumber}
       style={{
-        width: `${targetWidth}px`,
-        height: `${targetHeight}px`
+        width: `calc(var(--z, ${scale}) * ${baseWidth}px)`,
+        height: `calc(var(--z, ${scale}) * ${baseHeight}px)`
       }}
-      className="relative bg-white shadow-2xl mx-auto my-4 select-text"
+      className="relative bg-white shadow-page mx-auto my-4 select-text"
     >
-      {/* Çizim Yüzeyi (Canvas) */}
-      <canvas
-        ref={canvasRef}
+      <div
+        ref={containerRef}
         style={{
           width: `${targetWidth}px`,
-          height: `${targetHeight}px`
+          height: `${targetHeight}px`,
+          transform: `scale(calc(var(--z, ${scale}) / ${scale}))`,
+          transformOrigin: '0 0'
         }}
-        className="block"
-      />
+        className="relative"
+      >
+        {/* Çizim Yüzeyi (Canvas) */}
+        <canvas
+          ref={canvasRef}
+          style={{
+            width: `${targetWidth}px`,
+            height: `${targetHeight}px`
+          }}
+          className="block"
+        />
 
-      {/* Seçilebilir Metin Katmanı (TextLayer) */}
-      <div
-        ref={textLayerRef}
-        className={`textLayer ${isTextMarkupTool ? 'z-30! cursor-text select-text pointer-events-auto' : ''} ${
-          isTextEditTool ? 'textLayer--editing z-30! pointer-events-auto' : ''
-        }`}
-      />
+        {/* Seçilebilir Metin Katmanı (TextLayer) */}
+        <div
+          ref={textLayerRef}
+          className={`textLayer ${isTextMarkupTool ? 'z-30! cursor-text select-text pointer-events-auto' : ''} ${
+            isTextEditTool ? 'textLayer--editing z-30! pointer-events-auto' : ''
+          }`}
+        />
 
-      {/* İnteraktif Form Katmanı (Faz 3 - AcroForm Fields) */}
-      <div
-        ref={formLayerRef}
-        className="absolute inset-0 pointer-events-none z-10"
-        style={{ width: `${targetWidth}px`, height: `${targetHeight}px` }}
-      />
+        {/* İnteraktif Form Katmanı (Faz 3 - AcroForm Fields) */}
+        <div
+          ref={formLayerRef}
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{ width: `${targetWidth}px`, height: `${targetHeight}px` }}
+        />
 
-      {/* Bağlantılar: metin katmanının üstünde; işaretleme/çizim araçları açıkken onların altında kalır */}
-      <div ref={linkLayerRef} className="absolute inset-0 pointer-events-none z-10" />
+        {/* Bağlantılar: metin katmanının üstünde; işaretleme/çizim araçları açıkken onların altında kalır */}
+        <div ref={linkLayerRef} className="absolute inset-0 pointer-events-none z-10" />
 
-      {/* İnteraktif İşaretleme Katmanı (Faz 2 - AnnotationLayer) */}
-      <AnnotationLayer
-        pageNumber={pageNumber}
-        scale={scale}
-        rotation={rotation}
-        pageWidth={targetWidth}
-        pageHeight={targetHeight}
-      />
+        {/* İnteraktif İşaretleme Katmanı (Faz 2 - AnnotationLayer) */}
+        <AnnotationLayer
+          pageNumber={pageNumber}
+          scale={scale}
+          rotation={rotation}
+          pageWidth={targetWidth}
+          pageHeight={targetHeight}
+        />
 
+      </div>
       {/* Yükleniyor Göstergesi */}
       {isVisible && !isRendered && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-slate-500 text-xs font-medium">

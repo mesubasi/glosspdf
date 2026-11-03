@@ -214,10 +214,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     <DropdownMenu
       label={t('menu')}
       entries={entries}
+      title={t('menu')}
       trigger={
         <>
-          <Menu className="w-4 h-4" />
-          <span className="font-medium text-[11px]">{t('menu')}</span>
+          <span className="relative">
+            <Menu className="w-[17px] h-[17px]" strokeWidth={1.75} />
+            {updateReady && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent ring-2 ring-toolbar" />}
+          </span>
+          <span className="hidden xl:inline text-[13px] font-medium">{t('menu')}</span>
         </>
       }
     />

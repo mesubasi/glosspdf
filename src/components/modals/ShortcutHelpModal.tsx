@@ -55,12 +55,12 @@ export const ShortcutHelpModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-2xl rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-2xl rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <Keyboard className="w-5 h-5 text-acrobat-red" />
+            <Keyboard className="w-5 h-5 text-accent" />
             <h2 className="font-semibold text-sm">
               {t('keyboard_shortcuts_reference')}
             </h2>
@@ -78,9 +78,9 @@ export const ShortcutHelpModal: React.FC = () => {
           {categories.map((cat, idx) => (
             <div
               key={idx}
-              className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-800/80 rounded-xl p-3.5 space-y-2.5"
+              className="bg-slate-50 dark:bg-black/20 border border-group-sep/80 rounded-xl p-3.5 space-y-2.5"
             >
-              <h3 className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-wide border-b border-slate-200 dark:border-slate-800 pb-1.5">
+              <h3 className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-wide border-b border-group-sep pb-1.5">
                 {cat.title}
               </h3>
               <div className="space-y-2">
@@ -105,13 +105,13 @@ export const ShortcutHelpModal: React.FC = () => {
         </div>
 
         {/* Alt Bilgi */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-group-sep bg-sheet">
           <span className="text-[11px] text-slate-400">
             {t('press_esc_to_close')}
           </span>
           <button
             onClick={() => setShortcutHelpModalOpen(false)}
-            className="px-4 py-1.5 rounded-lg bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-medium transition-colors"
           >
             {t('got_it')}
           </button>

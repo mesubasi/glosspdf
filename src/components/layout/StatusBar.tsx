@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePdfStore } from '../../store/usePdfStore';
+import { usePdfStore, ZOOM_LEVELS } from '../../store/usePdfStore';
 import { t } from '@/i18n';
 import { DropdownMenu, type MenuEntry } from './DropdownMenu';
 import {
@@ -8,17 +8,18 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronDown,
-  ZoomIn,
-  ZoomOut,
+  Minus,
+  Plus,
   Expand,
+  MoveHorizontal,
+  MoveVertical,
+  Hand,
   RotateCw,
   RotateCcw,
   File,
   BookOpen,
   Book,
   Scan,
-  MoveHorizontal,
-  MoveVertical,
   Maximize2
 } from 'lucide-react';
 
@@ -29,6 +30,30 @@ interface StatusBarProps {
   onFitHeight: () => void;
 }
 
+const HudButton: React.FC<{ label: string; onClick: () => void; disabled?: boolean; active?: boolean; children: React.ReactNode }> = ({
+  label,
+  onClick,
+  disabled,
+  active,
+  children
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    title={label}
+    aria-label={label}
+    aria-pressed={active}
+    className={`grid place-items-center shrink-0 w-[30px] h-7 rounded-full transition-colors disabled:opacity-35 ${
+      active ? 'bg-accent/15 text-accent-text' : 'text-secondary hover:bg-hover hover:text-label'
+    }`}
+  >
+    {children}
+  </button>
+);
+
+const Divider = () => <span aria-hidden="true" className="shrink-0 w-px h-[18px] mx-1 bg-group-sep" />;
+
+/** Belgenin altında yüzen sayfa, döndürme ve görünüm kapsülü (eski durum çubuğunun yerine) */
 export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, onFitWidth, onFitHeight }) => {
   const {
     tabs,
@@ -36,6 +61,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
     zoomIn,
     zoomOut,
     setZoom,
+    activeTool,
+    setActiveTool,
     rotateClockwise,
     rotateCounterClockwise,
     pageLayout,
@@ -43,8 +70,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
     showCoverPage,
     setShowCoverPage,
     isFullScreen,
-    toggleFullScreen,
-    language
+    toggleFullScreen
   } = usePdfStore();
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
@@ -69,6 +95,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
   };
 
   const zoomPercent = Math.round(activeTab.zoom * 100);
+  const atFirst = activeTab.currentPage <= 1;
+  const atLast = activeTab.currentPage >= activeTab.numPages;
 
   // Adobe'deki sayfa görünümü menüsü: düzen, yakınlaştırma kipleri ve tam ekran tek yerde
   const viewEntries: MenuEntry[] = [
@@ -91,125 +119,93 @@ export const StatusBar: React.FC<StatusBarProps> = ({ onPageChange, onFitPage, o
   ];
 
   return (
-    <div className="flex items-center justify-between px-3 py-1 bg-acrobat-toolbar dark:bg-acrobat-darkToolbar border-t border-acrobat-border dark:border-acrobat-darkBorder text-slate-700 dark:text-slate-300 text-xs select-none">
-      {/* Sol: Sayfa Gezinme */}
-      <div className="flex items-center space-x-1">
-        {/* İlk Sayfa */}
-        <button
-          onClick={() => onPageChange(1)}
-          disabled={activeTab.currentPage <= 1}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('first_page_home')}
-        >
-          <ChevronsLeft className="w-3.5 h-3.5" />
-        </button>
+    <div
+      role="toolbar"
+      className="absolute left-1/2 bottom-5 -translate-x-1/2 z-30 flex items-center gap-0.5 h-9 px-1 max-w-[calc(100%-2rem)] rounded-full bg-hud shadow-hud backdrop-blur-xl text-label text-xs select-none whitespace-nowrap"
+    >
+      <HudButton
+        label={t('hand_tool')}
+        active={activeTool === 'hand'}
+        onClick={() => setActiveTool(activeTool === 'hand' ? 'select' : 'hand')}
+      >
+        <Hand className="w-[15px] h-[15px]" strokeWidth={1.8} />
+      </HudButton>
 
-        {/* Önceki Sayfa */}
-        <button
-          onClick={() => onPageChange(activeTab.currentPage - 1)}
-          disabled={activeTab.currentPage <= 1}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('previous_page_pageup')}
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-        </button>
+      <Divider />
 
-        {/* Sayfa Giriş Formu */}
-        <form onSubmit={handlePageSubmit} className="flex items-center space-x-1">
-          <input
-            type="text"
-            value={inputPage}
-            onChange={(e) => setInputPage(e.target.value)}
-            className="w-10 bg-white dark:bg-acrobat-darkBg border border-acrobat-border dark:border-acrobat-darkBorder rounded-sm text-center py-0.5 text-xs outline-hidden focus:border-acrobat-red"
-          />
-          <span className="text-slate-500">/ {activeTab.numPages}</span>
-        </form>
-
-        {/* Sonraki Sayfa */}
-        <button
-          onClick={() => onPageChange(activeTab.currentPage + 1)}
-          disabled={activeTab.currentPage >= activeTab.numPages}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('next_page_pagedown')}
-        >
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Son Sayfa */}
-        <button
-          onClick={() => onPageChange(activeTab.numPages)}
-          disabled={activeTab.currentPage >= activeTab.numPages}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('last_page_end')}
-        >
-          <ChevronsRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* Sağ: Döndürme, Sayfa Görünümü Menüsü ve Yakınlaştırma */}
-      <div className="flex items-center space-x-2">
-        <button
-          onClick={rotateCounterClockwise}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('rotate_counter_clockwise_ctrl_shift_l')}
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-        </button>
-
-        <button
-          onClick={rotateClockwise}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('rotate_clockwise_ctrl_shift_r')}
-        >
-          <RotateCw className="w-3.5 h-3.5" />
-        </button>
-
-        <DropdownMenu
-          label={t('page_display')}
-          title={t('page_display')}
-          entries={viewEntries}
-          checkColumn
-          triggerClassName="flex items-center gap-0.5 p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          panelPositionClassName="bottom-full end-0 mb-1.5"
-          trigger={
-            <>
-              {pageLayout === 'two' ? <BookOpen className="w-3.5 h-3.5" /> : <File className="w-3.5 h-3.5" />}
-              <ChevronDown className="w-3 h-3 text-slate-500" />
-            </>
-          }
-        />
-
-        <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
-
-        <button
-          onClick={zoomOut}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('zoom_out')}
-        >
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Zoom Kaydırıcı (Slider) */}
+      <HudButton label={t('first_page_home')} onClick={() => onPageChange(1)} disabled={atFirst}>
+        <ChevronsLeft className="w-4 h-4" strokeWidth={2} />
+      </HudButton>
+      <HudButton label={t('previous_page_pageup')} onClick={() => onPageChange(activeTab.currentPage - 1)} disabled={atFirst}>
+        <ChevronLeft className="w-4 h-4" strokeWidth={2} />
+      </HudButton>
+      <form onSubmit={handlePageSubmit} className="flex items-center gap-1 px-0.5 tabular-nums">
         <input
-          type="range"
-          min="0.1"
-          max="4.0"
-          step="0.05"
-          value={activeTab.zoom}
-          onChange={(e) => setZoom(parseFloat(e.target.value))}
-          className="w-20 h-1 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-acrobat-red"
+          type="text"
+          inputMode="numeric"
+          value={inputPage}
+          onChange={(e) => setInputPage(e.target.value)}
+          onBlur={handlePageSubmit}
+          aria-label={t('page', [activeTab.currentPage])}
+          className="w-9 h-6 rounded-md bg-fill text-center font-medium outline-hidden focus:ring-2 focus:ring-accent"
         />
+        <span className="text-secondary">/ {activeTab.numPages}</span>
+      </form>
+      <HudButton label={t('next_page_pagedown')} onClick={() => onPageChange(activeTab.currentPage + 1)} disabled={atLast}>
+        <ChevronRight className="w-4 h-4" strokeWidth={2} />
+      </HudButton>
+      <HudButton label={t('last_page_end')} onClick={() => onPageChange(activeTab.numPages)} disabled={atLast}>
+        <ChevronsRight className="w-4 h-4" strokeWidth={2} />
+      </HudButton>
 
-        <button
-          onClick={zoomIn}
-          className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('zoom_in')}
-        >
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
+      <Divider />
 
-        <span className="w-12 text-right font-medium">{zoomPercent}%</span>
-      </div>
+      <HudButton label={t('zoom_out')} onClick={zoomOut}>
+        <Minus className="w-[15px] h-[15px]" strokeWidth={2} />
+      </HudButton>
+      <select
+        value={activeTab.zoom}
+        onChange={(e) => setZoom(parseFloat(e.target.value))}
+        aria-label={`${zoomPercent}%`}
+        className="h-6 px-1 rounded-md bg-transparent hover:bg-hover font-medium tabular-nums text-center outline-hidden cursor-pointer appearance-none"
+      >
+        {ZOOM_LEVELS.map((lvl) => (
+          <option key={lvl} value={lvl}>
+            {Math.round(lvl * 100)}%
+          </option>
+        ))}
+        {!ZOOM_LEVELS.includes(activeTab.zoom) && <option value={activeTab.zoom}>{zoomPercent}%</option>}
+      </select>
+      <HudButton label={t('zoom_in')} onClick={zoomIn}>
+        <Plus className="w-[15px] h-[15px]" strokeWidth={2} />
+      </HudButton>
+
+      <Divider />
+
+      <HudButton label={t('rotate_counter_clockwise_ctrl_shift_l')} onClick={rotateCounterClockwise}>
+        <RotateCcw className="w-[15px] h-[15px]" strokeWidth={1.8} />
+      </HudButton>
+      <HudButton label={t('rotate_clockwise_ctrl_shift_r')} onClick={rotateClockwise}>
+        <RotateCw className="w-[15px] h-[15px]" strokeWidth={1.8} />
+      </HudButton>
+      <DropdownMenu
+        label={t('page_display')}
+        title={t('page_display')}
+        entries={viewEntries}
+        checkColumn
+        triggerClassName="flex items-center gap-0.5 h-7 px-1.5 rounded-full text-secondary hover:bg-hover hover:text-label transition-colors"
+        panelPositionClassName="bottom-full end-0 mb-2.5"
+        trigger={
+          <>
+            {pageLayout === 'two' ? (
+              <BookOpen className="w-[15px] h-[15px]" strokeWidth={1.8} />
+            ) : (
+              <File className="w-[15px] h-[15px]" strokeWidth={1.8} />
+            )}
+            <ChevronDown className="w-3 h-3" strokeWidth={2} />
+          </>
+        }
+      />
     </div>
   );
 };

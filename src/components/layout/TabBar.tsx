@@ -8,61 +8,56 @@ interface TabBarProps {
 }
 
 export const TabBar: React.FC<TabBarProps> = ({ onOpenFile }) => {
-  const { tabs, activeTabId, setActiveTab, requestCloseTab, language } = usePdfStore();
+  const { tabs, activeTabId, setActiveTab, requestCloseTab } = usePdfStore();
+
+  if (tabs.length === 0) return null;
 
   return (
-    <div className="flex items-center bg-[#1c1d1f] text-slate-300 text-xs px-2 pt-1.5 select-none border-b border-black/40 overflow-x-auto no-scrollbar">
-      {/* GlossPDF Marka Başlığı */}
-      <div className="flex items-center space-x-2 px-2 py-1 mr-2 text-white font-bold tracking-tight text-xs border-r border-slate-700/60 pr-3">
-        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="GlossPDF" className="w-5 h-5 rounded-sm object-contain shadow-xs" />
-        <span className="tracking-wide font-semibold text-slate-100">
-          Gloss<span className="text-red-500 font-bold">PDF</span>
-        </span>
-      </div>
-
-      {/* Sekmeler */}
-      <div className="flex items-center space-x-1 flex-1 overflow-x-auto">
-        {tabs.map((tab) => {
-          const isActive = tab.id === activeTabId;
-          return (
-            <div
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`group flex items-center max-w-[220px] min-w-[120px] px-3 py-1.5 rounded-t-md cursor-pointer transition-all border-t-2 ${
-                isActive
-                  ? 'bg-acrobat-toolbar dark:bg-acrobat-darkToolbar text-slate-900 dark:text-white font-medium border-acrobat-red shadow-xs'
-                  : 'bg-acrobat-darkToolbar hover:bg-[#353535] text-slate-400 border-transparent'
-              }`}
-              title={tab.filePath}
+    <nav
+      className="flex h-[30px] shrink-0 bg-tabs border-b border-separator text-xs select-none overflow-x-auto no-scrollbar"
+    >
+      {tabs.map((tab) => {
+        const isActive = tab.id === activeTabId;
+        return (
+          <div
+            key={tab.id}
+            className={`group relative flex items-center flex-1 min-w-[150px] border-r border-black/10 dark:border-white/5 ${
+              isActive ? 'bg-tab-on text-label font-semibold' : 'text-secondary hover:bg-hover'
+            }`}
+            title={tab.filePath}
+          >
+            {/* macOS: kapatma düğmesi solda, üzerine gelince görünür; kaydedilmemişse yerinde nokta durur */}
+            <button
+              onClick={() => requestCloseTab(tab.id)}
+              className="absolute left-2 grid place-items-center w-4 h-4 rounded hover:bg-hover"
+              title={t('close_ctrl_w')}
+              aria-label={t('close_ctrl_w')}
             >
-              <FileText className={`w-3.5 h-3.5 mr-2 shrink-0 ${isActive ? 'text-acrobat-red' : 'text-slate-400'}`} />
-              <span className="truncate flex-1">
-                {tab.fileName}
-                {tab.isModified && <span className="text-acrobat-red ml-1 font-bold">*</span>}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  requestCloseTab(tab.id);
-                }}
-                className="ml-1 p-0.5 rounded-full hover:bg-black/20 text-slate-400 hover:text-slate-200 opacity-60 group-hover:opacity-100 transition-opacity"
-                title={t('close_ctrl_w')}
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          );
-        })}
+              <X className="w-3 h-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100" strokeWidth={2.2} />
+              {tab.isModified && (
+                <span className="absolute w-[7px] h-[7px] rounded-full bg-secondary group-hover:opacity-0" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab(tab.id)}
+              aria-current={isActive ? 'page' : undefined}
+              className="flex-1 flex items-center justify-center gap-1.5 min-w-0 h-full px-7"
+            >
+              <FileText className="w-3.5 h-3.5 shrink-0" strokeWidth={1.8} />
+              <span className="truncate">{tab.fileName}</span>
+            </button>
+          </div>
+        );
+      })}
 
-        {/* Yeni Belge Aç Butonu */}
-        <button
-          onClick={onOpenFile}
-          className="p-1.5 rounded-sm hover:bg-[#383838] text-slate-400 hover:text-white transition-colors ml-1"
-          title={t('open_new_document_ctrl_o')}
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
+      <button
+        onClick={onOpenFile}
+        className="grid place-items-center w-9 shrink-0 text-secondary hover:bg-hover hover:text-label"
+        title={t('open_new_document_ctrl_o')}
+        aria-label={t('open_new_document_ctrl_o')}
+      >
+        <Plus className="w-4 h-4" strokeWidth={1.8} />
+      </button>
+    </nav>
   );
 };

@@ -5,7 +5,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { viewportFor } from '../../services/pdfRenderService';
 import { t } from '@/i18n';
 import {
-  Image,
+  LayoutGrid,
   Bookmark,
   Search,
   MessageSquare,
@@ -19,8 +19,7 @@ import {
   EyeOff,
   ChevronRight,
   ChevronDown,
-  Trash2,
-  X
+  Trash2
 } from 'lucide-react';
 
 interface LeftSidebarProps {
@@ -102,218 +101,179 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
     }
   };
 
+  const sideTabs: { id: Exclude<LeftSidebarTab, null>; label: string; icon: React.ComponentType<any> }[] = [
+    { id: 'thumbnails', label: t('page_thumbnails'), icon: LayoutGrid },
+    { id: 'bookmarks', label: t('bookmarks'), icon: Bookmark },
+    { id: 'annotations', label: t('annotations_comments'), icon: MessageSquare },
+    { id: 'search', label: t('search_results'), icon: Search }
+  ];
+  const title =
+    leftSidebarTab === 'thumbnails'
+      ? t('thumbnails')
+      : leftSidebarTab === 'bookmarks'
+        ? t('bookmarks_2')
+        : leftSidebarTab === 'annotations'
+          ? t('annotations', [annotations.length])
+          : t('search_results');
+
   return (
-    <div className="flex h-full bg-[#f8f8f8] dark:bg-acrobat-darkPanel border-r border-acrobat-border dark:border-acrobat-darkBorder text-slate-800 dark:text-slate-200 select-none z-10 transition-all shadow-md">
-      {/* İkon Çubuğu */}
-      <div className="flex flex-col items-center py-2 px-1 bg-[#ebebeb] dark:bg-[#1f1f1f] border-r border-acrobat-border dark:border-acrobat-darkBorder space-y-2">
-        <button
-          onClick={() => setLeftSidebarTab('thumbnails')}
-          className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-            leftSidebarTab === 'thumbnails' ? 'bg-acrobat-red text-white' : 'text-slate-500'
-          }`}
-          title={t('page_thumbnails')}
-        >
-          <Image className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => setLeftSidebarTab('bookmarks')}
-          className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-            leftSidebarTab === 'bookmarks' ? 'bg-acrobat-red text-white' : 'text-slate-500'
-          }`}
-          title={t('bookmarks')}
-        >
-          <Bookmark className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => setLeftSidebarTab('annotations')}
-          className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-            leftSidebarTab === 'annotations' ? 'bg-acrobat-red text-white' : 'text-slate-500'
-          }`}
-          title={t('annotations_comments')}
-        >
-          <MessageSquare className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => setLeftSidebarTab('search')}
-          className={`p-2 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-            leftSidebarTab === 'search' ? 'bg-acrobat-red text-white' : 'text-slate-500'
-          }`}
-          title={t('search_results')}
-        >
-          <Search className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* İçerik Paneli */}
-      <div className="w-72 flex flex-col h-full overflow-hidden">
-        {/* Başlık ve Kapat Butonu */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-acrobat-border dark:border-acrobat-darkBorder text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          <span>
-            {leftSidebarTab === 'thumbnails' && (t('thumbnails'))}
-            {leftSidebarTab === 'bookmarks' && (t('bookmarks_2'))}
-            {leftSidebarTab === 'annotations' &&
-              (t('annotations', [annotations.length]))}
-            {leftSidebarTab === 'search' && (t('search_results'))}
-          </span>
-          <button
-            onClick={() => setLeftSidebarTab(null)}
-            className="p-1 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+    <aside className="flex flex-col w-60 shrink-0 h-full bg-sidebar border-r border-separator text-label select-none">
+      {/* Görünüm seçici (segment) */}
+      <div className="p-3 pb-0">
+        <div role="group" aria-label={t('navigation_panel')} className="flex gap-0.5 p-0.5 rounded-[7px] bg-fill">
+          {sideTabs.map((tab) => {
+            const Icon = tab.icon;
+            const on = leftSidebarTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setLeftSidebarTab(tab.id)}
+                title={tab.label}
+                aria-label={tab.label}
+                aria-pressed={on}
+                className={`flex-1 grid place-items-center h-6 rounded-[5px] transition-colors ${
+                  on ? 'bg-seg-on text-label shadow-seg' : 'text-secondary hover:text-label'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" strokeWidth={1.9} />
+              </button>
+            );
+          })}
         </div>
-
-        {/* Küçük Resimler (Thumbnails) */}
-        {leftSidebarTab === 'thumbnails' && (
-          <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((pageNum) => (
-              <ThumbnailItem
-                key={`${pageNum}-${activeTab.rotation}`}
-                pageNumber={pageNum}
-                isCurrent={activeTab.currentPage === pageNum}
-                pdfDocument={pdfDocument}
-                rotation={activeTab.rotation}
-                onClick={() => onPageClick(pageNum)}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Yer İmleri (Bookmarks) */}
-        {leftSidebarTab === 'bookmarks' && (
-          <div className="flex-1 overflow-y-auto p-2 text-xs">
-            {activeTab.outline.length === 0 ? (
-              <div className="text-center text-slate-400 py-6">
-                {t('no_bookmarks_in_document')}
-              </div>
-            ) : (
-              activeTab.outline.map((item, idx) => (
-                <BookmarkNode key={idx} item={item} onPageClick={onPageClick} />
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Faz 2: İşaretlemeler (Annotations / Comments) */}
-        {leftSidebarTab === 'annotations' && (
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 text-xs">
-            {annotations.length === 0 ? (
-              <div className="text-center text-slate-400 py-8 px-4">
-                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="font-medium">
-                  {t('no_annotations_yet')}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  {t('click_annotate_above_to_highlight_text_or_add_notes')}
-                </p>
-              </div>
-            ) : (
-              annotations.map((annot) => {
-                const IconComponent = getAnnotationIcon(annot.type);
-                const isSelected = selectedAnnotationId === annot.id;
-
-                return (
-                  <div
-                    key={annot.id}
-                    onClick={() => {
-                      setSelectedAnnotationId(annot.id);
-                      onPageClick(annot.pageNumber);
-                    }}
-                    className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-[#202020] hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center space-x-1.5">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: annot.color }}
-                        />
-                        <IconComponent className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">
-                          {getAnnotationTypeName(annot.type)}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <span className="px-1.5 py-0.5 rounded-sm bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 font-mono">
-                          {t('page_2', [annot.pageNumber])}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteAnnotation(annot.id);
-                          }}
-                          className="p-1 rounded-sm text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                          title="Sil"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {annot.contents && (
-                      <p className="text-slate-600 dark:text-slate-300 line-clamp-2 bg-slate-50 dark:bg-[#1a1a1a] p-1.5 rounded-sm border border-slate-100 dark:border-slate-800 text-[11px]">
-                        "{annot.contents}"
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
-                      <span>{annot.author || t('annotation_author_default')}</span>
-                      <span>
-                        {new Date(annot.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* Arama Sonuçları */}
-        {leftSidebarTab === 'search' && (
-          <div className="flex-1 overflow-y-auto p-2 text-xs">
-            {searchResults.length === 0 ? (
-              <div className="text-center text-slate-400 py-6">
-                {t('no_matches_found')}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {searchResults.map((match, idx) => (
-                  <div
-                    key={match.id}
-                    onClick={() => {
-                      onPageClick(match.pageIndex);
-                      nextSearchResult();
-                    }}
-                    className={`p-2 rounded cursor-pointer transition-colors ${
-                      idx === currentSearchIndex
-                        ? 'bg-acrobat-red/10 border-l-2 border-acrobat-red font-medium text-acrobat-red'
-                        : 'hover:bg-black/5 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    <div className="text-[10px] text-slate-400 mb-0.5">
-                      {t('page', [match.pageIndex])}
-                    </div>
-                    <div className="truncate">{match.text}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
-    </div>
+
+      <div className="flex items-baseline justify-between px-4 pt-3.5 pb-2">
+        <h2 className="text-[11px] font-semibold tracking-wide text-secondary">{title}</h2>
+        {leftSidebarTab === 'thumbnails' && <span className="text-[11px] text-secondary">{activeTab.numPages}</span>}
+      </div>
+
+      {/* Küçük Resimler (Thumbnails) */}
+      {leftSidebarTab === 'thumbnails' && (
+        <div className="flex-1 overflow-y-auto px-3 pt-1 pb-4 space-y-4">
+          {Array.from({ length: activeTab.numPages }, (_, i) => i + 1).map((pageNum) => (
+            <ThumbnailItem
+              key={`${pageNum}-${activeTab.rotation}`}
+              pageNumber={pageNum}
+              isCurrent={activeTab.currentPage === pageNum}
+              pdfDocument={pdfDocument}
+              rotation={activeTab.rotation}
+              onClick={() => onPageClick(pageNum)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Yer İmleri (Bookmarks) */}
+      {leftSidebarTab === 'bookmarks' && (
+        <div className="flex-1 overflow-y-auto px-2 pb-3 text-[13px]">
+          {activeTab.outline.length === 0 ? (
+            <EmptyState icon={Bookmark} title={t('no_bookmarks_in_document')} />
+          ) : (
+            activeTab.outline.map((item, idx) => <BookmarkNode key={idx} item={item} onPageClick={onPageClick} />)
+          )}
+        </div>
+      )}
+
+      {/* İşaretlemeler (Annotations / Comments) */}
+      {leftSidebarTab === 'annotations' && (
+        <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
+          {annotations.length === 0 ? (
+            <EmptyState
+              icon={MessageSquare}
+              title={t('no_annotations_yet')}
+              text={t('click_annotate_above_to_highlight_text_or_add_notes')}
+            />
+          ) : (
+            annotations.map((annot) => {
+              const IconComponent = getAnnotationIcon(annot.type);
+              const isSelected = selectedAnnotationId === annot.id;
+
+              return (
+                <div
+                  key={annot.id}
+                  onClick={() => {
+                    setSelectedAnnotationId(annot.id);
+                    onPageClick(annot.pageNumber);
+                  }}
+                  className={`group p-2.5 rounded-[10px] bg-group cursor-pointer transition-shadow ${
+                    isSelected ? 'ring-2 ring-accent' : 'ring-1 ring-group-sep hover:ring-separator'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: annot.color }} />
+                    <IconComponent className="w-3.5 h-3.5 text-secondary shrink-0" />
+                    <span className="flex-1 font-semibold truncate">{getAnnotationTypeName(annot.type)}</span>
+                    <span className="text-[11px] text-secondary">{t('page_2', [annot.pageNumber])}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteAnnotation(annot.id);
+                      }}
+                      className="p-0.5 rounded text-secondary opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"
+                      title={t('delete')}
+                      aria-label={t('delete')}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {annot.contents && <p className="mt-1.5 text-xs text-secondary line-clamp-2">{annot.contents}</p>}
+
+                  <div className="flex items-center justify-between mt-1.5 text-[11px] text-secondary">
+                    <span>{annot.author || t('annotation_author_default')}</span>
+                    <span>
+                      {new Date(annot.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Arama Sonuçları */}
+      {leftSidebarTab === 'search' && (
+        <div className="flex-1 overflow-y-auto px-2 pb-3">
+          {searchResults.length === 0 ? (
+            <EmptyState icon={Search} title={t('no_matches_found')} />
+          ) : (
+            <div className="space-y-0.5">
+              {searchResults.map((match, idx) => (
+                <button
+                  key={match.id}
+                  onClick={() => {
+                    onPageClick(match.pageIndex);
+                    nextSearchResult();
+                  }}
+                  className={`block w-full text-left px-2.5 py-1.5 rounded-md transition-colors ${
+                    idx === currentSearchIndex ? 'bg-accent text-white' : 'hover:bg-hover'
+                  }`}
+                >
+                  <span className={`block text-[11px] ${idx === currentSearchIndex ? 'text-white/80' : 'text-secondary'}`}>
+                    {t('page', [match.pageIndex])}
+                  </span>
+                  <span className="block truncate text-[13px]">{match.text}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </aside>
   );
 };
+
+const EmptyState: React.FC<{ icon: React.ComponentType<any>; title: string; text?: string }> = ({ icon: Icon, title, text }) => (
+  <div className="flex flex-col items-center gap-1.5 px-4 py-10 text-center text-secondary">
+    <Icon className="w-7 h-7 mb-1" strokeWidth={1.5} />
+    <p className="text-[13px] font-semibold text-label">{title}</p>
+    {text && <p className="text-xs">{text}</p>}
+  </div>
+);
 
 // Tekil Küçük Resim Bileşeni
 const ThumbnailItem: React.FC<{
@@ -358,21 +318,27 @@ const ThumbnailItem: React.FC<{
   }, [pdfDocument, pageNumber, rotation]);
 
   return (
-    <div
+    <button
       onClick={onClick}
-      className={`flex flex-col items-center cursor-pointer p-1.5 rounded transition-all ${
-        isCurrent
-          ? 'bg-acrobat-red/10 border-2 border-acrobat-red shadow-xs'
-          : 'hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
-      }`}
+      aria-label={t('page', [pageNumber])}
+      aria-current={isCurrent ? 'page' : undefined}
+      className="flex flex-col items-center gap-2 w-full"
     >
-      <div className="bg-white shadow-xs border border-slate-300 dark:border-slate-700 rounded-xs overflow-hidden flex items-center justify-center min-h-[100px] w-full">
-        <canvas ref={canvasRef} className="max-w-full max-h-[140px] object-contain" />
+      <div
+        className={`bg-white rounded-[3px] overflow-hidden flex items-center justify-center min-h-[100px] transition-shadow ${
+          isCurrent ? 'ring-[3px] ring-accent' : 'ring-1 ring-black/15 shadow-sm'
+        }`}
+      >
+        <canvas ref={canvasRef} className="block max-w-[150px] max-h-[200px] object-contain" />
       </div>
-      <span className={`text-[11px] mt-1 ${isCurrent ? 'font-bold text-acrobat-red' : 'text-slate-500'}`}>
+      <span
+        className={`min-w-[22px] px-1.5 rounded-full text-[11px] font-semibold ${
+          isCurrent ? 'bg-accent text-white' : 'text-secondary'
+        }`}
+      >
         {pageNumber}
       </span>
-    </div>
+    </button>
   );
 };
 
@@ -388,7 +354,7 @@ const BookmarkNode: React.FC<{
     <div className="pl-1">
       <div
         onClick={() => onPageClick(item.pageNumber)}
-        className="flex items-center space-x-1 py-1 px-1.5 rounded-sm hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer text-slate-700 dark:text-slate-300"
+        className="flex items-center gap-1 h-7 px-1.5 rounded-md hover:bg-hover cursor-pointer text-label"
       >
         {hasChildren ? (
           <button
@@ -403,12 +369,12 @@ const BookmarkNode: React.FC<{
         ) : (
           <div className="w-4" />
         )}
-        <span className="truncate flex-1 hover:text-acrobat-red">{item.title}</span>
-        <span className="text-[10px] text-slate-400">{item.pageNumber}</span>
+        <span className="truncate flex-1">{item.title}</span>
+        <span className="text-[11px] text-secondary">{item.pageNumber}</span>
       </div>
 
       {hasChildren && open && (
-        <div className="pl-3 border-l border-slate-200 dark:border-slate-700 ml-2 space-y-0.5">
+        <div className="pl-3 ml-2 space-y-0.5">
           {item.children!.map((child, idx) => (
             <BookmarkNode key={idx} item={child} onPageClick={onPageClick} />
           ))}

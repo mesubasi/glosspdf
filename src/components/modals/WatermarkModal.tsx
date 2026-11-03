@@ -42,7 +42,7 @@ const layouts = () => [
 
 const chip = (on: boolean) =>
   on
-    ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+    ? 'border-accent bg-accent/10 text-accent-text'
     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800';
 
 /** Sayfa önizlemesi, kayıttaki hesapla çizilir; tıklayıp sürükleyince filigranın yeri değişir */
@@ -125,8 +125,8 @@ const WatermarkStage: React.FC<{
         ) : (
           <span className="block h-[56vh] max-h-[460px] w-[40vh] max-w-[325px] rounded-xs bg-white/10" />
         )}
-        {dragging && x === 50 && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 border-l border-dashed border-red-500" />}
-        {dragging && y === 50 && <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-red-500" />}
+        {dragging && x === 50 && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 border-l border-dashed border-accent" />}
+        {dragging && y === 50 && <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-accent" />}
       </div>
       <div className="flex w-full items-center justify-between gap-2 text-xs text-white/85">
         <span className="flex h-8 min-w-0 items-center gap-1.5 rounded-full bg-white/10 px-3">
@@ -252,16 +252,16 @@ export const WatermarkModal: React.FC = () => {
   const label = 'block text-slate-600 dark:text-slate-300 font-medium mb-1.5';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
       <div
-        className={`bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-h-[92vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 ${
+        className={`bg-sheet w-full max-h-[92vh] rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 ${
           tabType === 'watermark' ? 'max-w-4xl' : 'max-w-md'
         }`}
       >
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <Stamp className="w-5 h-5 text-red-500" />
+            <Stamp className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">
               {t('add_stamp_watermark')}
             </h2>
@@ -275,12 +275,12 @@ export const WatermarkModal: React.FC = () => {
         </div>
 
         {/* Sekmeler */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 text-xs font-semibold">
+        <div className="flex border-b border-group-sep text-xs font-semibold">
           <button
             onClick={() => setTabType('watermark')}
             className={`flex-1 py-2.5 flex items-center justify-center space-x-1.5 border-b-2 transition-colors ${
               tabType === 'watermark'
-                ? 'border-red-500 text-red-600 dark:text-red-400 bg-red-50/20'
+                ? 'border-accent text-accent-text bg-accent/10'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
@@ -291,7 +291,7 @@ export const WatermarkModal: React.FC = () => {
             onClick={() => setTabType('stamp')}
             className={`flex-1 py-2.5 flex items-center justify-center space-x-1.5 border-b-2 transition-colors ${
               tabType === 'stamp'
-                ? 'border-red-500 text-red-600 dark:text-red-400 bg-red-50/20'
+                ? 'border-accent text-accent-text bg-accent/10'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
@@ -329,7 +329,7 @@ export const WatermarkModal: React.FC = () => {
                   type="text"
                   value={watermarkText}
                   onChange={(e) => setWatermarkText(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-hidden focus:border-red-500 font-semibold"
+                  className="w-full px-3 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1a1a1a] outline-hidden focus:border-accent font-semibold"
                 />
                 <div role="group" aria-label={t('wm_quick_texts')} className="mt-2 flex flex-wrap gap-1.5">
                   {quickTexts.map((txt) => (
@@ -378,7 +378,7 @@ export const WatermarkModal: React.FC = () => {
                   max="80"
                   value={opacity}
                   onChange={(e) => setOpacity(parseInt(e.target.value, 10))}
-                  className="w-full accent-red-600 cursor-pointer"
+                  className="w-full accent-accent cursor-pointer"
                 />
               </label>
 
@@ -430,7 +430,7 @@ export const WatermarkModal: React.FC = () => {
                       aria-checked={angle === a}
                       onClick={() => setAngle(a)}
                       className={`flex items-center justify-center gap-1.5 rounded-[5px] py-1 font-mono text-[11px] font-medium transition-colors ${
-                        angle === a ? 'bg-white text-red-600 shadow-xs dark:bg-slate-600 dark:text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700'
+                        angle === a ? 'bg-seg-on text-label shadow-seg' : 'hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
                       <span aria-hidden="true" className="h-[2px] w-3 rounded-sm bg-current" style={{ transform: `rotate(${-a}deg)` }} />
@@ -473,14 +473,14 @@ export const WatermarkModal: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-2.5 rounded-sm bg-slate-50 dark:bg-acrobat-darkPanel border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500">
+            <div className="p-2.5 rounded-sm bg-sheet border border-slate-200 dark:border-slate-700 text-[11px] text-slate-500">
               {t('stamp_will_be_placed_on_the_top_right_of_the_current_pag', [activeTab.currentPage])}
             </div>
           </div>
         )}
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             onClick={() => setWatermarkModalOpen(false)}
             className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-colors"
@@ -490,7 +490,7 @@ export const WatermarkModal: React.FC = () => {
           <button
             onClick={handleApply}
             disabled={isProcessing || (tabType === 'watermark' && !watermarkText.trim())}
-            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
+            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Check className="w-3.5 h-3.5" />
             <span>{isProcessing ? t('processing') : tabType === 'watermark' ? t('apply_all_pages') : t('apply_to_document_2')}</span>

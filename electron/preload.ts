@@ -57,6 +57,13 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('app:open-file', listener);
   },
 
+  // Pencere yerel tam ekrana girip çıktığında (macOS yeşil düğme)
+  onFullScreenChange: (callback: (isFullScreen: boolean) => void) => {
+    const listener = (_event: unknown, isFullScreen: boolean) => callback(isFullScreen);
+    ipcRenderer.on('window:fullscreen', listener);
+    return () => ipcRenderer.removeListener('window:fullscreen', listener);
+  },
+
   // Sürüm ve Güncellemeler
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
   getUpdateState: () => ipcRenderer.invoke('updater:getState'),

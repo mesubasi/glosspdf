@@ -143,12 +143,12 @@ export const InsertImageModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-md rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs">
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <ImageIcon className="w-5 h-5 text-red-500" />
+            <ImageIcon className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">
               {t('insert_image_logo')}
             </h2>
@@ -165,7 +165,7 @@ export const InsertImageModal: React.FC = () => {
         <div className="p-5 flex-1 flex flex-col space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Resim Seçme Alanı */}
           {!imagePreview ? (
-            <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-red-500 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-50 dark:bg-acrobat-darkPanel/50">
+            <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-accent rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-sheet/50">
               <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
               <span className="font-semibold text-slate-700 dark:text-slate-200">
                 {t('select_image_png_or_jpg')}
@@ -181,7 +181,7 @@ export const InsertImageModal: React.FC = () => {
               />
             </label>
           ) : (
-            <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-acrobat-darkPanel flex flex-col items-center">
+            <div className="relative border border-slate-200 dark:border-slate-700 rounded-lg p-2 bg-sheet flex flex-col items-center">
               <img
                 src={imagePreview}
                 alt={t('preview')}
@@ -193,7 +193,7 @@ export const InsertImageModal: React.FC = () => {
                   setImagePreview(null);
                   setImageBytes(null);
                 }}
-                className="mt-2 text-[11px] text-red-500 hover:underline"
+                className="mt-2 text-[11px] text-accent-text hover:underline"
               >
                 {t('choose_another_image')}
               </button>
@@ -237,7 +237,7 @@ export const InsertImageModal: React.FC = () => {
                   onClick={() => setPosition(pos.id as any)}
                   className={`py-1.5 px-2 rounded border font-medium transition-colors ${
                     position === pos.id
-                      ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                      ? 'border-accent bg-accent/10 text-accent-text'
                       : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -271,7 +271,7 @@ export const InsertImageModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end space-x-3 px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             onClick={() => setInsertImageModalOpen(false)}
             className="px-4 py-1.5 rounded-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors"
@@ -288,7 +288,7 @@ export const InsertImageModal: React.FC = () => {
           <button
             onClick={() => handleInsert()}
             disabled={!imageBytes || isProcessing}
-            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-colors disabled:opacity-40"
+            className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white font-medium shadow-md transition-colors disabled:opacity-40"
           >
             <Check className="w-3.5 h-3.5" />
             <span>{isProcessing ? 'Ekleniyor...' : (t('insert_image_2'))}</span>

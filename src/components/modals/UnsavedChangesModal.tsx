@@ -38,14 +38,14 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave
     'px-4 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="unsaved-title"
-        className="bg-white dark:bg-[#1e1e1e] border border-slate-300 dark:border-slate-700 w-full max-w-md rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs"
+        className="bg-sheet w-full max-w-md rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs"
       >
-        <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="px-5 py-3 border-b border-group-sep bg-slate-50 dark:bg-[#252526]">
           <h2 id="unsaved-title" className="font-semibold text-sm">
             {t('unsaved_changes_title')}
           </h2>
@@ -53,7 +53,7 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave
 
         <p className="p-5 text-slate-600 dark:text-slate-300">{t('unsaved_changes_message', { name: tab.fileName })}</p>
 
-        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#252526]">
+        <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-group-sep bg-slate-50 dark:bg-[#252526]">
           <button onClick={advance} className={secondaryClass}>
             {t('dont_save')}
           </button>
@@ -63,7 +63,7 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave
           <button
             autoFocus
             onClick={save}
-            className="px-4 py-1.5 rounded-lg bg-acrobat-red hover:bg-acrobat-darkRed text-white font-medium transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-medium transition-colors"
           >
             {t('save')}
           </button>

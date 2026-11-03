@@ -177,12 +177,12 @@ export const OrganizePagesModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-5xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150">
+      <div className="bg-sheet w-full max-w-5xl h-[85vh] rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100">
         {/* Üst Başlık ve Araçlar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-red-500" />
+            <Layers className="w-5 h-5 text-accent-text" />
             <h2 className="font-semibold text-sm">
               {t('organize_pages_2')}
             </h2>
@@ -215,7 +215,7 @@ export const OrganizePagesModal: React.FC = () => {
             {pages.map((p, idx) => (
               <div
                 key={`${p.originalPageNumber}-${idx}`}
-                className="group relative bg-white dark:bg-acrobat-darkPanel rounded-lg shadow-md border border-slate-200 dark:border-slate-700 p-3 flex flex-col items-center transition-all hover:shadow-xl hover:border-red-500"
+                className="group relative bg-white dark:bg-acrobat-darkPanel rounded-lg shadow-md border border-slate-200 dark:border-slate-700 p-3 flex flex-col items-center transition-all hover:shadow-xl hover:border-accent"
               >
                 {/* Sayfa Önizleme Tuvali */}
                 <div className="relative w-full aspect-[1/1.4] bg-white rounded-sm border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center">
@@ -288,7 +288,7 @@ export const OrganizePagesModal: React.FC = () => {
         </div>
 
         {/* Alt Eylem Çubuğu */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-6 py-3 border-t border-group-sep bg-white dark:bg-acrobat-darkPanel">
           <span className="text-xs text-slate-500">
             {t('rotate_delete_or_reorder_pages_with_arrows')}
           </span>
@@ -304,7 +304,7 @@ export const OrganizePagesModal: React.FC = () => {
             <button
               onClick={handleApplyChanges}
               disabled={isProcessing}
-              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-red-600 hover:bg-red-700 text-white text-xs font-medium shadow-md transition-colors disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white text-xs font-medium shadow-md transition-colors disabled:opacity-50"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{isProcessing ? t('processing') : (t('apply_changes'))}</span>

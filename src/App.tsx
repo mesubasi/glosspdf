@@ -528,7 +528,7 @@ export function App() {
 
   return (
     <div
-      className="flex flex-col h-screen w-screen overflow-hidden bg-acrobat-canvas dark:bg-acrobat-darkCanvas text-slate-800 dark:text-slate-100 font-sans"
+      className="flex flex-col h-screen w-screen overflow-hidden bg-window text-label font-sans"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
@@ -538,10 +538,7 @@ export function App() {
         }
       }}
     >
-      {/* 1. Üst Sekme Çubuğu */}
-      <TabBar onOpenFile={handleOpenFile} />
-
-      {/* 2. Ana Araç Çubuğu */}
+      {/* 1. Birleşik araç çubuğu */}
       <HeaderToolbar
         pdfDocument={activePdfDoc}
         onPageChange={handlePageClick}
@@ -554,10 +551,10 @@ export function App() {
         onFitWidth={handleFitWidth}
       />
 
-      {/* 2.1 Faz 2: İşaretleme (Annotation) Araç Çubuğu */}
-      {annotationModeOpen && <AnnotationToolbar />}
+      {/* 2. Belge sekmeleri */}
+      <TabBar onOpenFile={handleOpenFile} />
 
-      {/* 3. Ana Çalışma Alanı (Sol Panel + PDF Görüntüleyici + Sağ Panel) */}
+      {/* 3. Ana Çalışma Alanı (Sol Panel + PDF Görüntüleyici + İnceleyici) */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Sol Gezinme Paneli */}
         <LeftSidebar
@@ -565,7 +562,7 @@ export function App() {
           onPageClick={handlePageClick}
         />
 
-        {/* PDF Sayfaları Sanallaştırılmış Görüntüleme Alanı */}
+        {/* PDF görüntüleme alanı; işaretleme araçları ve sayfa kapsülü üstünde yüzer */}
         <div className="flex-1 flex flex-col h-full overflow-hidden relative">
           <PdfDocumentViewer
             pdfDocument={activePdfDoc}
@@ -574,19 +571,18 @@ export function App() {
             onOpenRecentFile={handleOpenRecentFile}
             containerRef={containerRef}
           />
+          {annotationModeOpen && <AnnotationToolbar />}
+          <StatusBar
+            onPageChange={handlePageClick}
+            onFitPage={handleFitPage}
+            onFitWidth={handleFitWidth}
+            onFitHeight={handleFitHeight}
+          />
         </div>
 
-        {/* Sağ Hızlı Araçlar Paneli */}
+        {/* Sağ İnceleyici */}
         <RightToolsPanel />
       </div>
-
-      {/* 4. Alt Durum Çubuğu */}
-      <StatusBar
-        onPageChange={handlePageClick}
-        onFitPage={handleFitPage}
-        onFitWidth={handleFitWidth}
-        onFitHeight={handleFitHeight}
-      />
 
       {/* Modallar */}
       <PasswordModal />

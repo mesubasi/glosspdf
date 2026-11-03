@@ -2,17 +2,118 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  Apple HIG temelli renk sistemi. Anlamsal renkler :root ve .dark altında CSS değişkeni olarak
+  tanımlanır; bileşenler `bg-toolbar`, `text-secondary` gibi sınıflarla kullanır ve koyu mod
+  için ayrıca `dark:` yazmaz.
+*/
+:root {
+  --c-window: #ffffff;
+  --c-toolbar: #f5f5f7;
+  --c-separator: #d6d6db;
+  --c-tabs: #e4e4e8;
+  --c-tab-on: #f5f5f7;
+  --c-sidebar: #eeeef1;
+  --c-inspector: #f6f6f8;
+  --c-canvas: #e1e1e6;
+  --c-label: #1d1d1f;
+  --c-secondary: #5f5f64;
+  --c-fill: #e3e3e8;
+  --c-hover: rgba(0, 0, 0, 0.06);
+  --c-seg-on: #ffffff;
+  --c-group: #ffffff;
+  --c-group-sep: #e3e3e8;
+  --c-hud: rgba(255, 255, 255, 0.9);
+  --c-sheet: #f6f6f8;
+  /* #007AFF beyaz metinle 4.5:1'i geçmez; erişilebilir ton */
+  --c-accent: #0066d6;
+  --c-accent-hover: #0058b8;
+  --c-accent-text: #0066d6;
+  --shadow-seg: 0 1px 2px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  --shadow-hud: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 6px 20px rgba(0, 0, 0, 0.14);
+  --shadow-page: 0 1px 2px rgba(0, 0, 0, 0.1), 0 12px 32px rgba(0, 0, 0, 0.1);
+  --shadow-btn: 0 0 0 0.5px rgba(0, 0, 0, 0.22), 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --c-window: #1e1e1e;
+  --c-toolbar: #2a2a2c;
+  --c-separator: #0e0e0f;
+  --c-tabs: #1f1f21;
+  --c-tab-on: #2a2a2c;
+  --c-sidebar: #252527;
+  --c-inspector: #232325;
+  --c-canvas: #141416;
+  --c-label: #f5f5f7;
+  --c-secondary: #aeaeb2;
+  --c-fill: #3a3a3c;
+  --c-hover: rgba(255, 255, 255, 0.08);
+  --c-seg-on: #636366;
+  --c-group: #2c2c2e;
+  --c-group-sep: #3a3a3c;
+  --c-hud: rgba(48, 48, 50, 0.92);
+  --c-sheet: #262628;
+  --c-accent-text: #5aa9ff;
+  --shadow-seg: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-hud: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 6px 20px rgba(0, 0, 0, 0.4);
+  --shadow-page: 0 1px 2px rgba(0, 0, 0, 0.6), 0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-btn: 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+@theme inline {
+  --color-window: var(--c-window);
+  --color-toolbar: var(--c-toolbar);
+  --color-separator: var(--c-separator);
+  --color-tabs: var(--c-tabs);
+  --color-tab-on: var(--c-tab-on);
+  --color-sidebar: var(--c-sidebar);
+  --color-inspector: var(--c-inspector);
+  --color-canvas: var(--c-canvas);
+  --color-label: var(--c-label);
+  --color-secondary: var(--c-secondary);
+  --color-fill: var(--c-fill);
+  --color-hover: var(--c-hover);
+  --color-seg-on: var(--c-seg-on);
+  --color-group: var(--c-group);
+  --color-group-sep: var(--c-group-sep);
+  --color-hud: var(--c-hud);
+  --color-sheet: var(--c-sheet);
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-text: var(--c-accent-text);
+  --shadow-seg: var(--shadow-seg);
+  --shadow-hud: var(--shadow-hud);
+  --shadow-page: var(--shadow-page);
+  --shadow-btn: var(--shadow-btn);
+  --shadow-sheet: 0 0 0 0.5px rgba(0, 0, 0, 0.18), 0 28px 72px rgba(0, 0, 0, 0.3);
+}
+
 @theme {
-  --color-acrobat-red: #ed2224;
-  --color-acrobat-darkRed: #d31b1c;
-  --color-acrobat-toolbar: #f4f4f4;
-  --color-acrobat-darkToolbar: #2b2b2b;
-  --color-acrobat-bg: #525659;
-  --color-acrobat-darkBg: #1e1e1e;
+  /* SF Pro (macOS) → Segoe UI (Windows) → Geist; font dosyası dağıtılmaz, sistemdeki kullanılır */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', 'Geist Variable', system-ui, sans-serif;
+
+  /* Slate yerine Apple'ın nötr gri tonları (eski slate-* sınıfları da yeni tona geçer) */
+  --color-slate-50: #f9f9fb;
+  --color-slate-100: #f2f2f5;
+  --color-slate-200: #e3e3e8;
+  --color-slate-300: #d1d1d6;
+  --color-slate-400: #78787d;
+  --color-slate-500: #5f5f64;
+  --color-slate-600: #48484c;
+  --color-slate-700: #3a3a3c;
+  --color-slate-800: #2c2c2e;
+  --color-slate-900: #1d1d1f;
+  --color-slate-950: #111112;
+
+  /* Eski token adları (modallar ve işaretleme katmanı); değerleri yeni palete eşlenmiştir */
+  --color-acrobat-toolbar: #f5f5f7;
+  --color-acrobat-darkToolbar: #2a2a2c;
+  --color-acrobat-bg: #e1e1e6;
+  --color-acrobat-darkBg: #262628;
   --color-acrobat-panel: #ffffff;
-  --color-acrobat-darkPanel: #252526;
-  --color-acrobat-border: #e0e0e0;
-  --color-acrobat-darkBorder: #3e3e42;
+  --color-acrobat-darkPanel: #2c2c2e;
+  --color-acrobat-border: #d6d6db;
+  --color-acrobat-darkBorder: #3a3a3c;
 }
 
 /*
@@ -39,6 +140,42 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+
+  body {
+    font-size: 13px;
+    color: var(--c-label);
+    background: var(--c-window);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 1px;
+  }
+
+  input[type='range'],
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--c-accent);
+  }
+}
+
+/* macOS: pencere başlık çubuğu gizli; araç çubuğu pencereyi sürükler, içindeki kontroller sürüklemez */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-drag button,
+.app-drag input,
+.app-drag select,
+.app-drag a,
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Yatay kayan araç ve sekme şeritlerinde kaydırma çubuğu gizlenir */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Açılır listeler (select/option) gibi yerel kontroller temaya uysun */
@@ -48,39 +185,38 @@
 
 /* Şeffaf arka planlı select'lerde açılan liste beyaz kalıyordu; renkleri açıkça ver */
 .dark option {
-  background-color: #1e1e1e;
-  color: #e2e8f0;
+  background-color: #2c2c2e;
+  color: #f5f5f7;
 }
 
-/* Standart Kaydırma Çubuğu Stilleri */
+/* macOS tarzı ince kaydırma çubuğu: iz yok, başparmak yuvarlak ve kenardan boşluklu */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: #2b2b2b;
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
+  background: rgba(0, 0, 0, 0.28);
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.28);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
+  background-color: rgba(255, 255, 255, 0.45);
 }
 
 /* PDF.js Metin Katmanı (TextLayer) Stilleri */

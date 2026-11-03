@@ -6,20 +6,16 @@ import { readAloudSupported, useReadAloud } from '../../hooks/useReadAloud';
 import { MainMenu } from './MainMenu';
 import { t } from '@/i18n';
 import {
+  PanelLeft,
+  PanelRight,
+  BookOpen,
+  Highlighter,
+  TextCursorInput,
+  Signature,
   FolderOpen,
   Save,
   Printer,
-  MousePointer,
-  Hand,
-  Highlighter,
   Search,
-  Sun,
-  Moon,
-  Layout,
-  HelpCircle,
-  TextCursorInput,
-  FileSignature,
-  RefreshCw,
   Undo2,
   Redo2,
   Volume2,
@@ -40,6 +36,31 @@ interface HeaderToolbarProps {
   onPageChange: (pageNum: number) => void;
 }
 
+// macOS'ta başlık çubuğu gizli; trafik ışıklarına yer açılır (electron/main.ts trafficLightPosition)
+const IS_MAC_DESKTOP = typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent) && !!window.electronAPI;
+
+/** Araç çubuğu simge düğmesi: 32×28, etkinken vurgu tonu */
+export const ToolbarButton: React.FC<{
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+}> = ({ label, onClick, active, disabled, children }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    title={label}
+    aria-label={label}
+    aria-pressed={active}
+    className={`relative grid place-items-center w-8 h-7 rounded-md transition-colors disabled:opacity-35 ${
+      active ? 'bg-accent/15 text-accent-text' : 'text-secondary hover:bg-hover hover:text-label'
+    }`}
+  >
+    {children}
+  </button>
+);
+
 export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
   pdfDocument,
   onOpenFile,
@@ -56,26 +77,23 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     activeTabId,
     activeTool,
     setActiveTool,
-    searchBarOpen,
-    setSearchBarOpen,
-    theme,
-    toggleTheme,
-    language,
     undo,
     redo,
+    searchBarOpen,
+    setSearchBarOpen,
     leftSidebarTab,
     setLeftSidebarTab,
     rightPanelOpen,
     toggleRightPanel,
+    isFullScreen,
     toggleFullScreen,
     annotationModeOpen,
     setAnnotationModeOpen,
-    setSignatureModalOpen,
-    setShortcutHelpModalOpen,
-    setUpdateModalOpen
+    signatureModalOpen,
+    setSignatureModalOpen
   } = usePdfStore();
 
-  // Güncelleme durumu: modal kapalıyken de simgede rozet göstermek için burada izlenir
+  // Güncelleme durumu: menü kapalıyken de menü düğmesinde rozet göstermek için burada izlenir
   const [updateState, setUpdateState] = useState<UpdateState>({ status: 'idle' });
   useEffect(() => {
     const api = window.electronAPI;
@@ -86,6 +104,10 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
   }, []);
   const updateReady = updateState.status === 'available' || updateState.status === 'downloaded';
 
+  // Yerel tam ekranda trafik ışıkları yok; onlara ayrılan sol boşluk kaldırılır
+  const [nativeFullScreen, setNativeFullScreen] = useState(false);
+  useEffect(() => window.electronAPI?.onFullScreenChange?.(setNativeFullScreen), []);
+
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   const readAloud = useReadAloud(pdfDocument, onPageChange);
@@ -95,20 +117,63 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     if (activeTab && !(await readAloud.start(activeTab.currentPage))) alert(t('read_aloud_no_text'));
   };
 
-  const handleToggleAnnotationMode = () => {
-    const nextState = !annotationModeOpen;
-    setAnnotationModeOpen(nextState);
-    if (nextState) {
-      setActiveTool('highlight');
-    } else {
-      setActiveTool('select');
+  // Çalışma modu: Görüntüle / İşaretle / Düzenle / İmzala (mevcut araç durumundan türetilir)
+  const mode = annotationModeOpen
+    ? 'markup'
+    : activeTool === 'edittext'
+      ? 'edit'
+      : activeTool === 'signature' || signatureModalOpen
+        ? 'sign'
+        : 'view';
+  const modes = [
+    {
+      id: 'view',
+      label: t('mode_view'),
+      icon: BookOpen,
+      action: () => {
+        setAnnotationModeOpen(false);
+        setActiveTool('select');
+      }
+    },
+    {
+      id: 'markup',
+      label: t('annotate'),
+      icon: Highlighter,
+      action: () => {
+        setAnnotationModeOpen(true);
+        setActiveTool('highlight');
+      }
+    },
+    {
+      id: 'edit',
+      label: t('edit_text'),
+      icon: TextCursorInput,
+      action: () => {
+        setAnnotationModeOpen(false);
+        setActiveTool('edittext');
+      }
+    },
+    {
+      id: 'sign',
+      label: t('sign'),
+      icon: Signature,
+      action: () => {
+        // Önceki mod (Metni Düzenle, işaretleme aracı) açık kalmasın; imza onaylanınca modal 'signature' aracını seçer
+        setAnnotationModeOpen(false);
+        setActiveTool('select');
+        setSignatureModalOpen(true);
+      }
     }
-  };
+  ] as const;
 
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-acrobat-toolbar dark:bg-acrobat-darkToolbar border-b border-acrobat-border dark:border-acrobat-darkBorder text-slate-700 dark:text-slate-200 select-none text-xs">
-      {/* Sol Araç Grubu: Dosya & Yan Panel Butonları */}
-      <div className="flex items-center space-x-1">
+    <header
+      className={`app-drag flex items-center gap-3 h-[52px] shrink-0 pr-3 bg-toolbar border-b border-separator text-label select-none ${
+        IS_MAC_DESKTOP && !isFullScreen && !nativeFullScreen ? 'pl-[84px]' : 'pl-3'
+      }`}
+    >
+      {/* Sol: ana menü, kenar çubuğu ve belge başlığı */}
+      <div className="flex items-center gap-1 flex-1 min-w-0">
         <MainMenu
           onOpenFile={onOpenFile}
           onOpenRecentFile={onOpenRecentFile}
@@ -120,238 +185,104 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
           onToggleFullScreen={toggleFullScreen}
           updateReady={updateReady}
         />
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-
-        {/* Sol Panel Aç/Kapat */}
-        <button
+        <ToolbarButton
+          label={t('navigation_panel')}
+          active={!!leftSidebarTab}
+          disabled={!activeTab}
           onClick={() => setLeftSidebarTab(leftSidebarTab ? null : 'thumbnails')}
-          className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-            leftSidebarTab ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : ''
-          }`}
-          title={t('navigation_panel')}
         >
-          <Layout className="w-4 h-4" />
-        </button>
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-
-        {/* Dosya Aç */}
-        <button
-          onClick={onOpenFile}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('open_file_ctrl_o')}
-        >
-          <FolderOpen className="w-4 h-4" />
-        </button>
-
-        {/* Kaydet */}
-        <button
-          onClick={onSaveFile}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('save_ctrl_s')}
-        >
-          <Save className="w-4 h-4" />
-        </button>
-
-        {/* Yazdır */}
-        <button
-          onClick={onPrint}
-          disabled={!activeTab}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors"
-          title={t('print_ctrl_p')}
-        >
-          <Printer className="w-4 h-4" />
-        </button>
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-
-        {/* İmleç / Seçim Aracı */}
-        <button
-          onClick={() => setActiveTool('select')}
-          className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-            activeTool === 'select' ? 'bg-black/15 dark:bg-white/15 text-blue-500 font-bold' : ''
-          }`}
-          title={t('select_tool')}
-        >
-          <MousePointer className="w-4 h-4" />
-        </button>
-
-        {/* El Aracı (Pan) */}
-        <button
-          onClick={() => setActiveTool('hand')}
-          className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-            activeTool === 'hand' ? 'bg-black/15 dark:bg-white/15 text-blue-500 font-bold' : ''
-          }`}
-          title={t('hand_tool')}
-        >
-          <Hand className="w-4 h-4" />
-        </button>
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-
-        {/* İşaretleme ve Not Ekleme Modu Aç/Kapat */}
-        <button
-          onClick={handleToggleAnnotationMode}
-          disabled={!activeTab}
-          className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
-            annotationModeOpen
-              ? 'bg-acrobat-red text-white font-medium shadow-xs'
-              : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
-          }`}
-          title={t('annotation_toolbar')}
-        >
-          <Highlighter className="w-3.5 h-3.5" />
-          <span className="font-medium text-[11px]">{t('annotate')}</span>
-        </button>
-
-        {/* Mevcut PDF metnini düzenle */}
-        <button
-          onClick={() => setActiveTool(activeTool === 'edittext' ? 'select' : 'edittext')}
-          disabled={!activeTab}
-          className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
-            activeTool === 'edittext'
-              ? 'bg-acrobat-red text-white font-medium shadow-xs'
-              : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
-          }`}
-          title={t('edit_text')}
-        >
-          <TextCursorInput className="w-3.5 h-3.5" />
-          <span className="font-medium text-[11px]">{t('edit_text')}</span>
-        </button>
-
-        {/* İmza oluştur ve sayfaya yerleştir */}
-        <button
-          onClick={() => setSignatureModalOpen(true)}
-          disabled={!activeTab}
-          className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors disabled:opacity-30 ${
-            activeTool === 'signature'
-              ? 'bg-acrobat-red text-white font-medium shadow-xs'
-              : 'hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200'
-          }`}
-          title={t('sign')}
-        >
-          <FileSignature className="w-3.5 h-3.5" />
-          <span className="font-medium text-[11px]">{t('sign')}</span>
-        </button>
+          <PanelLeft className="w-[17px] h-[17px]" strokeWidth={1.75} />
+        </ToolbarButton>
+        <div className="flex flex-col min-w-0 ml-2 leading-tight">
+          <span className="text-[13px] font-semibold truncate">
+            {activeTab ? activeTab.fileName.replace(/\.pdf$/i, '') : 'GlossPDF'}
+          </span>
+          {activeTab?.isModified && <span className="text-[11px] text-secondary">{t('edited')}</span>}
+        </div>
       </div>
 
-      {/* Sağ Araç Grubu: Sesli Okuma, Arama, Tema ve Geri/İleri Al */}
-      <div className="flex items-center space-x-1">
-        {/* Sesli Okuma: geçerli sayfadan başlar; okurken duraklat/devam et ve durdur */}
-        <button
-          onClick={handleReadAloud}
-          disabled={!activeTab || !pdfDocument || !readAloudSupported}
-          className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors ${
-            readAloud.status !== 'idle' ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : ''
-          }`}
-          title={t(
+      {/* Orta: çalışma modu */}
+      <div role="group" aria-label={t('tools')} className="flex gap-0.5 p-0.5 rounded-lg bg-fill">
+        {modes.map((m) => {
+          const Icon = m.icon;
+          const on = activeTab && mode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={m.action}
+              disabled={!activeTab}
+              aria-pressed={!!on}
+              title={m.label}
+              className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-colors disabled:opacity-40 ${
+                on ? 'bg-seg-on text-label shadow-seg' : 'text-secondary hover:text-label'
+              }`}
+            >
+              <Icon className="w-[15px] h-[15px]" strokeWidth={1.8} />
+              <span className="hidden lg:inline">{m.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sağ: dosya, geri al, sesli okuma, arama, inceleyici */}
+      <div className="flex items-center justify-end gap-1 flex-1">
+        <ToolbarButton label={t('open_file_ctrl_o')} onClick={onOpenFile}>
+          <FolderOpen className="w-[17px] h-[17px]" strokeWidth={1.75} />
+        </ToolbarButton>
+        <ToolbarButton label={t('save_ctrl_s')} onClick={onSaveFile} disabled={!activeTab}>
+          <Save className="w-[17px] h-[17px]" strokeWidth={1.75} />
+        </ToolbarButton>
+        <ToolbarButton label={t('print_ctrl_p')} onClick={onPrint} disabled={!activeTab}>
+          <Printer className="w-[17px] h-[17px]" strokeWidth={1.75} />
+        </ToolbarButton>
+        <ToolbarButton label={t('undo_ctrl_z')} onClick={undo} disabled={!activeTab?.undoStack?.length}>
+          <Undo2 className="w-[17px] h-[17px]" strokeWidth={1.75} />
+        </ToolbarButton>
+        <ToolbarButton label={t('redo_ctrl_y')} onClick={redo} disabled={!activeTab?.redoStack?.length}>
+          <Redo2 className="w-[17px] h-[17px]" strokeWidth={1.75} />
+        </ToolbarButton>
+
+        {/* Sesli okuma: geçerli sayfadan başlar; okurken duraklat/devam et ve durdur */}
+        <ToolbarButton
+          label={t(
             readAloud.status === 'playing' ? 'pause_reading' : readAloud.status === 'paused' ? 'resume_reading' : 'read_aloud'
           )}
+          active={readAloud.status !== 'idle'}
+          disabled={!activeTab || !pdfDocument || !readAloudSupported}
+          onClick={handleReadAloud}
         >
           {readAloud.status === 'playing' ? (
-            <Pause className="w-4 h-4" />
+            <Pause className="w-[17px] h-[17px]" strokeWidth={1.75} />
           ) : readAloud.status === 'paused' ? (
-            <Play className="w-4 h-4" />
+            <Play className="w-[17px] h-[17px]" strokeWidth={1.75} />
           ) : (
-            <Volume2 className="w-4 h-4" />
+            <Volume2 className="w-[17px] h-[17px]" strokeWidth={1.75} />
           )}
-        </button>
+        </ToolbarButton>
         {readAloud.status !== 'idle' && (
-          <button
-            onClick={readAloud.stop}
-            className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-            title={t('stop_reading')}
-          >
-            <Square className="w-3.5 h-3.5 fill-current" />
-          </button>
+          <ToolbarButton label={t('stop_reading')} onClick={readAloud.stop}>
+            <Square className="w-3.5 h-3.5 fill-current" strokeWidth={1.75} />
+          </ToolbarButton>
         )}
 
-        {/* Arama Aç/Kapat */}
         <button
           onClick={() => setSearchBarOpen(!searchBarOpen)}
           disabled={!activeTab}
-          className={`p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 transition-colors ${
-            searchBarOpen ? 'bg-black/15 dark:bg-white/15 text-acrobat-red' : ''
-          }`}
           title={t('find_in_document_ctrl_f')}
-        >
-          <Search className="w-4 h-4" />
-        </button>
-
-        {/* Tema Değiştir */}
-        <button
-          onClick={toggleTheme}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t(theme === 'dark' ? 'switch_to_light_theme' : 'switch_to_dark_theme')}
-        >
-          {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-        </button>
-
-        {/* Geri Al / İleri Al (dil seçimi Menü > Dil altında) */}
-        <button
-          onClick={undo}
-          disabled={!activeTab?.undoStack?.length}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-          title={t('undo_ctrl_z')}
-        >
-          <Undo2 className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={redo}
-          disabled={!activeTab?.redoStack?.length}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-          title={t('redo_ctrl_y')}
-        >
-          <Redo2 className="w-4 h-4" />
-        </button>
-
-        {/* Kısayollar ve Yardım */}
-        <button
-          onClick={() => setShortcutHelpModalOpen(true)}
-          className="p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={t('keyboard_shortcuts_f1')}
-        >
-          <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
-        </button>
-
-        {/* Sürüm ve Güncellemeler */}
-        <button
-          onClick={() => setUpdateModalOpen(true)}
-          className="relative p-1.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          title={
-            updateReady
-              ? t(updateState.status === 'downloaded' ? 'update_status_downloaded' : 'update_status_available', {
-                  version: updateState.version ?? ''
-                })
-              : t('check_for_updates')
-          }
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${
-              updateReady ? 'text-acrobat-red' : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          />
-          {updateReady && (
-            <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-acrobat-red ring-2 ring-white dark:ring-acrobat-darkBg" />
-          )}
-        </button>
-
-        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-
-        {/* Sağ Panel Aç/Kapat */}
-        <button
-          onClick={toggleRightPanel}
-          className={`px-2 py-1 rounded hover:bg-black/10 dark:hover:bg-white/10 font-medium transition-colors ${
-            rightPanelOpen ? 'bg-acrobat-red text-white' : ''
+          aria-pressed={searchBarOpen}
+          className={`hidden md:flex items-center gap-1.5 w-44 h-7 mx-1 px-2 rounded-[7px] text-[13px] text-left transition-colors disabled:opacity-40 ${
+            searchBarOpen ? 'bg-accent/15 text-accent-text' : 'bg-fill text-secondary'
           }`}
-          title={t('tools_panel')}
         >
-          {t('tools')}
+          <Search className="w-3.5 h-3.5" strokeWidth={2} />
+          <span className="flex-1 truncate">{t('find_in_document_2')}</span>
+          <span className="text-[11px]">{IS_MAC_DESKTOP ? '⌘F' : 'Ctrl+F'}</span>
         </button>
+
+        <ToolbarButton label={t('inspector')} active={rightPanelOpen} onClick={toggleRightPanel}>
+          <PanelRight className="w-[17px] h-[17px]" strokeWidth={1.75} />
+        </ToolbarButton>
       </div>
-    </div>
+    </header>
   );
 };

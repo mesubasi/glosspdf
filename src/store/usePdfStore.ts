@@ -161,10 +161,12 @@ function getInitialTheme(): 'light' | 'dark' {
     }
   } catch {}
 
+  // Kayıtlı tercih yoksa sistem görünümü izlenir (HIG)
+  const prefersDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   if (typeof document !== 'undefined') {
-    document.documentElement.classList.add('dark');
+    document.documentElement.classList.toggle('dark', !!prefersDark);
   }
-  return 'dark';
+  return prefersDark ? 'dark' : 'light';
 }
 
 function getInitialRecentFiles(): { filePath: string; fileName: string; lastOpened: number }[] {

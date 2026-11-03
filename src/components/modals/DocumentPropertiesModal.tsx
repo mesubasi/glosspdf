@@ -85,19 +85,19 @@ export const DocumentPropertiesModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 animate-in fade-in duration-150"
       onKeyDown={(e) => e.key === 'Escape' && close()}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="document-properties-title"
-        className="bg-white dark:bg-acrobat-darkBg border border-slate-300 dark:border-slate-700 w-full max-w-lg max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs"
+        className="bg-sheet w-full max-w-lg max-h-[90vh] rounded-[14px] shadow-sheet flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 text-xs"
       >
         {/* Başlık */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-group-sep bg-sheet">
           <div className="flex items-center space-x-2">
-            <Info className="w-5 h-5 text-red-500" />
+            <Info className="w-5 h-5 text-accent-text" />
             <h2 id="document-properties-title" className="font-semibold text-sm">
               {t('document_properties')}
             </h2>
@@ -117,7 +117,7 @@ export const DocumentPropertiesModal: React.FC = () => {
             <dl
               key={i}
               className={`grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 gap-y-2 ${
-                i > 0 ? 'pt-4 border-t border-slate-200 dark:border-slate-800' : ''
+                i > 0 ? 'pt-4 border-t border-group-sep' : ''
               }`}
             >
               {rows.map(([label, value]) => (
@@ -131,7 +131,7 @@ export const DocumentPropertiesModal: React.FC = () => {
         </div>
 
         {/* Alt Çubuk */}
-        <div className="flex items-center justify-end px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-acrobat-darkPanel">
+        <div className="flex items-center justify-end px-5 py-3 border-t border-group-sep bg-sheet">
           <button
             autoFocus
             onClick={close}

@@ -47,6 +47,7 @@ export interface IElectronAPI {
   onCloseRequested: (callback: () => void) => () => void;
   takePendingFiles: () => Promise<string[]>;
   onOpenFile: (callback: (filePath: string) => void) => () => void;
+  onFullScreenChange: (callback: (isFullScreen: boolean) => void) => () => void;
   getVersion: () => Promise<string>;
   getUpdateState: () => Promise<UpdateState & { autoDownload: boolean }>;
   setAutoDownload: (autoDownload: boolean) => Promise<void>;
