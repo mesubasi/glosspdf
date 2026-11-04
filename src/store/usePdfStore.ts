@@ -459,11 +459,16 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   },
 
   setIsFullScreen: (full) => set({ isFullScreen: full }),
+  // isFullScreen aşağıdaki dinleyicilerden güncellenir
   toggleFullScreen: () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => set({ isFullScreen: true }));
+    // macOS masaüstü: gerçek tam ekran yerine ekranı doldur (trafik ışıkları görünür kalır)
+    const fillScreen = window.electronAPI?.toggleFillScreen;
+    if (fillScreen) {
+      fillScreen();
+    } else if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
     } else {
-      document.exitFullscreen().then(() => set({ isFullScreen: false }));
+      document.exitFullscreen();
     }
   },
   setPageLayout: (layout) => set({ pageLayout: layout }),
@@ -624,3 +629,12 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   setShortcutHelpModalOpen: (open) => set({ shortcutHelpModalOpen: open }),
   setUpdateModalOpen: (open) => set({ updateModalOpen: open })
 }));
+
+// Tam ekrandan Esc, yeşil düğme ya da ⌃⌘F ile de çıkılır; durum yalnızca uygulamanın düğmesine bağlı kalırsa
+// macOS'ta üst çubuk trafik ışıklarına yer açmaz ve menü onların altında kalır
+if (typeof document !== 'undefined') {
+  document.addEventListener('fullscreenchange', () =>
+    usePdfStore.getState().setIsFullScreen(!!document.fullscreenElement)
+  );
+  window.electronAPI?.onFillScreenChange?.((filled) => usePdfStore.getState().setIsFullScreen(filled));
+}

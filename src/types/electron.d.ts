@@ -46,8 +46,10 @@ export interface IElectronAPI {
   confirmClose: () => void;
   onCloseRequested: (callback: () => void) => () => void;
   takePendingFiles: () => Promise<string[]>;
+  /** Yalnızca macOS: pencereyi ekranı dolduracak kadar büyütür ya da eski boyutuna döndürür */
+  toggleFillScreen?: () => Promise<void>;
+  onFillScreenChange?: (callback: (filled: boolean) => void) => () => void;
   onOpenFile: (callback: (filePath: string) => void) => () => void;
-  onFullScreenChange: (callback: (isFullScreen: boolean) => void) => () => void;
   getVersion: () => Promise<string>;
   getUpdateState: () => Promise<UpdateState & { autoDownload: boolean }>;
   setAutoDownload: (autoDownload: boolean) => Promise<void>;

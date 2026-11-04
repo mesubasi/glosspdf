@@ -204,8 +204,13 @@ function createWindow() {
     title: 'GlossPDF - Sleek Desktop PDF Workstation',
     icon: iconPath,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff',
-    // macOS: başlık çubuğu gizlenir, trafik ışıkları 52 px'lik araç çubuğunun içinde ortalanır
-    ...(process.platform === 'darwin' && { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 20, y: 20 } }),
+    // macOS: başlık çubuğu gizlenir, trafik ışıkları 52 px'lik araç çubuğunun içinde ortalanır.
+    // Tam ekran kapalı: yeşil düğme pencereyi ekranı dolduracak kadar büyütür, ışıklar hep görünür kalır
+    ...(process.platform === 'darwin' && {
+      titleBarStyle: 'hidden' as const,
+      trafficLightPosition: { x: 20, y: 20 },
+      fullscreenable: false
+    }),
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -232,9 +237,11 @@ function createWindow() {
     }
   });
 
-  // macOS yerel tam ekranında trafik ışıkları gizlenir; araç çubuğu onlara ayırdığı boşluğu kapatır
-  mainWindow.on('enter-full-screen', () => mainWindow?.webContents.send('window:fullscreen', true));
-  mainWindow.on('leave-full-screen', () => mainWindow?.webContents.send('window:fullscreen', false));
+  // macOS'ta uygulamanın "Tam ekran" komutu ekranı doldurmaktır; menüdeki onay işareti bu durumu izler
+  if (process.platform === 'darwin') {
+    mainWindow.on('maximize', () => mainWindow?.webContents.send('window:filled', true));
+    mainWindow.on('unmaximize', () => mainWindow?.webContents.send('window:filled', false));
+  }
 
   // Preload yüklenemezse sessizce devam etme: nedeni konsola yaz
   mainWindow.webContents.on('preload-error', (_event, failedPath, error) => {
@@ -397,6 +404,12 @@ if (!isPrimaryInstance) {
 app.on('open-file', (event, filePath) => {
   event.preventDefault();
   openPdfPaths([filePath]);
+});
+
+ipcMain.handle('window:toggleFill', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  else mainWindow.maximize();
 });
 
 ipcMain.handle('app:takePendingFiles', () => {

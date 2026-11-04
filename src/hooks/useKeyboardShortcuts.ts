@@ -32,7 +32,7 @@ export function useKeyboardShortcuts({
     nextSearchResult,
     prevSearchResult,
     isFullScreen,
-    setIsFullScreen,
+    toggleFullScreen,
     undo,
     redo,
     selectedAnnotationId,
@@ -195,11 +195,7 @@ export function useKeyboardShortcuts({
       // Tam Ekran
       if ((isCtrl && (e.key === 'l' || e.key === 'L')) || e.key === 'F11') {
         e.preventDefault();
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().then(() => setIsFullScreen(true));
-        } else {
-          document.exitFullscreen().then(() => setIsFullScreen(false));
-        }
+        toggleFullScreen();
         return;
       }
 
@@ -246,7 +242,7 @@ export function useKeyboardShortcuts({
     onFitPage,
     onFitWidth,
     isFullScreen,
-    setIsFullScreen,
+    toggleFullScreen,
     undo,
     redo,
     selectedAnnotationId,

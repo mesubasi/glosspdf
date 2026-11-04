@@ -85,7 +85,6 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     setLeftSidebarTab,
     rightPanelOpen,
     toggleRightPanel,
-    isFullScreen,
     toggleFullScreen,
     annotationModeOpen,
     setAnnotationModeOpen,
@@ -103,10 +102,6 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     return off;
   }, []);
   const updateReady = updateState.status === 'available' || updateState.status === 'downloaded';
-
-  // Yerel tam ekranda trafik ışıkları yok; onlara ayrılan sol boşluk kaldırılır
-  const [nativeFullScreen, setNativeFullScreen] = useState(false);
-  useEffect(() => window.electronAPI?.onFullScreenChange?.(setNativeFullScreen), []);
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
@@ -168,8 +163,9 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
 
   return (
     <header
+      // macOS: trafik ışıkları her zaman görünür (tam ekran yerine pencere ekranı doldurur); yerleri boş kalır
       className={`app-drag flex items-center gap-3 h-[52px] shrink-0 pr-3 bg-toolbar border-b border-separator text-label select-none ${
-        IS_MAC_DESKTOP && !isFullScreen && !nativeFullScreen ? 'pl-[84px]' : 'pl-3'
+        IS_MAC_DESKTOP ? 'pl-[84px]' : 'pl-3'
       }`}
     >
       {/* Sol: ana menü, kenar çubuğu ve belge başlığı */}
