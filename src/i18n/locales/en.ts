@@ -270,7 +270,7 @@ export const en = {
   "rotate_90_counter_clockwise": "Rotate 90° Counter-Clockwise",
   "rotate_clockwise_ctrl_shift_r": "Rotate Clockwise (Ctrl+Shift+R)",
   "rotate_counter_clockwise_ctrl_shift_l": "Rotate Counter-Clockwise (Ctrl+Shift+L)",
-  "rotate_delete_or_reorder_pages_with_arrows": "Rotate, delete or reorder pages with arrows.",
+  "rotate_delete_or_reorder_pages_with_arrows": "Drag pages or use the arrows to reorder them; rotate or delete with the buttons.",
   "rotate_left": "Rotate Left",
   "rotate_right": "Rotate Right",
   "save": "Save",

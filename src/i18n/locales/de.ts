@@ -272,7 +272,7 @@ export const de: Record<MessageKey, string> = {
   "rotate_90_counter_clockwise": "Um 90° gegen den Uhrzeigersinn drehen",
   "rotate_clockwise_ctrl_shift_r": "Im Uhrzeigersinn drehen (Ctrl+Shift+R)",
   "rotate_counter_clockwise_ctrl_shift_l": "Gegen den Uhrzeigersinn drehen (Ctrl+Shift+L)",
-  "rotate_delete_or_reorder_pages_with_arrows": "Seiten mit den Pfeilen drehen, löschen oder neu anordnen.",
+  "rotate_delete_or_reorder_pages_with_arrows": "Seiten per Drag & Drop oder mit den Pfeilen neu anordnen; mit den Schaltflächen drehen oder löschen.",
   "rotate_left": "Nach links drehen",
   "rotate_right": "Nach rechts drehen",
   "save": "Speichern",

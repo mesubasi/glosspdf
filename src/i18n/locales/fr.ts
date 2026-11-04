@@ -272,7 +272,7 @@ export const fr: Record<MessageKey, string> = {
   "rotate_90_counter_clockwise": "Pivoter de 90° dans le sens antihoraire",
   "rotate_clockwise_ctrl_shift_r": "Pivoter dans le sens horaire (Ctrl+Shift+R)",
   "rotate_counter_clockwise_ctrl_shift_l": "Pivoter dans le sens antihoraire (Ctrl+Shift+L)",
-  "rotate_delete_or_reorder_pages_with_arrows": "Faites pivoter, supprimez ou réorganisez les pages à l'aide des flèches.",
+  "rotate_delete_or_reorder_pages_with_arrows": "Faites glisser les pages ou utilisez les flèches pour les réorganiser ; faites-les pivoter ou supprimez-les avec les boutons.",
   "rotate_left": "Pivoter à gauche",
   "rotate_right": "Pivoter à droite",
   "save": "Enregistrer",

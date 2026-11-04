@@ -36,6 +36,9 @@ export const OrganizePagesModal: React.FC = () => {
   const [pages, setPages] = useState<PageCardState[]>([]);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Sürükle-bırak: taşınan kartın sırası ve bırakılacak yer (hedef kartın solu ya da sağı)
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ index: number; after: boolean } | null>(null);
 
   useEffect(() => {
     if (!organizeModalOpen || !activeTab) return;
@@ -76,6 +79,21 @@ export const OrganizePagesModal: React.FC = () => {
     newPages[index + 1] = newPages[index];
     newPages[index] = temp;
     setPages(newPages);
+  };
+
+  // Sürüklenen sayfayı hedef kartın önüne ya da arkasına taşı
+  const dropPage = () => {
+    if (dragIndex === null || !dropTarget) return;
+    const insertAt = dropTarget.index + (dropTarget.after ? 1 : 0);
+    const next = [...pages];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(insertAt > dragIndex ? insertAt - 1 : insertAt, 0, moved);
+    setPages(next);
+  };
+
+  const endDrag = () => {
+    setDragIndex(null);
+    setDropTarget(null);
   };
 
   // Tek sayfayı döndür
@@ -214,9 +232,43 @@ export const OrganizePagesModal: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {pages.map((p, idx) => (
               <div
-                key={`${p.originalPageNumber}-${idx}`}
-                className="group relative bg-white dark:bg-acrobat-darkPanel rounded-lg shadow-md border border-slate-200 dark:border-slate-700 p-3 flex flex-col items-center transition-all hover:shadow-xl hover:border-accent"
+                // Sayfa numarası sabit anahtar: sıra değişince küçük resim yeniden çizilmez
+                key={p.originalPageNumber}
+                data-page-card={p.originalPageNumber}
+                draggable={!isProcessing}
+                onDragStart={(e) => {
+                  setDragIndex(idx);
+                  e.dataTransfer.effectAllowed = 'move';
+                  e.dataTransfer.setData('text/plain', String(p.originalPageNumber));
+                }}
+                onDragOver={(e) => {
+                  if (dragIndex === null) return; // Dışarıdan sürüklenen dosyalar burada kabul edilmez
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const after = e.clientX > rect.left + rect.width / 2;
+                  if (dropTarget?.index !== idx || dropTarget.after !== after) setDropTarget({ index: idx, after });
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation(); // Uygulamanın dosya bırakma işleyicisine gitmesin
+                  dropPage();
+                  endDrag();
+                }}
+                onDragEnd={endDrag}
+                className={`group relative bg-white dark:bg-acrobat-darkPanel rounded-lg shadow-md border border-slate-200 dark:border-slate-700 p-3 flex flex-col items-center cursor-grab active:cursor-grabbing transition-all hover:shadow-xl hover:border-accent ${
+                  dragIndex === idx ? 'opacity-40' : ''
+                }`}
               >
+                {/* Bırakma yeri göstergesi: kartlar arasındaki boşluğun ortasında dikey çizgi */}
+                {dropTarget?.index === idx && dragIndex !== null && (
+                  <span
+                    aria-hidden
+                    className={`absolute top-0 bottom-0 w-1 rounded-full bg-accent pointer-events-none ${
+                      dropTarget.after ? '-right-[14px]' : '-left-[14px]'
+                    }`}
+                  />
+                )}
                 {/* Sayfa Önizleme Tuvali */}
                 <div className="relative w-full aspect-[1/1.4] bg-white rounded-sm border border-slate-100 dark:border-slate-800 overflow-hidden flex items-center justify-center">
                   {pdfDoc ? (

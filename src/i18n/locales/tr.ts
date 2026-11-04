@@ -272,7 +272,7 @@ export const tr: Record<MessageKey, string> = {
   "rotate_90_counter_clockwise": "Sola 90° Döndür",
   "rotate_clockwise_ctrl_shift_r": "Saat Yönünde Döndür (Ctrl+Shift+R)",
   "rotate_counter_clockwise_ctrl_shift_l": "Ters Yönde Döndür (Ctrl+Shift+L)",
-  "rotate_delete_or_reorder_pages_with_arrows": "Sayfaları döndürebilir, silebilir veya oklarla sırasını değiştirebilirsiniz.",
+  "rotate_delete_or_reorder_pages_with_arrows": "Sayfaları sürükleyerek ya da oklarla sıralayabilir, düğmelerle döndürüp silebilirsiniz.",
   "rotate_left": "Sola Döndür",
   "rotate_right": "Sağa Döndür",
   "save": "Kaydet",

@@ -272,7 +272,7 @@ export const ar: Record<MessageKey, string> = {
   "rotate_90_counter_clockwise": "تدوير 90° عكس عقارب الساعة",
   "rotate_clockwise_ctrl_shift_r": "تدوير مع عقارب الساعة (Ctrl+Shift+R)",
   "rotate_counter_clockwise_ctrl_shift_l": "تدوير عكس عقارب الساعة (Ctrl+Shift+L)",
-  "rotate_delete_or_reorder_pages_with_arrows": "قم بتدوير الصفحات أو حذفها أو إعادة ترتيبها بالأسهم.",
+  "rotate_delete_or_reorder_pages_with_arrows": "اسحب الصفحات أو استخدم الأسهم لإعادة ترتيبها، ويمكنك تدويرها أو حذفها بالأزرار.",
   "rotate_left": "تدوير لليسار",
   "rotate_right": "تدوير لليمين",
   "save": "حفظ",

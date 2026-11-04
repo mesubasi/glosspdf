@@ -272,7 +272,7 @@ export const zh: Record<MessageKey, string> = {
   "rotate_90_counter_clockwise": "逆时针旋转 90°",
   "rotate_clockwise_ctrl_shift_r": "顺时针旋转（Ctrl+Shift+R）",
   "rotate_counter_clockwise_ctrl_shift_l": "逆时针旋转（Ctrl+Shift+L）",
-  "rotate_delete_or_reorder_pages_with_arrows": "使用箭头旋转、删除或重新排列页面。",
+  "rotate_delete_or_reorder_pages_with_arrows": "拖动页面或使用箭头重新排序；使用按钮旋转或删除页面。",
   "rotate_left": "向左旋转",
   "rotate_right": "向右旋转",
   "save": "保存",

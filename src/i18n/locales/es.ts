@@ -272,7 +272,7 @@ export const es: Record<MessageKey, string> = {
   "rotate_90_counter_clockwise": "Girar 90° a la izquierda",
   "rotate_clockwise_ctrl_shift_r": "Girar a la derecha (Ctrl+Shift+R)",
   "rotate_counter_clockwise_ctrl_shift_l": "Girar a la izquierda (Ctrl+Shift+L)",
-  "rotate_delete_or_reorder_pages_with_arrows": "Gira, elimina o reordena páginas con las flechas.",
+  "rotate_delete_or_reorder_pages_with_arrows": "Arrastra las páginas o usa las flechas para reordenarlas; gíralas o elimínalas con los botones.",
   "rotate_left": "Girar a la izquierda",
   "rotate_right": "Girar a la derecha",
   "save": "Guardar",
