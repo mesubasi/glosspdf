@@ -27,6 +27,7 @@ import {
 interface HeaderToolbarProps {
   pdfDocument: PDFDocumentProxy | null;
   onOpenFile: () => void;
+  onCreatePdf: () => void;
   onOpenRecentFile: (filePath: string, fileName: string) => void;
   onSaveFile: () => void;
   onSaveFileAs: () => void;
@@ -64,6 +65,7 @@ export const ToolbarButton: React.FC<{
 export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
   pdfDocument,
   onOpenFile,
+  onCreatePdf,
   onOpenRecentFile,
   onSaveFile,
   onSaveFileAs,
@@ -176,6 +178,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
       <div className="flex items-center gap-1 flex-1 min-w-0">
         <MainMenu
           onOpenFile={onOpenFile}
+          onCreatePdf={onCreatePdf}
           onOpenRecentFile={onOpenRecentFile}
           onSaveFile={onSaveFile}
           onSaveFileAs={onSaveFileAs}

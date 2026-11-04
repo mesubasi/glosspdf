@@ -5,10 +5,12 @@ import { SearchBar } from './SearchBar';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Upload, FileText, FolderOpen, X } from 'lucide-react';
 import { t } from '@/i18n';
+import { isOpenableName } from '../../services/createPdfService';
 
 interface PdfDocumentViewerProps {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
   onOpenFile: () => void;
+  onCreatePdf: () => void;
   onFileDrop: (file: File) => void;
   onOpenRecentFile?: (filePath: string, fileName: string) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -17,6 +19,7 @@ interface PdfDocumentViewerProps {
 export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   pdfDocument,
   onOpenFile,
+  onCreatePdf,
   onFileDrop,
   onOpenRecentFile,
   containerRef
@@ -267,7 +270,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     setIsDraggingFile(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      if (file.name.toLowerCase().endsWith('.pdf')) {
+      if (isOpenableName(file.name)) {
         onFileDrop(file);
       }
     }
@@ -311,6 +314,12 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
               >
                 <FolderOpen className="w-4 h-4" strokeWidth={1.8} />
                 {t('open_pdf')}
+              </button>
+              <button
+                onClick={onCreatePdf}
+                className="h-[30px] px-4 rounded-[7px] bg-group text-label text-[13px] shadow-btn hover:bg-hover"
+              >
+                {t('create_pdf')}
               </button>
               <button
                 onClick={() => setMergeModalOpen(true)}

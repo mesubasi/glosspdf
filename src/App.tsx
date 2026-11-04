@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePdfStore } from './store/usePdfStore';
 import { PdfRenderService } from './services/pdfRenderService';
-import { isRealPath } from './services/fileSaveService';
+import { isRealPath, stripExtension } from './services/fileSaveService';
+import { OPENABLE_ACCEPT, filesToPdf, isOpenableName, isPdfName, reportConversionError } from './services/createPdfService';
 import { PdfEditService } from './services/pdfEditService';
 import { TabBar } from './components/layout/TabBar';
 import { HeaderToolbar } from './components/layout/HeaderToolbar';
@@ -184,11 +185,12 @@ export function App() {
   const handleFitWidth = useCallback(() => fitZoom('width'), [fitZoom]);
   const handleFitHeight = useCallback(() => fitZoom('height'), [fitZoom]);
 
-  // Yeni PDF Belgesini Açma ve State'e Aktarma
-  const openNewPdf = async (filePath: string, fileName: string, rawBytes: Uint8Array) => {
+  // Yeni PDF Belgesini Açma ve State'e Aktarma.
+  // unsaved: başka dosyadan oluşturulan belge; yol = ad olduğu için Kaydet "Farklı Kaydet" açar
+  const openNewPdf = async (filePath: string, fileName: string, rawBytes: Uint8Array, unsaved = false) => {
     try {
       // Eğer bu dosya zaten sekmelerde açıksa doğrudan o sekmeye geç
-      const existingTab = tabs.find(
+      const existingTab = !unsaved && tabs.find(
         (t) => t.filePath === filePath || (t.fileName === fileName && t.filePath === filePath)
       );
       if (existingTab) {
@@ -214,7 +216,7 @@ export function App() {
         currentPage: 1,
         zoom: 1.0,
         rotation: 0,
-        isModified: false,
+        isModified: unsaved,
         outline,
         annotations: [],
         undoStack: [],
@@ -224,6 +226,7 @@ export function App() {
 
       // Doğrudan açılan belgeyi aktif kıl
       setActivePdfDoc(doc);
+      if (unsaved) return;
 
       // Baytları oturum önbelleğine al (son açılanlar için yedek kaynak)
       cacheFileBytes(filePath, fileName, storeData);
@@ -234,6 +237,45 @@ export function App() {
       console.error('Failed to open PDF:', err);
       alert(t('error_opening_pdf', { message: err?.message || err }));
     }
+  };
+
+  // Görsel ve Office dosyaları PDF'e çevrilip kaydedilmemiş sekmede açılır; birden çok dosya tek belgede birleşir
+  const [convertingName, setConvertingName] = useState<string | null>(null);
+  const openFiles = async (files: { path: string; name: string; bytes: Uint8Array }[]) => {
+    if (files.length === 0) return;
+    if (files.length === 1 && isPdfName(files[0].name)) {
+      await openNewPdf(files[0].path, files[0].name, files[0].bytes);
+      return;
+    }
+    setConvertingName(files.map((file) => file.name).join(', '));
+    try {
+      const bytes = await filesToPdf(files);
+      const name = `${stripExtension(files[0].name)}.pdf`;
+      await openNewPdf(name, name, bytes, true);
+    } catch (err) {
+      reportConversionError(err);
+    } finally {
+      setConvertingName(null);
+    }
+  };
+
+  const fileEntry = async (file: File) => ({
+    path: (window.electronAPI?.getPathForFile ? window.electronAPI.getPathForFile(file) : (file as any).path) || file.name,
+    name: file.name,
+    bytes: new Uint8Array(await file.arrayBuffer())
+  });
+
+  // PDF Oluştur: dosyalar seçilme sırasıyla tek PDF'te birleşir
+  const handleCreatePdf = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = OPENABLE_ACCEPT;
+    input.onchange = async () => {
+      const files = Array.from(input.files ?? []);
+      await openFiles(await Promise.all(files.map(fileEntry)));
+    };
+    input.click();
   };
 
   // Son Açılan Belgeyi Açma
@@ -303,7 +345,7 @@ export function App() {
     if (window.electronAPI) {
       const res = await window.electronAPI.openPdf(language);
       if (res.success && res.data && res.filePath && res.fileName) {
-        await openNewPdf(res.filePath, res.fileName, base64ToBytes(res.data));
+        await openFiles([{ path: res.filePath, name: res.fileName, bytes: base64ToBytes(res.data) }]);
       }
       return;
     }
@@ -311,7 +353,7 @@ export function App() {
     // Tarayıcı / Web Fallback (HTML5 File Input)
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'application/pdf,.pdf';
+    fileInput.accept = OPENABLE_ACCEPT;
     fileInput.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
@@ -323,12 +365,7 @@ export function App() {
 
   // Sürükle - Bırak ile Dosya Yükleme
   const handleFileDrop = async (file: File) => {
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const resolvedPath =
-      (window.electronAPI?.getPathForFile ? window.electronAPI.getPathForFile(file) : (file as any).path) ||
-      file.name;
-    await openNewPdf(resolvedPath, file.name, bytes);
+    await openFiles([await fileEntry(file)]);
   };
 
   // Karartma geri alınamaz ve sayfayı görüntüye çevirir: kaydetmeden önce kullanıcıya sorulur
@@ -533,7 +570,7 @@ export function App() {
       onDrop={(e) => {
         e.preventDefault();
         const file = e.dataTransfer.files?.[0];
-        if (file && file.type === 'application/pdf') {
+        if (file && isOpenableName(file.name)) {
           handleFileDrop(file);
         }
       }}
@@ -543,6 +580,7 @@ export function App() {
         pdfDocument={activePdfDoc}
         onPageChange={handlePageClick}
         onOpenFile={handleOpenFile}
+        onCreatePdf={handleCreatePdf}
         onOpenRecentFile={handleOpenRecentFile}
         onSaveFile={handleSaveFile}
         onSaveFileAs={handleSaveFileAs}
@@ -567,6 +605,7 @@ export function App() {
           <PdfDocumentViewer
             pdfDocument={activePdfDoc}
             onOpenFile={handleOpenFile}
+            onCreatePdf={handleCreatePdf}
             onFileDrop={handleFileDrop}
             onOpenRecentFile={handleOpenRecentFile}
             containerRef={containerRef}
@@ -581,7 +620,7 @@ export function App() {
         </div>
 
         {/* Sağ İnceleyici */}
-        <RightToolsPanel />
+        <RightToolsPanel onCreatePdf={handleCreatePdf} />
       </div>
 
       {/* Modallar */}
@@ -600,6 +639,15 @@ export function App() {
       <ShortcutHelpModal />
       <UpdateModal />
       <UnsavedChangesModal onSave={handleSaveFileAs} />
+
+      {/* Office dönüşümü birkaç saniye sürebilir; bu sırada başka işlem başlatılmaz */}
+      {convertingName && (
+        <div role="status" className="fixed inset-0 z-[60] grid place-items-center bg-black/25">
+          <div className="max-w-sm px-5 py-3 rounded-[14px] bg-sheet shadow-sheet text-[13px] text-label truncate">
+            {t('converting_file', { name: convertingName })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

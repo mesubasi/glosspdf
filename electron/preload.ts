@@ -36,6 +36,10 @@ const electronAPI = {
     ipcRenderer.invoke('fs:writeFileTo', { dir, fileName, base64Data, onConflict }),
   showItemInFolder: (targetPath: string) => ipcRenderer.invoke('shell:showItemInFolder', targetPath),
 
+  // Word / Excel / PowerPoint dosyasını kurulu LibreOffice ile PDF'e çevirme
+  convertOfficeToPdf: (fileName: string, base64Data: string) =>
+    ipcRenderer.invoke('office:toPdf', { fileName, base64Data }),
+
   // Belgeyi Yazdırma
   print: () => ipcRenderer.invoke('app:print'),
 

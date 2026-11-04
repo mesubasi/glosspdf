@@ -1,7 +1,10 @@
 import { app, BrowserWindow, ipcMain, dialog, Notification, shell, nativeTheme } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
+import os from 'os';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import { fileURLToPath, pathToFileURL } from 'url';
 import updater from 'electron-updater';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +30,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: string;
     pickFolderTitle: string;
     pdfFilter: string;
+    supportedFilter: string;
     noWindow: string;
     noPath: string;
     updateTitle: string;
@@ -40,6 +44,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: 'PDF Dosyasını Farklı Kaydet',
     pickFolderTitle: 'Kayıt Klasörünü Seç',
     pdfFilter: 'PDF Dosyaları',
+    supportedFilter: 'Desteklenen Dosyalar',
     noWindow: 'Pencere bulunamadı',
     noPath: 'Dosya yolu belirtilmedi',
     updateTitle: 'Güncelleme hazır',
@@ -52,6 +57,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: 'Save PDF As',
     pickFolderTitle: 'Choose Save Folder',
     pdfFilter: 'PDF Files',
+    supportedFilter: 'Supported Files',
     noWindow: 'Window not found',
     noPath: 'No file path provided',
     updateTitle: 'Update ready',
@@ -64,6 +70,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: 'PDF speichern unter',
     pickFolderTitle: 'Speicherordner wählen',
     pdfFilter: 'PDF-Dateien',
+    supportedFilter: 'Unterstützte Dateien',
     noWindow: 'Fenster nicht gefunden',
     noPath: 'Kein Dateipfad angegeben',
     updateTitle: 'Update bereit',
@@ -76,6 +83,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: 'Enregistrer le PDF sous',
     pickFolderTitle: 'Choisir le dossier de destination',
     pdfFilter: 'Fichiers PDF',
+    supportedFilter: 'Fichiers pris en charge',
     noWindow: 'Fenêtre introuvable',
     noPath: 'Aucun chemin de fichier fourni',
     updateTitle: 'Mise à jour prête',
@@ -88,6 +96,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: 'Guardar PDF como',
     pickFolderTitle: 'Elegir carpeta de destino',
     pdfFilter: 'Archivos PDF',
+    supportedFilter: 'Archivos compatibles',
     noWindow: 'Ventana no encontrada',
     noPath: 'No se proporcionó ninguna ruta de archivo',
     updateTitle: 'Actualización lista',
@@ -100,6 +109,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: 'حفظ PDF باسم',
     pickFolderTitle: 'اختر مجلد الحفظ',
     pdfFilter: 'ملفات PDF',
+    supportedFilter: 'الملفات المدعومة',
     noWindow: 'لم يتم العثور على النافذة',
     noPath: 'لم يتم تحديد مسار الملف',
     updateTitle: 'التحديث جاهز',
@@ -112,6 +122,7 @@ const DIALOG_TEXTS: Record<
     saveAsTitle: 'PDF 另存为',
     pickFolderTitle: '选择保存文件夹',
     pdfFilter: 'PDF 文件',
+    supportedFilter: '支持的文件',
     noWindow: '未找到窗口',
     noPath: '未提供文件路径',
     updateTitle: '更新已就绪',
@@ -429,6 +440,75 @@ app.on('window-all-closed', () => {
   }
 });
 
+/* ------------------------------------------------------------------ */
+/* PDF oluşturma: görseller renderer'da, Office dosyaları LibreOffice'le */
+/* ------------------------------------------------------------------ */
+
+/** src/services/createPdfService.ts içindeki listelerle aynı olmalı */
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif'];
+const OFFICE_EXTENSIONS = ['doc', 'docx', 'odt', 'rtf', 'xls', 'xlsx', 'ods', 'ppt', 'pptx', 'odp'];
+
+const execFileAsync = promisify(execFile);
+
+/** Kurulu LibreOffice'in soffice yolu; bulunamazsa null */
+// shortcut: Flatpak kurulumu (flatpak run org.libreoffice.LibreOffice) aranmıyor, Linux kullanıcıları isterse eklenmeli
+function findSoffice(): string | null {
+  const exe = process.platform === 'win32' ? 'soffice.exe' : 'soffice';
+  const programDirs = [process.env.ProgramFiles, process.env['ProgramFiles(x86)']].filter((dir): dir is string => !!dir);
+  const candidates = [
+    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+    path.join(os.homedir(), 'Applications/LibreOffice.app/Contents/MacOS/soffice'),
+    ...programDirs.map((dir) => path.join(dir, 'LibreOffice', 'program', exe)),
+    ...(process.env.PATH ?? '').split(path.delimiter).filter(Boolean).flatMap((dir) => [path.join(dir, exe), path.join(dir, 'libreoffice')]),
+    '/snap/bin/libreoffice'
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+async function convertOfficeToPdf(fileName: string, base64Data: string) {
+  const ext = path.extname(String(fileName)).slice(1).toLowerCase();
+  if (!OFFICE_EXTENSIONS.includes(ext)) return { success: false, error: 'Unsupported file type' };
+  const soffice = findSoffice();
+  if (!soffice) return { success: false, error: 'not-installed' };
+
+  const workDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'glosspdf-office-'));
+  try {
+    // Sabit ad: kullanıcının dosya adı komut satırına ve yola girmez
+    const input = path.join(workDir, `document.${ext}`);
+    await fs.promises.writeFile(input, Buffer.from(base64Data, 'base64'));
+    await execFileAsync(
+      soffice,
+      [
+        '--headless',
+        '--norestore',
+        // Ayrı profil: kullanıcının açık LibreOffice penceresi dönüşümü engellemez
+        `-env:UserInstallation=${pathToFileURL(path.join(app.getPath('userData'), 'libreoffice-profile')).href}`,
+        '--convert-to',
+        'pdf',
+        '--outdir',
+        workDir,
+        input
+      ],
+      { timeout: 180_000, windowsHide: true }
+    );
+    // soffice başarısız dönüşümde de 0 ile çıkar; çıktının olmaması hatadır
+    const output = await fs.promises.readFile(path.join(workDir, 'document.pdf'));
+    return { success: true, data: output.toString('base64') };
+  } catch (error: any) {
+    return { success: false, error: error.code === 'ENOENT' ? 'LibreOffice could not convert this file' : error.message };
+  } finally {
+    await fs.promises.rm(workDir, { recursive: true, force: true });
+  }
+}
+
+// Aynı profili kullanan iki soffice birbirini bozar: dönüşümler sırayla çalışır
+let officeQueue: Promise<unknown> = Promise.resolve();
+ipcMain.handle('office:toPdf', (_event, { fileName, base64Data }: { fileName: string; base64Data: string }) => {
+  const run = officeQueue.then(() => convertOfficeToPdf(fileName, base64Data));
+  officeQueue = run.catch(() => {});
+  return run;
+});
+
 // IPC: Dosya Açma Diyaloğu
 ipcMain.handle('dialog:openPdf', async (_event, locale?: string) => {
   const texts = dialogTexts(locale);
@@ -436,7 +516,11 @@ ipcMain.handle('dialog:openPdf', async (_event, locale?: string) => {
 
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     title: texts.openTitle,
-    filters: [{ name: `${texts.pdfFilter} (*.pdf)`, extensions: ['pdf'] }],
+    // Görsel ve Office dosyaları açılırken PDF'e dönüştürülür (src/services/createPdfService.ts)
+    filters: [
+      { name: texts.supportedFilter, extensions: ['pdf', ...IMAGE_EXTENSIONS, ...OFFICE_EXTENSIONS] },
+      { name: `${texts.pdfFilter} (*.pdf)`, extensions: ['pdf'] }
+    ],
     properties: ['openFile']
   });
 

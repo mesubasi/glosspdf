@@ -41,6 +41,8 @@ export interface IElectronAPI {
     onConflict?: 'overwrite' | 'rename'
   ) => Promise<SavePdfResult>;
   showItemInFolder: (targetPath: string) => Promise<boolean>;
+  /** error 'not-installed': LibreOffice bulunamadı; data: PDF (base64) */
+  convertOfficeToPdf?: (fileName: string, base64Data: string) => Promise<{ success: boolean; data?: string; error?: string }>;
   print: () => Promise<boolean>;
   setHasUnsaved: (hasUnsaved: boolean) => void;
   confirmClose: () => void;

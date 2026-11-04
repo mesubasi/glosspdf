@@ -11,6 +11,7 @@ import {
   ImageDown,
   Lock,
   Shrink,
+  FilePlus2,
   ChevronRight
 } from 'lucide-react';
 
@@ -24,7 +25,7 @@ interface InspectorTool {
 }
 
 /** Sağ inceleyici: belge bilgisi ve gruplu araçlar (işaretleme araçları yüzen çubukta) */
-export const RightToolsPanel: React.FC = () => {
+export const RightToolsPanel: React.FC<{ onCreatePdf: () => void }> = ({ onCreatePdf }) => {
   const {
     rightPanelOpen,
     tabs,
@@ -47,6 +48,7 @@ export const RightToolsPanel: React.FC = () => {
     {
       title: t('section_pages'),
       tools: [
+        { id: 'createPdf', name: t('create_pdf'), icon: FilePlus2, tint: 'bg-[#FF2D55]', action: onCreatePdf },
         { id: 'organize', name: t('organize_pages'), icon: LayoutGrid, tint: 'bg-[#007AFF]', action: () => setOrganizeModalOpen(true) },
         { id: 'merge', name: t('merge_pdfs'), icon: Merge, tint: 'bg-[#5856D6]', action: () => setMergeModalOpen(true) },
         { id: 'split', name: t('split_pdf'), icon: Scissors, tint: 'bg-[#FF9500]', action: () => setSplitModalOpen(true) }
@@ -95,8 +97,8 @@ export const RightToolsPanel: React.FC = () => {
                   <button
                     key={tool.id}
                     onClick={tool.action}
-                    // Modallar belge yokken de bağlı kalır; tıklamalar belge açılınca hepsini açardı. Birleştir belge istemez.
-                    disabled={!activeTabId && tool.id !== 'merge'}
+                    // Modallar belge yokken de bağlı kalır; tıklamalar belge açılınca hepsini açardı. Birleştir ve PDF oluştur belge istemez.
+                    disabled={!activeTabId && tool.id !== 'merge' && tool.id !== 'createPdf'}
                     className={`flex items-center gap-2.5 w-full h-[38px] px-2.5 text-left hover:bg-hover disabled:opacity-40 disabled:hover:bg-transparent ${
                       i > 0 ? 'border-t border-group-sep' : ''
                     }`}

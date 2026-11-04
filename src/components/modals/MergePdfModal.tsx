@@ -4,6 +4,7 @@ import { PdfEditService } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
 import { saveFileAs, stripExtension, type SavedFile } from '../../services/fileSaveService';
 import { SavedFilesNotice } from '../common/SaveDestination';
+import { OPENABLE_ACCEPT, filesToPdf, isOpenableName, isPdfName, reportConversionError } from '../../services/createPdfService';
 import { t } from '@/i18n';
 import type { PdfTab } from '../../types/pdf';
 import {
@@ -49,6 +50,8 @@ export const MergePdfModal: React.FC = () => {
   const [items, setItems] = useState<MergeItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  /** Görsel / Office dosyası PDF'e çevrilirken adı; birleştir düğmesi bekler */
+  const [convertingName, setConvertingName] = useState<string | null>(null);
   const [outputMode, setOutputMode] = useState<OutputMode>('save');
   const [openAfterSave, setOpenAfterSave] = useState(true);
   const [savedFiles, setSavedFiles] = useState<SavedFile[]>([]);
@@ -69,7 +72,7 @@ export const MergePdfModal: React.FC = () => {
   if (!mergeModalOpen) return null;
 
   const handleClose = () => {
-    if (isProcessing) return;
+    if (isProcessing || convertingName) return;
     setItems([]);
     setSavedFiles([]);
     setMergeModalOpen(false);
@@ -82,12 +85,13 @@ export const MergePdfModal: React.FC = () => {
 
   const addOpenTab = (tab: PdfTab) => setItems((prev) => [...prev, tabToItem(tab)]);
 
-  // Diskten dosya ekleme (seçici veya sürükle-bırak)
+  // Diskten dosya ekleme (seçici veya sürükle-bırak); görsel ve Office dosyaları PDF'e çevrilir
   const addFiles = async (fileList: FileList | File[]) => {
     for (const file of Array.from(fileList)) {
-      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) continue;
+      if (!isOpenableName(file.name)) continue;
       try {
-        const bytes = new Uint8Array(await file.arrayBuffer());
+        if (!isPdfName(file.name)) setConvertingName(file.name);
+        const bytes = await filesToPdf([{ name: file.name, bytes: new Uint8Array(await file.arrayBuffer()) }]);
         const doc = await PdfRenderService.loadDocument(bytes.slice());
         const path = window.electronAPI?.getPathForFile?.(file);
         setItems((prev) => [
@@ -102,7 +106,10 @@ export const MergePdfModal: React.FC = () => {
         ]);
       } catch (err) {
         console.error('Failed to load PDF:', err);
-        alert(t('error_opening_pdf', { message: (err as Error)?.message || String(err) }));
+        if (isPdfName(file.name)) alert(t('error_opening_pdf', { message: (err as Error)?.message || String(err) }));
+        else reportConversionError(err);
+      } finally {
+        setConvertingName(null);
       }
     }
   };
@@ -340,15 +347,16 @@ export const MergePdfModal: React.FC = () => {
                 }`}
               >
                 <UploadCloud className="w-7 h-7 text-slate-400 mb-1.5" />
-                <span className="font-semibold text-slate-700 dark:text-slate-200">
-                  {t('select_pdf_files_or_drag_drop')}
+                <span className="font-semibold text-slate-700 dark:text-slate-200" role="status">
+                  {convertingName ? t('converting_file', { name: convertingName }) : t('select_pdf_files_or_drag_drop')}
                 </span>
                 <span className="text-[11px] text-slate-400 mt-0.5">{t('you_can_select_multiple_files')}</span>
                 <input
                   type="file"
                   multiple
-                  accept="application/pdf,.pdf"
+                  accept={OPENABLE_ACCEPT}
                   onChange={handleInputChange}
+                  disabled={!!convertingName}
                   className="hidden"
                 />
               </label>
@@ -416,7 +424,7 @@ export const MergePdfModal: React.FC = () => {
           {!done && (
             <button
               onClick={handleMerge}
-              disabled={items.length < 2 || isProcessing}
+              disabled={items.length < 2 || isProcessing || !!convertingName}
               className="flex items-center space-x-1.5 px-5 py-1.5 rounded-sm bg-accent hover:bg-accent-hover text-white text-xs font-medium shadow-md transition-colors disabled:opacity-40"
             >
               {outputMode === 'save' ? <Save className="w-3.5 h-3.5" /> : <PanelTop className="w-3.5 h-3.5" />}

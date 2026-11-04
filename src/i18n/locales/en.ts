@@ -283,7 +283,7 @@ export const en = {
   "search_results": "Search Results",
   "select": "Select",
   "select_image_png_or_jpg": "Select Image (PNG or JPG)",
-  "select_pdf_files_or_drag_drop": "Select PDF Files or Drag & Drop",
+  "select_pdf_files_or_drag_drop": "Select Files or Drag & Drop",
   "select_predefined_stamp": "Select Predefined Stamp:",
   "select_tool": "Select Tool",
   "sign_here_mouse_or_touch": "Sign here (Mouse or Touch)",
@@ -318,7 +318,7 @@ export const en = {
   "watermark_text": "Watermark Text:",
   "width_pt": "Width (pt):",
   "will_create_individual_1_page_pdf_files": "Will create {0} individual 1-page PDF files.",
-  "you_can_select_multiple_files": "You can select multiple files",
+  "you_can_select_multiple_files": "PDF, images and Word, Excel or PowerPoint files; you can select several",
   "your_document_is_protected_using_industry_standard_iso_3": "Your document is protected using industry-standard ISO 32000 AES-256 encryption. This password will be required to open the PDF.",
   "zoom_in": "Zoom In",
   "zoom_in_2": "Zoom In",
@@ -413,10 +413,16 @@ export const en = {
   "section_content": "Content",
   "section_protection_size": "Protection & Size",
   "welcome_title": "Welcome to GlossPDF",
-  "drop_pdf_here": "Drop a PDF here",
+  "drop_pdf_here": "Drop a PDF, image or Office file here",
   "or_choose_from_computer": "or choose a file from your computer",
   "open_pdf": "Open PDF…",
   "done": "Done",
+  "create_pdf": "Create PDF",
+  "converting_file": "Converting {name}…",
+  "office_needs_libreoffice": "Word, Excel and PowerPoint files are converted with LibreOffice, a free app that runs on this computer. It is not installed. Open the download page?",
+  "office_needs_desktop": "Word, Excel and PowerPoint files can only be converted in the desktop app.",
+  "error_converting_file": "Could not create the PDF: {message}",
+  "unsupported_file_type": "This file type is not supported"
 };
 
 /** Sözlükteki tüm anahtarların birleşimi (tip güvenliği için). */

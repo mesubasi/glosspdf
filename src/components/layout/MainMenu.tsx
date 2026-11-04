@@ -25,12 +25,14 @@ import {
   X,
   LogOut,
   FileText,
+  FilePlus2,
   Trash2
 } from 'lucide-react';
 import { DropdownMenu, type MenuEntry } from './DropdownMenu';
 
 interface MainMenuProps {
   onOpenFile: () => void;
+  onCreatePdf: () => void;
   onOpenRecentFile: (filePath: string, fileName: string) => void;
   onSaveFile: () => void;
   onSaveFileAs: () => void;
@@ -43,6 +45,7 @@ interface MainMenuProps {
 
 export const MainMenu: React.FC<MainMenuProps> = ({
   onOpenFile,
+  onCreatePdf,
   onOpenRecentFile,
   onSaveFile,
   onSaveFileAs,
@@ -90,6 +93,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
   const entries: MenuEntry[] = [
     { label: t('open_pdf_file'), icon: FolderOpen, shortcut: 'Ctrl+O', action: onOpenFile },
+    { label: t('create_pdf'), icon: FilePlus2, action: onCreatePdf },
     {
       label: t('recent_documents'),
       icon: Clock,
