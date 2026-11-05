@@ -30,9 +30,9 @@ interface DropdownMenuProps {
   panelPositionClassName?: string;
 }
 
-const panelClass =
+export const panelClass =
   'p-1.5 rounded-[10px] bg-group shadow-hud backdrop-blur-xl';
-const itemClass =
+export const itemClass =
   'group w-full flex items-center gap-2.5 px-2.5 rounded-md text-start text-[13px] whitespace-nowrap text-label outline-hidden hover:bg-accent hover:text-white focus-visible:bg-accent focus-visible:text-white aria-expanded:bg-accent aria-expanded:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-label';
 const mutedClass = 'shrink-0 text-[11.5px] text-secondary group-hover:text-white/80 group-focus-visible:text-white/80 group-aria-expanded:text-white/80';
 

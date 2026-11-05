@@ -419,4 +419,26 @@ export const zh: Record<MessageKey, string> = {
   "or_choose_from_computer": "或从电脑中选择文件",
   "open_pdf": "打开 PDF…",
   "done": "完成",
+  // Yer imi düzenleme
+  "bookmark_add": "添加书签",
+  "bookmark_add_child": "添加子书签",
+  "bookmark_rename": "重命名",
+  "bookmark_set_destination": "将目标设为当前视图",
+  "bookmark_drag_hint": "拖动以移动",
+  "bookmark_expand": "展开",
+  "bookmark_collapse": "折叠",
+
+  // Bağlantı düzenleme ve URL'lerden bağlantı oluşturma
+  "link": "链接",
+  "create_links_from_urls": "从 URL 创建链接",
+  "create_web_links": "创建 Web 链接",
+  "remove_web_links": "删除 Web 链接",
+  "pages_all": "全部",
+  "pages_from": "从",
+  "pages_to": "至",
+  "ok": "确定",
+  "link_web_address": "网址",
+  "link_page_in_document": "本文档中的页面",
+  "link_invalid_url": "请输入以 http://、https://、mailto: 或 www. 开头的网址。",
+  "link_invalid_page": "请输入 1 到 {0} 之间的页码。",
 };

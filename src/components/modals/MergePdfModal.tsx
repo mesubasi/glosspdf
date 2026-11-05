@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { PdfEditService } from '../../services/pdfEditService';
+import { PdfEditService, docEditsOf } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
 import { saveFileAs, stripExtension, type SavedFile } from '../../services/fileSaveService';
 import { SavedFilesNotice } from '../common/SaveDestination';
 import { t } from '@/i18n';
-import type { PdfTab } from '../../types/pdf';
+import type { BookmarkItem, PdfTab } from '../../types/pdf';
 import {
   X,
   Trash2,
@@ -19,7 +19,7 @@ import {
   PanelTop
 } from 'lucide-react';
 
-type MergeSource = { kind: 'tab'; tabId: string } | { kind: 'file'; data: Uint8Array };
+type MergeSource = { kind: 'tab'; tabId: string } | { kind: 'file'; data: Uint8Array; outline: BookmarkItem[] };
 
 interface MergeItem {
   id: string;
@@ -90,6 +90,7 @@ export const MergePdfModal: React.FC = () => {
         const bytes = new Uint8Array(await file.arrayBuffer());
         const doc = await PdfRenderService.loadDocument(bytes.slice());
         const path = window.electronAPI?.getPathForFile?.(file);
+        const outline = await PdfRenderService.getDocumentOutline(doc);
         setItems((prev) => [
           ...prev,
           {
@@ -97,7 +98,7 @@ export const MergePdfModal: React.FC = () => {
             name: file.name,
             path: path && path !== file.name ? path : undefined,
             numPages: doc.numPages,
-            source: { kind: 'file', data: bytes }
+            source: { kind: 'file', data: bytes, outline }
           }
         ]);
       } catch (err) {
@@ -136,9 +137,7 @@ export const MergePdfModal: React.FC = () => {
     const tabId = item.source.tabId;
     const tab = usePdfStore.getState().tabs.find((tb) => tb.id === tabId);
     if (!tab) throw new Error(item.name);
-    return tab.annotations.length > 0
-      ? PdfEditService.savePdfWithAnnotations(tab.data.slice(), tab.annotations, tab.importedAnnotations)
-      : tab.data.slice();
+    return PdfEditService.savePdfWithAnnotations(tab.data.slice(), tab.annotations, tab.importedAnnotations, docEditsOf(tab));
   };
 
   /** Birleştirilen belgeyi sekmede açar; aynı yolda açık sekme varsa onu günceller */
@@ -188,7 +187,12 @@ export const MergePdfModal: React.FC = () => {
       setIsProcessing(true);
       const buffers: Uint8Array[] = [];
       for (const item of items) buffers.push(await resolveBytes(item));
-      const mergedBytes = await PdfEditService.mergePdfs(buffers);
+      // Açık sekmede güncel (düzenlenmiş olabilir) ağaç, dosyada okunan ağaç kullanılır
+      const openTabs = usePdfStore.getState().tabs;
+      const outlines = items.map(({ source }) =>
+        source.kind === 'file' ? source.outline : (openTabs.find((tab) => tab.id === source.tabId)?.outline ?? [])
+      );
+      const mergedBytes = await PdfEditService.mergePdfs(buffers, outlines);
 
       if (outputMode === 'tab') {
         const name = uniqueTabName(mergedName);

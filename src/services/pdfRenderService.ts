@@ -2,6 +2,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 // Worker paketle birlikte derlenir: pdf.js sürümüyle her zaman aynı kalır
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { AnnotationItem, AnnotationType, BookmarkItem, PageDimension } from '../types/pdf';
+import { isSafeLinkUrl } from './linkService';
 
 /** Dosyadaki işaretleme türlerinden düzenlenebilir öğeye çevrilenler */
 const IMPORTED_TYPES: Record<string, AnnotationType> = {
@@ -10,7 +11,8 @@ const IMPORTED_TYPES: Record<string, AnnotationType> = {
   StrikeOut: 'strikeout',
   Text: 'note',
   Ink: 'draw',
-  Square: 'rect'
+  Square: 'rect',
+  Link: 'link'
 };
 
 /**
@@ -165,59 +167,6 @@ export class PdfRenderService {
   }
 
   /**
-   * Sayfadaki bağlantıları (Link) tıklanabilir alanlara çevirir.
-   * Dış adresler target=_blank ile açılır (ana süreç varsayılan tarayıcıya yönlendirir),
-   * iç hedefler onNavigate ile ilgili sayfaya gider.
-   */
-  static async renderLinkLayer(
-    page: pdfjsLib.PDFPageProxy,
-    doc: pdfjsLib.PDFDocumentProxy,
-    container: HTMLElement,
-    scale: number,
-    rotation: number,
-    onNavigate: (pageNumber: number) => void
-  ): Promise<void> {
-    container.innerHTML = '';
-    const viewport = viewportFor(page, scale, rotation);
-
-    try {
-      const annotations = await page.getAnnotations({ intent: 'display' });
-      for (const annot of annotations) {
-        if (annot.subtype !== 'Link' || !annot.rect || (!annot.url && !annot.dest)) continue;
-
-        const [x1, y1] = viewport.convertToViewportPoint(annot.rect[0], annot.rect[1]);
-        const [x2, y2] = viewport.convertToViewportPoint(annot.rect[2], annot.rect[3]);
-        const link = document.createElement('a');
-        link.style.position = 'absolute';
-        link.style.left = `${Math.min(x1, x2)}px`;
-        link.style.top = `${Math.min(y1, y2)}px`;
-        link.style.width = `${Math.abs(x2 - x1)}px`;
-        link.style.height = `${Math.abs(y2 - y1)}px`;
-        link.style.pointerEvents = 'auto';
-
-        if (annot.url) {
-          link.href = annot.url;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.title = annot.url;
-        } else {
-          link.href = '#';
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            PdfRenderService.resolveDestPage(doc, annot.dest)
-              .then((pageNumber) => pageNumber && onNavigate(pageNumber))
-              .catch((err) => console.warn('Could not resolve the link destination:', err));
-          });
-        }
-
-        container.appendChild(link);
-      }
-    } catch (e) {
-      console.warn('Link layer render warning:', e);
-    }
-  }
-
-  /**
    * Dosyada zaten olan işaretlemeleri (başka uygulamalarda eklenen yorumlar dahil) düzenlenebilir
    * öğelere çevirir. Çok satırlı vurgu ve çok çizgili kalem birden çok öğe olur; hepsi aynı sourceRef'i taşır.
    * shortcut: serbest metin, daire, çizgi, damga vb. içe alınmaz (pdf.js çizmeye devam eder); istenirse eklenmeli.
@@ -275,6 +224,14 @@ export class PdfRenderService {
         } else if (type === 'rect') {
           const sw = annot.borderStyle?.width ?? 1;
           parts.push({ rect: box(x1, y1, x2, y2, sw / 2), strokeWidth: sw });
+        } else if (type === 'link') {
+          // Yalnızca http/https/mailto adresi ya da belge içi hedef; diğer eylemler (adlandırılmış, dosya açma vb.) dosyada aynen kalır
+          if (annot.url) {
+            if (isSafeLinkUrl(annot.url)) parts.push({ rect: box(x1, y1, x2, y2), linkUrl: annot.url });
+          } else if (annot.dest) {
+            const linkPage = await PdfRenderService.resolveDestPage(doc, annot.dest).catch(() => null);
+            if (linkPage) parts.push({ rect: box(x1, y1, x2, y2), linkPage });
+          }
         } else {
           // pdf.js her dörtgeni [minX, maxY, maxX, maxY, minX, minY, maxX, minY] olarak verir
           const q = annot.quadPoints;
@@ -449,12 +406,16 @@ export class PdfRenderService {
       const parseItems = async (items: any[]): Promise<BookmarkItem[]> => {
         const result: BookmarkItem[] = [];
         for (const item of items) {
-          const pageNum = (await PdfRenderService.resolveDestPage(doc, item.dest)) ?? 1;
+          const dest = typeof item.dest === 'string' ? await doc.getDestination(item.dest) : item.dest;
+          const pageNum = (await PdfRenderService.resolveDestPage(doc, dest)) ?? 1;
+          // Açık /XYZ hedefinin üst kenarı: tıklayınca sayfanın o yüksekliğine gidilir
+          const top = Array.isArray(dest) && dest[1]?.name === 'XYZ' && typeof dest[3] === 'number' ? dest[3] : undefined;
 
           const children = item.items && item.items.length > 0 ? await parseItems(item.items) : [];
           result.push({
             title: item.title,
             pageNumber: pageNum,
+            top,
             children
           });
         }

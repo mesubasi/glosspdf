@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { PdfEditService } from '../../services/pdfEditService';
+import { PdfEditService, docEditsOf } from '../../services/pdfEditService';
 import { saveFileAs, stripExtension, type SavedFile } from '../../services/fileSaveService';
 import { SavedFilesNotice } from '../common/SaveDestination';
 import { t } from '@/i18n';
@@ -76,7 +76,7 @@ export const ProtectPdfModal: React.FC = () => {
       // AES-256 Şifreleme uygula
       // Bekleyen düzenlemeler şifrelemeden ÖNCE yazılmalı (şifreli PDF sonradan yeniden düzenlenemez)
       const encryptedBytes = await PdfEditService.encryptPdf(
-        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations),
+        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations, docEditsOf(activeTab)),
         password
       );
 
@@ -111,7 +111,7 @@ export const ProtectPdfModal: React.FC = () => {
 
       // Bekleyen düzenlemeler şifrelemeden ÖNCE yazılmalı (şifreli PDF sonradan yeniden düzenlenemez)
       const encryptedBytes = await PdfEditService.encryptPdf(
-        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations),
+        await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations, docEditsOf(activeTab)),
         password
       );
 
@@ -121,6 +121,8 @@ export const ProtectPdfModal: React.FC = () => {
         importedAnnotations: undefined,
         undoStack: [],
         redoStack: [],
+        outlineModified: false,
+        metadata: undefined,
         isModified: true
       });
 

@@ -11,6 +11,7 @@ import {
   Pencil,
   Square,
   Type,
+  Link,
   EyeOff,
   Undo2,
   Redo2,
@@ -69,6 +70,7 @@ export const AnnotationToolbar: React.FC = () => {
     { id: 'draw', label: t('pen'), icon: Pencil },
     { id: 'rect', label: t('rectangle'), icon: Square },
     { id: 'text', label: t('text_box'), icon: Type },
+    { id: 'link', label: t('link'), icon: Link },
     { id: 'redact', label: t('redact'), icon: EyeOff }
   ];
 

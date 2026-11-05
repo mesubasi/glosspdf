@@ -38,6 +38,7 @@ export const ShortcutHelpModal: React.FC = () => {
         { keys: ['Ctrl', 'Z'], desc: t('undo_action') },
         { keys: ['Ctrl', 'Y'], desc: t('redo_action') },
         { keys: ['Delete'], desc: t('delete_selected_annotation_2') },
+        { keys: ['Ctrl', 'B'], desc: t('bookmark_add') },
         { keys: ['Ctrl', 'Shift', 'R'], desc: t('rotate_90_clockwise') },
         { keys: ['Ctrl', 'Shift', 'L'], desc: t('rotate_90_counter_clockwise') }
       ]

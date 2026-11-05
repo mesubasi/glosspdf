@@ -11,6 +11,8 @@ import {
   ImageDown,
   Lock,
   Shrink,
+  Link,
+  Unlink,
   ChevronRight
 } from 'lucide-react';
 
@@ -36,7 +38,8 @@ export const RightToolsPanel: React.FC = () => {
     setInsertImageModalOpen,
     setExportImagesModalOpen,
     setProtectModalOpen,
-    setCompressModalOpen
+    setCompressModalOpen,
+    setWebLinksModalOpen
   } = usePdfStore();
 
   if (!rightPanelOpen) return null;
@@ -57,7 +60,9 @@ export const RightToolsPanel: React.FC = () => {
       tools: [
         { id: 'insertImage', name: t('insert_image'), icon: ImagePlus, tint: 'bg-[#34C759]', action: () => setInsertImageModalOpen(true) },
         { id: 'watermark', name: t('stamp_watermark'), icon: Stamp, tint: 'bg-[#AF52DE]', action: () => setWatermarkModalOpen(true) },
-        { id: 'exportImages', name: t('export_pages_to_images'), icon: ImageDown, tint: 'bg-[#30B0C7]', action: () => setExportImagesModalOpen(true) }
+        { id: 'exportImages', name: t('export_pages_to_images'), icon: ImageDown, tint: 'bg-[#30B0C7]', action: () => setExportImagesModalOpen(true) },
+        { id: 'createLinks', name: t('create_links_from_urls'), icon: Link, tint: 'bg-[#5AC8FA]', action: () => setWebLinksModalOpen('create') },
+        { id: 'removeLinks', name: t('remove_web_links'), icon: Unlink, tint: 'bg-[#FF2D55]', action: () => setWebLinksModalOpen('remove') }
       ]
     },
     {

@@ -419,4 +419,26 @@ export const ar: Record<MessageKey, string> = {
   "or_choose_from_computer": "أو اختر ملفًا من جهازك",
   "open_pdf": "فتح PDF…",
   "done": "تم",
+  // Yer imi düzenleme
+  "bookmark_add": "إضافة إشارة مرجعية",
+  "bookmark_add_child": "إضافة إشارة مرجعية فرعية",
+  "bookmark_rename": "إعادة التسمية",
+  "bookmark_set_destination": "تعيين الوجهة إلى العرض الحالي",
+  "bookmark_drag_hint": "اسحب للنقل",
+  "bookmark_expand": "توسيع",
+  "bookmark_collapse": "طي",
+
+  // Bağlantı düzenleme ve URL'lerden bağlantı oluşturma
+  "link": "رابط",
+  "create_links_from_urls": "إنشاء روابط من عناوين URL",
+  "create_web_links": "إنشاء روابط ويب",
+  "remove_web_links": "إزالة روابط الويب",
+  "pages_all": "الكل",
+  "pages_from": "من",
+  "pages_to": "إلى",
+  "ok": "موافق",
+  "link_web_address": "عنوان الويب",
+  "link_page_in_document": "صفحة في هذا المستند",
+  "link_invalid_url": "أدخل عنوان ويب يبدأ بـ http:// أو https:// أو mailto: أو www.",
+  "link_invalid_page": "أدخل رقم صفحة من 1 إلى {0}.",
 };

@@ -4,6 +4,7 @@ import {
   PDFName,
   PDFArray,
   PDFHexString,
+  PDFString,
   PDFPage,
   PDFFont,
   PDFRef,
@@ -19,9 +20,12 @@ import {
 import { PdfRenderService, viewportFor } from './pdfRenderService';
 import fontkit from '@pdf-lib/fontkit';
 import { configure, lock, unlockInPlace } from 'pdf-lib-encrypt';
-import { AnnotationItem } from '../types/pdf';
+import { AnnotationItem, BookmarkItem, DocMetadata, PdfTab } from '../types/pdf';
+import { offsetOutline, sliceOutline, writeOutline } from './outlineService';
+import { writeMetadata } from './metadataService';
 import { t } from '@/i18n';
 import { DEFAULT_WATERMARK_PLACEMENT, watermarkCenter, type WatermarkPlacement } from './watermarkLayout';
+import { isSafeLinkUrl } from './linkService';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   let clean = hex.replace('#', '');
@@ -68,6 +72,33 @@ async function embedUnicodeFont(doc: PDFDocument, bold = false): Promise<PDFFont
 
 /** Önizleme (DOM) ve kayıt aynı satır tabanını kullansın diye ortak oran */
 export const BASELINE_RATIO = 0.85;
+
+/** Kayıtta işaretlemelerle birlikte yazılan belge düzeyi düzenlemeler */
+export interface DocEdits {
+  outline?: BookmarkItem[];
+  metadata?: DocMetadata;
+}
+
+/** Sekmenin bekleyen belge düzeyi düzenlemeleri (yalnızca değişenler yazılır) */
+export const docEditsOf = (tab: Pick<PdfTab, 'outline' | 'outlineModified' | 'metadata'>): DocEdits => ({
+  outline: tab.outlineModified ? tab.outline : undefined,
+  metadata: tab.metadata
+});
+
+/** pdf-lib Producer alanına kendi adını yazar; onun yerine GlossPDF ve değiştirme tarihi yazılır */
+function stampProducer(doc: PDFDocument): PDFDocument {
+  doc.setProducer('GlossPDF');
+  doc.setModificationDate(new Date());
+  return doc;
+}
+
+/** Sıfırdan belge: Producer/Creator GlossPDF olur */
+async function createPdf(): Promise<PDFDocument> {
+  const doc = await PDFDocument.create({ updateMetadata: false });
+  doc.setCreator('GlossPDF');
+  doc.setCreationDate(new Date());
+  return stampProducer(doc);
+}
 
 function dataUrlToBytes(dataUrl: string): Uint8Array {
   const bin = atob(dataUrl.split(',')[1] || '');
@@ -157,6 +188,22 @@ function removeAnnotations(doc: PDFDocument, pdfjsIds: Set<string>) {
       ) {
         annots.remove(i);
       }
+    }
+  }
+}
+
+/** Hedefi (/Dest ya da GoTo eylemi) verilen sayfalardan birine giden bağlantıları kaldırır */
+function removeLinksTo(doc: PDFDocument, pageRefs: Set<PDFRef>) {
+  for (const page of doc.getPages()) {
+    const annots = page.node.lookup(PDFName.of('Annots'));
+    if (!(annots instanceof PDFArray)) continue;
+    for (let i = annots.size() - 1; i >= 0; i--) {
+      const annot = annots.lookup(i);
+      if (!(annot instanceof PDFDict) || annot.get(PDFName.of('Subtype')) !== PDFName.of('Link')) continue;
+      const action = annot.lookup(PDFName.of('A'));
+      const dest = annot.lookup(PDFName.of('Dest')) ?? (action instanceof PDFDict ? action.lookup(PDFName.of('D')) : undefined);
+      const target = dest instanceof PDFArray ? dest.get(0) : undefined;
+      if (target instanceof PDFRef && pageRefs.has(target)) annots.remove(i);
     }
   }
 }
@@ -356,7 +403,7 @@ export class PdfEditService {
    * PDF belgesini yükler
    */
   static async loadPdf(data: Uint8Array): Promise<PDFDocument> {
-    return await PDFDocument.load(data, { ignoreEncryption: true });
+    return stampProducer(await PDFDocument.load(data, { ignoreEncryption: true, updateMetadata: false }));
   }
 
   /**
@@ -369,7 +416,8 @@ export class PdfEditService {
   static async savePdfWithAnnotations(
     data: Uint8Array,
     annotations: AnnotationItem[],
-    imported: AnnotationItem[] = []
+    imported: AnnotationItem[] = [],
+    edits: DocEdits = {}
   ): Promise<Uint8Array> {
     // Dosyadan içe alınan işaretlemeler değişmediyse yerinde kalır; bir parçası değişen ya da silinen
     // işaretleme dosyadan kaldırılır ve kalan parçaları yeni işaretleme olarak yazılır.
@@ -380,7 +428,7 @@ export class PdfEditService {
     annotations = annotations.filter((a) => !a.sourceRef || replacedRefs.has(a.sourceRef));
 
     // Hiçbir değişiklik yoksa baytlara dokunma (şifreli belgeyi bozmamak için de gerekli)
-    if (annotations.length === 0 && replacedRefs.size === 0) return data;
+    if (annotations.length === 0 && replacedRefs.size === 0 && !edits.outline && !edits.metadata) return data;
 
     const doc = await this.loadPdf(data);
     if (replacedRefs.size > 0) removeAnnotations(doc, replacedRefs);
@@ -593,10 +641,36 @@ export class PdfEditService {
             });
             break;
           }
+
+          case 'link': {
+            // Görünmez bağlantı (görünüm akışı yok); URI 7 bit ASCII olmalı, parantez ve ters bölü kaçışlı yazılır
+            const target =
+              item.linkUrl && isSafeLinkUrl(item.linkUrl)
+                ? { A: { S: 'URI', URI: PDFString.of(new URL(item.linkUrl).href.replace(/[\\()]/g, '\\$&')) } }
+                : item.linkPage && pages[item.linkPage - 1]
+                  ? { Dest: [pages[item.linkPage - 1].ref, 'Fit'] }
+                  : null;
+            if (!item.rect || !target) break;
+            const box = map.rect(...item.rect);
+            annots.push(
+              context.register(
+                context.obj({
+                  Type: 'Annot',
+                  Subtype: 'Link',
+                  Rect: [box.x, box.y, box.x + box.width, box.y + box.height].map(num),
+                  Border: [0, 0, 0],
+                  ...target
+                })
+              )
+            );
+            break;
+          }
         }
       }
     }
 
+    if (edits.outline) writeOutline(doc, edits.outline);
+    if (edits.metadata) writeMetadata(doc, edits.metadata);
     // Silinen yorumların metni dosyada sahipsiz nesne olarak kalmasın
     if (replacedRefs.size > 0) removeUnreachableObjects(doc);
     const saved = await doc.save({ useObjectStreams: true });
@@ -691,15 +765,19 @@ export class PdfEditService {
   /**
    * Birden fazla PDF dosyasını tek bir belgede sırayla birleştirir (Merge)
    */
-  static async mergePdfs(pdfBuffers: Uint8Array[]): Promise<Uint8Array> {
-    const mergedDoc = await PDFDocument.create();
+  static async mergePdfs(pdfBuffers: Uint8Array[], outlines: BookmarkItem[][] = []): Promise<Uint8Array> {
+    const mergedDoc = await createPdf();
+    // Her kaynağın yer imleri, kendi sayfalarının birleşik belgedeki yerine kaydırılarak eklenir
+    const outline: BookmarkItem[] = [];
 
-    for (const buf of pdfBuffers) {
-      const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+    for (const [i, buf] of pdfBuffers.entries()) {
+      const doc = await PDFDocument.load(buf, { ignoreEncryption: true, updateMetadata: false });
+      outline.push(...offsetOutline(outlines[i] ?? [], mergedDoc.getPageCount()));
       const copiedPages = await mergedDoc.copyPages(doc, doc.getPageIndices());
       copiedPages.forEach((page) => mergedDoc.addPage(page));
     }
 
+    writeOutline(mergedDoc, outline);
     return await mergedDoc.save({ useObjectStreams: true });
   }
 
@@ -708,13 +786,22 @@ export class PdfEditService {
    */
   static async splitPdf(
     data: Uint8Array,
-    ranges: { start: number; end: number }[]
+    ranges: { start: number; end: number }[],
+    outline: BookmarkItem[] = [],
+    metadata?: DocMetadata
   ): Promise<Uint8Array[]> {
     const sourceDoc = await this.loadPdf(data);
     const results: Uint8Array[] = [];
+    // Parçalar kaynağın başlık/yazar/konu/anahtar kelimelerini taşır (bekleyen düzenleme varsa onu)
+    const meta = metadata ?? {
+      title: sourceDoc.getTitle() ?? '',
+      author: sourceDoc.getAuthor() ?? '',
+      subject: sourceDoc.getSubject() ?? '',
+      keywords: sourceDoc.getKeywords() ?? ''
+    };
 
     for (const range of ranges) {
-      const subDoc = await PDFDocument.create();
+      const subDoc = await createPdf();
       const pageIndices: number[] = [];
       for (let i = range.start - 1; i <= range.end - 1; i++) {
         if (i >= 0 && i < sourceDoc.getPageCount()) {
@@ -725,6 +812,8 @@ export class PdfEditService {
       if (pageIndices.length > 0) {
         const copied = await subDoc.copyPages(sourceDoc, pageIndices);
         copied.forEach((p) => subDoc.addPage(p));
+        writeOutline(subDoc, sliceOutline(outline, pageIndices[0] + 1, pageIndices[pageIndices.length - 1] + 1));
+        writeMetadata(subDoc, meta);
         results.push(await subDoc.save({ useObjectStreams: true }));
       }
     }
@@ -733,20 +822,29 @@ export class PdfEditService {
   }
 
   /**
-   * Sayfaları yeni sıralamaya göre yeniden dizer (Reorder Pages)
+   * Sayfaları yeni sıralamaya göre yeniden dizer (Reorder Pages); sırada olmayan sayfalar silinir.
+   * Aynı belgede yapılır: katalog (Info, XMP, yer imleri, adlandırılmış hedefler, formlar, sayfa etiketleri) korunur.
    */
   static async reorderPages(data: Uint8Array, pageOrder: number[]): Promise<Uint8Array> {
-    const sourceDoc = await this.loadPdf(data);
-    const newDoc = await PDFDocument.create();
+    const doc = await this.loadPdf(data);
+    const pages = doc.getPages();
+    // Ara /Pages düğümlerinden devralınan öznitelikler sayfaya yazılır: ağaçta yeri değişince kaybolmasın
+    for (const page of pages) {
+      for (const key of ['Resources', 'MediaBox', 'CropBox', 'Rotate']) {
+        const value = page.node.getInheritableAttribute(PDFName.of(key));
+        if (value) page.node.set(PDFName.of(key), value);
+      }
+    }
+    const order = [...new Set(pageOrder)].filter((p) => p >= 1 && p <= pages.length);
+    for (let i = pages.length - 1; i >= 0; i--) doc.removePage(i);
+    order.forEach((p, i) => doc.insertPage(i, pages[p - 1]));
+    // Silinen sayfaya giden bağlantılar kaldırılır: ağaçta olmayan sayfa hedefi okuyucularda hata verir
+    const removed = new Set(pages.filter((_, i) => !order.includes(i + 1)).map((page) => page.ref));
+    if (removed.size > 0) removeLinksTo(doc, removed);
+    // Silinen sayfalar ve boşalan ara düğümler dosyada sahipsiz kalmasın
+    removeUnreachableObjects(doc);
 
-    const pageIndices = pageOrder
-      .map((p) => p - 1)
-      .filter((i) => i >= 0 && i < sourceDoc.getPageCount());
-
-    const copied = await newDoc.copyPages(sourceDoc, pageIndices);
-    copied.forEach((p) => newDoc.addPage(p));
-
-    return await newDoc.save({ useObjectStreams: true });
+    return await doc.save({ useObjectStreams: true });
   }
 
   /**
@@ -754,7 +852,7 @@ export class PdfEditService {
    */
   static async extractPages(data: Uint8Array, pageNumbers: number[]): Promise<Uint8Array> {
     const sourceDoc = await this.loadPdf(data);
-    const newDoc = await PDFDocument.create();
+    const newDoc = await createPdf();
 
     const indices = pageNumbers
       .map((n) => n - 1)
@@ -991,7 +1089,8 @@ export class PdfEditService {
     onProgress?: (done: number, total: number) => void
   ): Promise<CompressionResult> {
     // Üst veri silinecekse pdf-lib'in Producer/ModDate yazmasını engelle
-    const doc = await PDFDocument.load(data, { ignoreEncryption: true, updateMetadata: !options.removeMetadata });
+    const doc = await PDFDocument.load(data, { ignoreEncryption: true, updateMetadata: false });
+    if (!options.removeMetadata) stampProducer(doc);
     const { maxSide, quality, grayscale = false } = options;
 
     stripOptionalData(doc, options);
@@ -1060,8 +1159,9 @@ export class PdfEditService {
    */
   static async decryptPdf(data: Uint8Array, password: string): Promise<Uint8Array> {
     configure(PDFLib);
-    const doc = await PDFDocument.load(data, { ignoreEncryption: true });
+    const doc = await PDFDocument.load(data, { ignoreEncryption: true, updateMetadata: false });
     await unlockInPlace(doc, password);
+    stampProducer(doc);
     return await doc.save({ useObjectStreams: false });
   }
 

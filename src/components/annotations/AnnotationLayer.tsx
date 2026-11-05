@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
 import { AnnotationItem, AnnotationType } from '../../types/pdf';
 import { NotePopover } from './NotePopover';
+import { LinkPopover, type LinkTarget } from './LinkPopover';
 import { MessageSquare, X } from 'lucide-react';
 import { t } from '@/i18n';
 import { BASELINE_RATIO } from '../../services/pdfEditService';
@@ -50,6 +51,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     setPendingSignature,
     setActiveTool,
     pushUndoSnapshot,
+    annotationModeOpen,
     tabs,
     activeTabId
   } = usePdfStore();
@@ -83,6 +85,14 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
 
   // İmza yerleştirme sırasında imleci izleyen hayalet önizleme (container'a bağıl piksel)
   const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+
+  // Bağlantı hedefi penceresi: yeni çizilen alan (annotationId yok) ya da düzenlenen bağlantı
+  const [linkEdit, setLinkEdit] = useState<
+    (LinkTarget & { annotationId?: string; rect: [number, number, number, number] }) | null
+  >(null);
+  useEffect(() => {
+    if (!annotationModeOpen) setLinkEdit(null);
+  }, [annotationModeOpen]);
 
   // Not Popover durumu
   const [activeNotePopover, setActiveNotePopover] = useState<{
@@ -339,7 +349,8 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
   ) => {
     e.stopPropagation();
     setSelectedAnnotationId(annot.id);
-    if (activeTool !== 'select' || !annot.rect) return;
+    // Bağlantılar bağlantı aracındayken de seçilip taşınır (Acrobat gibi)
+    if ((activeTool !== 'select' && !(annot.type === 'link' && activeTool === 'link')) || !annot.rect) return;
     e.preventDefault();
 
     const [x, y, w, h] = annot.rect;
@@ -361,6 +372,8 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
         const nx = Math.min(maxX - 20, Math.max(20 - w, x + dx));
         const ny = Math.min(maxY - 20, Math.max(20 - h, y + dy));
         updateAnnotation(annot.id, { rect: [nx, ny, w, h] });
+      } else if (annot.type === 'link') {
+        updateAnnotation(annot.id, { rect: [x, y, Math.max(4, w + dx), Math.max(4, h + dy)] });
       } else {
         const nw = Math.max(24, w + dx);
         updateAnnotation(annot.id, { rect: [x, y, nw, (nw * h) / w] });
@@ -401,13 +414,18 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
       setSelectedAnnotationId(null);
       return;
     }
+    // Hedef seçilmeden sayfaya tıklanırsa yeni bağlantı alanı vazgeçilmiş sayılır
+    if (linkEdit) {
+      setLinkEdit(null);
+      return;
+    }
 
     const coords = getRelativeCoords(e);
 
     if (activeTool === 'draw') {
       setIsDrawing(true);
       setCurrentStroke([coords]);
-    } else if (activeTool === 'rect' || activeTool === 'redact') {
+    } else if (activeTool === 'rect' || activeTool === 'redact' || activeTool === 'link') {
       setIsRectDrawing(true);
       setRectStart(coords);
       setCurrentRect({ x: coords.x, y: coords.y, w: 0, h: 0 });
@@ -470,7 +488,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
       setGhost(coords);
     } else if (isDrawing && activeTool === 'draw') {
       setCurrentStroke((prev) => [...prev, coords]);
-    } else if (isRectDrawing && rectStart && (activeTool === 'rect' || activeTool === 'redact')) {
+    } else if (isRectDrawing && rectStart && (activeTool === 'rect' || activeTool === 'redact' || activeTool === 'link')) {
       const minX = Math.min(rectStart.x, coords.x);
       const minY = Math.min(rectStart.y, coords.y);
       const w = Math.abs(coords.x - rectStart.x);
@@ -502,7 +520,12 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
       addAnnotation(newAnnot);
     }
 
-    if (isRectDrawing && currentRect && currentRect.w > 4 && currentRect.h > 4) {
+    if (isRectDrawing && currentRect && currentRect.w > 4 && currentRect.h > 4 && activeTool === 'link') {
+      // Bağlantı hedefi sorulur; Tamam'da eklenir, Vazgeç/Esc'de alan atılır
+      setLinkEdit({
+        rect: [pxToPt(currentRect.x), pxToPt(currentRect.y), pxToPt(currentRect.w), pxToPt(currentRect.h)]
+      });
+    } else if (isRectDrawing && currentRect && currentRect.w > 4 && currentRect.h > 4) {
       const isRedact = activeTool === 'redact';
       const newAnnot: AnnotationItem = {
         id: `annot-${isRedact ? 'redact' : 'rect'}-${Date.now()}`,
@@ -576,6 +599,7 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
     activeTool === 'draw' ||
     activeTool === 'rect' ||
     activeTool === 'redact' ||
+    activeTool === 'link' ||
     activeTool === 'note' ||
     activeTool === 'text' ||
     (activeTool === 'signature' && !!pendingSignature);
@@ -835,8 +859,22 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             height={currentRect.h}
             fill={activeTool === 'redact' ? '#000000' : 'none'}
             fillOpacity={0.5}
-            stroke={activeTool === 'redact' ? '#ed2224' : annotationColor}
-            strokeWidth={annotationStrokeWidth * scale}
+            stroke={activeTool === 'redact' ? '#ed2224' : activeTool === 'link' ? '#2563eb' : annotationColor}
+            strokeWidth={activeTool === 'link' ? 1 : annotationStrokeWidth * scale}
+            strokeDasharray="4,4"
+          />
+        )}
+
+        {/* Hedefi seçilmeyi bekleyen yeni bağlantı alanı */}
+        {linkEdit && !linkEdit.annotationId && (
+          <rect
+            x={ptToPx(linkEdit.rect[0])}
+            y={ptToPx(linkEdit.rect[1])}
+            width={ptToPx(linkEdit.rect[2])}
+            height={ptToPx(linkEdit.rect[3])}
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth={1}
             strokeDasharray="4,4"
           />
         )}
@@ -929,6 +967,77 @@ export const AnnotationLayer: React.FC<AnnotationLayerProps> = ({
             </div>
           );
         })}
+
+      {/* Bağlantılar: yalnızca işaretleme modunda kesikli çerçeve; seçilir, taşınır, boyutlandırılır, çift tıkla düzenlenir */}
+      {annotationModeOpen &&
+        pageAnnotations
+          .filter((a) => a.type === 'link' && a.rect)
+          .map((link) => {
+            const [x, y, w, h] = link.rect!;
+            const isSelected = selectedAnnotationId === link.id;
+            const interactive = activeTool === 'select' || activeTool === 'link';
+            return (
+              <div
+                key={link.id}
+                data-annot
+                onPointerDown={(e) => startObjectDrag(e, link, 'move')}
+                onDoubleClick={() =>
+                  interactive &&
+                  setLinkEdit({ annotationId: link.id, rect: link.rect!, linkUrl: link.linkUrl, linkPage: link.linkPage })
+                }
+                title={link.linkUrl || t('page_2', [link.linkPage ?? ''])}
+                style={{ left: ptToPx(x), top: ptToPx(y), width: ptToPx(w), height: ptToPx(h), touchAction: 'none' }}
+                className={`absolute outline-dashed outline-1 ${
+                  isSelected ? 'outline-blue-500 bg-blue-500/10' : 'outline-blue-500/70'
+                } ${interactive ? 'pointer-events-auto cursor-move' : 'pointer-events-none'}`}
+              >
+                {isSelected && interactive && (
+                  <div
+                    data-annot
+                    onPointerDown={(e) => startObjectDrag(e, link, 'resize')}
+                    className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 border border-white rounded-xs cursor-nwse-resize"
+                  />
+                )}
+              </div>
+            );
+          })}
+
+      {linkEdit && (
+        <LinkPopover
+          key={linkEdit.annotationId || 'new'}
+          linkUrl={linkEdit.linkUrl}
+          linkPage={linkEdit.linkPage}
+          numPages={activeTab?.numPages || 1}
+          position={{
+            x: Math.max(10, Math.min(ptToPx(linkEdit.rect[0]), pageWidth - 298)),
+            y:
+              ptToPx(linkEdit.rect[1] + linkEdit.rect[3]) + 210 > pageHeight
+                ? Math.max(10, ptToPx(linkEdit.rect[1]) - 210)
+                : ptToPx(linkEdit.rect[1] + linkEdit.rect[3]) + 6
+          }}
+          onSave={(target) => {
+            if (linkEdit.annotationId) {
+              pushUndoSnapshot();
+              updateAnnotation(linkEdit.annotationId, { linkUrl: target.linkUrl, linkPage: target.linkPage });
+            } else {
+              const newLink: AnnotationItem = {
+                id: `annot-link-${Date.now()}`,
+                pageNumber,
+                type: 'link',
+                color: '#2563eb',
+                rect: linkEdit.rect,
+                ...target,
+                createdAt: new Date().toISOString(),
+                author: t('annotation_author_default')
+              };
+              addAnnotation(newLink);
+              setSelectedAnnotationId(newLink.id);
+            }
+            setLinkEdit(null);
+          }}
+          onCancel={() => setLinkEdit(null)}
+        />
+      )}
 
       {/* İmza yerleştirme: imleci izleyen hayalet önizleme */}
       {activeTool === 'signature' && pendingSignature && ghost && (

@@ -419,4 +419,26 @@ export const es: Record<MessageKey, string> = {
   "or_choose_from_computer": "o elige un archivo de tu ordenador",
   "open_pdf": "Abrir PDF…",
   "done": "Listo",
+  // Yer imi düzenleme
+  "bookmark_add": "Añadir marcador",
+  "bookmark_add_child": "Añadir marcador secundario",
+  "bookmark_rename": "Cambiar nombre",
+  "bookmark_set_destination": "Establecer destino en la vista actual",
+  "bookmark_drag_hint": "Arrastrar para mover",
+  "bookmark_expand": "Expandir",
+  "bookmark_collapse": "Contraer",
+
+  // Bağlantı düzenleme ve URL'lerden bağlantı oluşturma
+  "link": "Vínculo",
+  "create_links_from_urls": "Crear vínculos desde URL",
+  "create_web_links": "Crear vínculos web",
+  "remove_web_links": "Eliminar vínculos web",
+  "pages_all": "Todas",
+  "pages_from": "Desde",
+  "pages_to": "Hasta",
+  "ok": "Aceptar",
+  "link_web_address": "Dirección web",
+  "link_page_in_document": "Página de este documento",
+  "link_invalid_url": "Introduzca una dirección web que empiece por http://, https://, mailto: o www.",
+  "link_invalid_page": "Introduzca un número de página del 1 al {0}.",
 };

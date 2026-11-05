@@ -67,7 +67,7 @@ export const SplitPdfModal: React.FC = () => {
         return;
       }
 
-      const results = await PdfEditService.splitPdf(activeTab.data.slice(), ranges);
+      const results = await PdfEditService.splitPdf(activeTab.data.slice(), ranges, activeTab.outline, activeTab.metadata);
 
       // Klasör iş bitince sorulur; mevcut dosyalar korunur, çakışan adlara numara eklenir
       const directory = await pickOutputFolder(activeTab.filePath);

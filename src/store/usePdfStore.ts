@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { PdfEditService } from '../services/pdfEditService';
-import { ActiveTool, AnnotationItem, LeftSidebarTab, PdfTab, SearchMatch } from '../types/pdf';
+import { PdfEditService, docEditsOf } from '../services/pdfEditService';
+import { ActiveTool, AnnotationItem, BookmarkItem, DocMetadata, LeftSidebarTab, PdfTab, SearchMatch, UndoSnapshot } from '../types/pdf';
 import { t } from '../i18n';
 import {
   LANGUAGES,
@@ -73,6 +73,8 @@ interface PdfStoreState {
   compressModalOpen: boolean;
   convertModalOpen: boolean;
   documentPropertiesModalOpen: boolean;
+  /** URL'lerden bağlantı oluştur / web bağlantılarını kaldır penceresi (null: kapalı) */
+  webLinksModalOpen: 'create' | 'remove' | null;
 
   // Eylemler (Actions)
   addTab: (tab: PdfTab) => void;
@@ -116,7 +118,14 @@ interface PdfStoreState {
   setAnnotationFontSize: (size: number) => void;
   setSelectedAnnotationId: (id: string | null) => void;
   addAnnotation: (annotation: AnnotationItem) => void;
+  /** Birden çok işaretlemeyi tek geri al adımıyla ekler/siler (ör. URL'lerden bağlantı oluşturma) */
+  addAnnotations: (annotations: AnnotationItem[]) => void;
   deleteAnnotation: (annotationId: string) => void;
+  deleteAnnotations: (annotationIds: string[]) => void;
+  /** Etkin sekmenin yer imi ağacını değiştirir (geri alınabilir; kayıtta /Outlines baştan yazılır) */
+  setOutline: (outline: BookmarkItem[]) => void;
+  /** Etkin sekmenin metadata'sını değiştirir (geri alınabilir; kayıtta yazılır) */
+  setMetadata: (metadata: DocMetadata) => void;
   updateAnnotation: (annotationId: string, updates: Partial<AnnotationItem>) => void;
   undo: () => void;
   redo: () => void;
@@ -135,6 +144,7 @@ interface PdfStoreState {
   setCompressModalOpen: (open: boolean) => void;
   setConvertModalOpen: (open: boolean) => void;
   setDocumentPropertiesModalOpen: (open: boolean) => void;
+  setWebLinksModalOpen: (mode: 'create' | 'remove' | null) => void;
 
   // Son Açılan Belgeler (Recent Files) & Kısayol Yardım Modalı
   recentFiles: { filePath: string; fileName: string; lastOpened: number }[];
@@ -180,6 +190,42 @@ function getInitialRecentFiles(): { filePath: string; fileName: string; lastOpen
   return [];
 }
 
+/** Geri al yığını için sekmenin geri alınabilir durumu */
+const snapshotOf = (tab: PdfTab): UndoSnapshot => ({
+  annotations: tab.annotations || [],
+  outline: tab.outline,
+  outlineModified: tab.outlineModified,
+  metadata: tab.metadata
+});
+
+/** Etkin sekmede geri alınabilir bir değişiklik: önceki durum yığına girer, yinele yığını boşalır */
+function commitEdit(updates: Partial<PdfTab>) {
+  const { activeTabId, tabs, updateTab } = usePdfStore.getState();
+  const tab = tabs.find((t) => t.id === activeTabId);
+  if (!tab) return;
+  updateTab(tab.id, {
+    ...updates,
+    undoStack: [...(tab.undoStack || []), snapshotOf(tab)],
+    redoStack: [],
+    isModified: true
+  });
+}
+
+/** Geri al / yinele: from yığınının son adımı uygulanır, mevcut durum to yığınına girer */
+function stepHistory(from: 'undoStack' | 'redoStack', to: 'undoStack' | 'redoStack') {
+  const { activeTabId, tabs, updateTab } = usePdfStore.getState();
+  const tab = tabs.find((t) => t.id === activeTabId);
+  const stack = tab?.[from];
+  if (!tab || !stack || stack.length === 0) return;
+  updateTab(tab.id, {
+    ...stack[stack.length - 1],
+    [from]: stack.slice(0, -1),
+    [to]: [...(tab[to] || []), snapshotOf(tab)],
+    isModified: true
+  });
+  usePdfStore.setState({ selectedAnnotationId: null });
+}
+
 let isRotating = false;
 
 /**
@@ -193,7 +239,7 @@ async function rotateActiveDocument(clockwise: boolean) {
   if (!tab || isRotating) return;
   isRotating = true;
   try {
-    const baked = await PdfEditService.savePdfWithAnnotations(tab.data.slice(), tab.annotations || [], tab.importedAnnotations);
+    const baked = await PdfEditService.savePdfWithAnnotations(tab.data.slice(), tab.annotations || [], tab.importedAnnotations, docEditsOf(tab));
     const data = await PdfEditService.rotateAllPages(baked, clockwise);
     updateTab(tab.id, {
       data,
@@ -264,6 +310,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   compressModalOpen: false,
   convertModalOpen: false,
   documentPropertiesModalOpen: false,
+  webLinksModalOpen: null,
 
   addTab: (newTab) => {
     set((state) => {
@@ -387,7 +434,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
     const tab = tabs.find((t) => t.id === activeTabId);
     if (!tab) return;
     updateTab(tab.id, {
-      undoStack: [...(tab.undoStack || []), tab.annotations || []],
+      undoStack: [...(tab.undoStack || []), snapshotOf(tab)],
       redoStack: []
     });
   },
@@ -491,42 +538,26 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
 
   setSelectedAnnotationId: (id) => set({ selectedAnnotationId: id }),
 
-  addAnnotation: (annotation) => {
-    const { activeTabId, tabs, updateTab } = get();
-    if (!activeTabId) return;
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab) return;
+  addAnnotation: (annotation) => get().addAnnotations([annotation]),
 
-    const currentAnnots = tab.annotations || [];
-    const newUndoStack = [...(tab.undoStack || []), currentAnnots];
-    const newAnnotations = [...currentAnnots, annotation];
-
-    updateTab(activeTabId, {
-      annotations: newAnnotations,
-      undoStack: newUndoStack,
-      redoStack: [],
-      isModified: true
-    });
+  addAnnotations: (annotations) => {
+    const tab = get().tabs.find((t) => t.id === get().activeTabId);
+    if (tab && annotations.length > 0) commitEdit({ annotations: [...(tab.annotations || []), ...annotations] });
   },
 
-  deleteAnnotation: (annotationId) => {
-    const { activeTabId, tabs, updateTab } = get();
-    if (!activeTabId) return;
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab) return;
+  deleteAnnotation: (annotationId) => get().deleteAnnotations([annotationId]),
 
-    const currentAnnots = tab.annotations || [];
-    const newUndoStack = [...(tab.undoStack || []), currentAnnots];
-    const newAnnotations = currentAnnots.filter((a) => a.id !== annotationId);
-
-    updateTab(activeTabId, {
-      annotations: newAnnotations,
-      undoStack: newUndoStack,
-      redoStack: [],
-      isModified: true
-    });
+  deleteAnnotations: (annotationIds) => {
+    const tab = get().tabs.find((t) => t.id === get().activeTabId);
+    if (!tab || annotationIds.length === 0) return;
+    const ids = new Set(annotationIds);
+    commitEdit({ annotations: (tab.annotations || []).filter((a) => !ids.has(a.id)) });
     set({ selectedAnnotationId: null });
   },
+
+  setOutline: (outline) => commitEdit({ outline, outlineModified: true }),
+
+  setMetadata: (metadata) => commitEdit({ metadata }),
 
   updateAnnotation: (annotationId, updates) => {
     const { activeTabId, tabs, updateTab } = get();
@@ -544,43 +575,9 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
     });
   },
 
-  undo: () => {
-    const { activeTabId, tabs, updateTab } = get();
-    if (!activeTabId) return;
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab || !tab.undoStack || tab.undoStack.length === 0) return;
+  undo: () => stepHistory('undoStack', 'redoStack'),
 
-    const previousAnnots = tab.undoStack[tab.undoStack.length - 1];
-    const newUndoStack = tab.undoStack.slice(0, -1);
-    const newRedoStack = [...(tab.redoStack || []), tab.annotations || []];
-
-    updateTab(activeTabId, {
-      annotations: previousAnnots,
-      undoStack: newUndoStack,
-      redoStack: newRedoStack,
-      isModified: true
-    });
-    set({ selectedAnnotationId: null });
-  },
-
-  redo: () => {
-    const { activeTabId, tabs, updateTab } = get();
-    if (!activeTabId) return;
-    const tab = tabs.find((t) => t.id === activeTabId);
-    if (!tab || !tab.redoStack || tab.redoStack.length === 0) return;
-
-    const nextAnnots = tab.redoStack[tab.redoStack.length - 1];
-    const newRedoStack = tab.redoStack.slice(0, -1);
-    const newUndoStack = [...(tab.undoStack || []), tab.annotations || []];
-
-    updateTab(activeTabId, {
-      annotations: nextAnnots,
-      undoStack: newUndoStack,
-      redoStack: newRedoStack,
-      isModified: true
-    });
-    set({ selectedAnnotationId: null });
-  },
+  redo: () => stepHistory('redoStack', 'undoStack'),
 
   // Faz 3 Eylemleri
   setOrganizeModalOpen: (open) => set({ organizeModalOpen: open }),
@@ -596,6 +593,7 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   setCompressModalOpen: (open) => set({ compressModalOpen: open }),
   setConvertModalOpen: (open) => set({ convertModalOpen: open }),
   setDocumentPropertiesModalOpen: (open) => set({ documentPropertiesModalOpen: open }),
+  setWebLinksModalOpen: (mode) => set({ webLinksModalOpen: mode }),
 
   // Son Açılan Belgeler & Kısayol Yardım Eylemleri
   addRecentFile: (file) => {

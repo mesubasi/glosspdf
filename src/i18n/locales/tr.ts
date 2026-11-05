@@ -419,4 +419,26 @@ export const tr: Record<MessageKey, string> = {
   "or_choose_from_computer": "ya da bilgisayarından bir dosya seç",
   "open_pdf": "PDF Aç…",
   "done": "Bitti",
+  // Yer imi düzenleme
+  "bookmark_add": "Yer İmi Ekle",
+  "bookmark_add_child": "Alt Yer İmi Ekle",
+  "bookmark_rename": "Yeniden Adlandır",
+  "bookmark_set_destination": "Hedefi Geçerli Görünüm Yap",
+  "bookmark_drag_hint": "Taşımak için sürükleyin",
+  "bookmark_expand": "Genişlet",
+  "bookmark_collapse": "Daralt",
+
+  // Bağlantı düzenleme ve URL'lerden bağlantı oluşturma
+  "link": "Bağlantı",
+  "create_links_from_urls": "URL'lerden Bağlantı Oluştur",
+  "create_web_links": "Web Bağlantıları Oluştur",
+  "remove_web_links": "Web Bağlantılarını Kaldır",
+  "pages_all": "Tümü",
+  "pages_from": "Başlangıç",
+  "pages_to": "Bitiş",
+  "ok": "Tamam",
+  "link_web_address": "Web adresi",
+  "link_page_in_document": "Bu belgedeki sayfa",
+  "link_invalid_url": "http://, https://, mailto: ya da www. ile başlayan bir web adresi girin.",
+  "link_invalid_page": "1 ile {0} arasında bir sayfa numarası girin.",
 };

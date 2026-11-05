@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePdfStore } from './store/usePdfStore';
-import { PdfRenderService } from './services/pdfRenderService';
+import { PdfRenderService, viewportFor } from './services/pdfRenderService';
 import { isRealPath } from './services/fileSaveService';
-import { PdfEditService } from './services/pdfEditService';
+import { PdfEditService, docEditsOf } from './services/pdfEditService';
 import { TabBar } from './components/layout/TabBar';
 import { HeaderToolbar } from './components/layout/HeaderToolbar';
 import { AnnotationToolbar } from './components/annotations/AnnotationToolbar';
@@ -22,6 +22,7 @@ import { ProtectPdfModal } from './components/modals/ProtectPdfModal';
 import { CompressPdfModal } from './components/modals/CompressPdfModal';
 import { ConvertOfficeModal } from './components/modals/ConvertOfficeModal';
 import { DocumentPropertiesModal } from './components/modals/DocumentPropertiesModal';
+import { WebLinksModal } from './components/modals/WebLinksModal';
 import { ShortcutHelpModal } from './components/modals/ShortcutHelpModal';
 import { UpdateModal } from './components/modals/UpdateModal';
 import { UnsavedChangesModal } from './components/modals/UnsavedChangesModal';
@@ -66,7 +67,14 @@ function base64ToBytes(base64Data: string): Uint8Array {
  * Kaydedilen baytlar işaretlemeleri zaten içerir. Bekleyen listeyi temizlemezsek bir sonraki
  * kayıtta aynı işaretlemeler dosyaya ikinci kez yazılır ve ekranda çift görünür.
  */
-const SAVED_STATE: Partial<PdfTab> = { annotations: [], importedAnnotations: undefined, undoStack: [], redoStack: [] };
+const SAVED_STATE: Partial<PdfTab> = {
+  annotations: [],
+  importedAnnotations: undefined,
+  undoStack: [],
+  redoStack: [],
+  outlineModified: false,
+  metadata: undefined
+};
 
 export function App() {
   const {
@@ -80,6 +88,7 @@ export function App() {
     setCurrentPage,
     openPasswordModal,
     annotationModeOpen,
+    webLinksModalOpen,
     addRecentFile,
     removeRecentFile,
     requestCloseWindow,
@@ -351,7 +360,8 @@ export function App() {
       const savedBytes = await PdfEditService.savePdfWithAnnotations(
         activeTab.data.slice(),
         activeTab.annotations || [],
-        activeTab.importedAnnotations
+        activeTab.importedAnnotations,
+        docEditsOf(activeTab)
       );
 
       if (window.electronAPI) {
@@ -395,7 +405,8 @@ export function App() {
       const savedBytes = await PdfEditService.savePdfWithAnnotations(
         activeTab.data.slice(),
         activeTab.annotations || [],
-        activeTab.importedAnnotations
+        activeTab.importedAnnotations,
+        docEditsOf(activeTab)
       );
 
       if (window.electronAPI) {
@@ -493,12 +504,22 @@ export function App() {
   };
 
   // Sayfaya Kaydır / Git
-  const handlePageClick = (pageNumber: number) => {
+  // top: yer imi /XYZ hedefinin üst kenarı (PDF y'si); verilirse sayfanın o yüksekliğine gidilir
+  const handlePageClick = async (pageNumber: number, top?: number) => {
     setCurrentPage(pageNumber);
     const pageEl = document.getElementById(`pdf-page-${pageNumber}`);
-    if (pageEl) {
+    if (!pageEl) return;
+    const container = containerRef.current;
+    const page = top !== undefined && container && activePdfDoc ? await activePdfDoc.getPage(pageNumber) : null;
+    const viewport = page ? viewportFor(page, 1, activeTab?.rotation) : null;
+    // Yan çevrilmiş sayfada PDF y'si yatay eksene düşer: sayfanın başına gidilir
+    if (top === undefined || !container || !viewport || viewport.rotation % 180 !== 0) {
       pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
     }
+    const [, y] = viewport.convertToViewportPoint(0, top);
+    const offset = Math.min(Math.max(y, 0), viewport.height) * (pageEl.offsetHeight / viewport.height);
+    container.scrollTo({ top: pageEl.offsetTop + offset, behavior: 'smooth' });
   };
 
   // İşletim sisteminden gelen PDF'ler (çift tıklama, "Birlikte aç", ikinci örnek). Abonelik bir kez kurulur;
@@ -599,6 +620,7 @@ export function App() {
       <DocumentPropertiesModal />
       <ShortcutHelpModal />
       <UpdateModal />
+      {webLinksModalOpen && <WebLinksModal mode={webLinksModalOpen} pdfDocument={activePdfDoc} />}
       <UnsavedChangesModal onSave={handleSaveFileAs} />
     </div>
   );

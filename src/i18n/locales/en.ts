@@ -417,6 +417,28 @@ export const en = {
   "or_choose_from_computer": "or choose a file from your computer",
   "open_pdf": "Open PDF…",
   "done": "Done",
+  // Yer imi düzenleme
+  "bookmark_add": "Add Bookmark",
+  "bookmark_add_child": "Add Child Bookmark",
+  "bookmark_rename": "Rename",
+  "bookmark_set_destination": "Set Destination to Current View",
+  "bookmark_drag_hint": "Drag to move",
+  "bookmark_expand": "Expand",
+  "bookmark_collapse": "Collapse",
+
+  // Bağlantı düzenleme ve URL'lerden bağlantı oluşturma
+  "link": "Link",
+  "create_links_from_urls": "Create Links from URLs",
+  "create_web_links": "Create Web Links",
+  "remove_web_links": "Remove Web Links",
+  "pages_all": "All",
+  "pages_from": "From",
+  "pages_to": "To",
+  "ok": "OK",
+  "link_web_address": "Web address",
+  "link_page_in_document": "Page in this document",
+  "link_invalid_url": "Enter a web address that starts with http://, https://, mailto: or www.",
+  "link_invalid_page": "Enter a page number from 1 to {0}.",
 };
 
 /** Sözlükteki tüm anahtarların birleşimi (tip güvenliği için). */

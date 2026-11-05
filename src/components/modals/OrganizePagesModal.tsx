@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { PdfEditService } from '../../services/pdfEditService';
+import { PdfEditService, docEditsOf } from '../../services/pdfEditService';
 import { PdfRenderService } from '../../services/pdfRenderService';
+import { remapOutline } from '../../services/outlineService';
 import * as pdfjsLib from 'pdfjs-dist';
 import { t } from '@/i18n';
 import {
@@ -121,12 +122,16 @@ export const OrganizePagesModal: React.FC = () => {
     try {
       setIsProcessing(true);
       // Sayfa yapısı değişeceği için bekleyen işaretlemeler önce sayfalara yazılır
-      const baked = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations);
+      const baked = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations, docEditsOf(activeTab));
       const newBytes = await PdfEditService.insertBlankPage(baked, pages.length);
       const newDoc = await PdfRenderService.loadDocument(newBytes.slice());
       const dims = await PdfRenderService.getAllPageDimensions(newDoc);
+      // Yeni sayfa (0) araya girer; sonraki yer imleri bir sayfa kayar
+      const pageOrder = Array.from({ length: activeTab.numPages }, (_, i) => i + 1);
+      pageOrder.splice(pages.length, 0, 0);
       updateTab(activeTab.id, {
         data: newBytes,
+        outline: remapOutline(activeTab.outline, pageOrder),
         numPages: newDoc.numPages,
         pageDimensions: dims,
         annotations: [],
@@ -155,7 +160,7 @@ export const OrganizePagesModal: React.FC = () => {
       // 1. Sıralamayı uygula (reorder)
       const pageOrder = pages.map((p) => p.originalPageNumber);
       // Sayfa sırası/sayısı değişeceği için bekleyen işaretlemeler önce sayfalara yazılır
-      const baked = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations);
+      const baked = await PdfEditService.savePdfWithAnnotations(activeTab.data.slice(), activeTab.annotations || [], activeTab.importedAnnotations, docEditsOf(activeTab));
       let updatedBytes = await PdfEditService.reorderPages(baked, pageOrder);
 
       // 2. Döndürmeleri uygula
@@ -175,6 +180,10 @@ export const OrganizePagesModal: React.FC = () => {
 
       updateTab(activeTab.id, {
         data: updatedBytes,
+        outline: remapOutline(activeTab.outline, pageOrder),
+        // Sayfalar aynı belgede yer değiştirir, dosyadaki yer imleri sayfayla birlikte gider; silinen
+        // sayfaya bağlı yer imi varsa ağaç kayıtta baştan yazılır
+        outlineModified: activeTab.outlineModified || pageOrder.length < activeTab.numPages,
         numPages: newDoc.numPages,
         pageDimensions: dims,
         annotations: [],

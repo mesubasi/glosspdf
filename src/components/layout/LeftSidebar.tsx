@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { usePdfStore } from '../../store/usePdfStore';
-import { BookmarkItem, LeftSidebarTab, AnnotationItem } from '../../types/pdf';
+import { LeftSidebarTab, AnnotationItem } from '../../types/pdf';
 import * as pdfjsLib from 'pdfjs-dist';
 import { viewportFor } from '../../services/pdfRenderService';
+import { BookmarksPanel, requestAddBookmark } from './BookmarksPanel';
 import { t } from '@/i18n';
 import {
   LayoutGrid,
@@ -17,14 +18,13 @@ import {
   Type,
   FileSignature,
   EyeOff,
-  ChevronRight,
-  ChevronDown,
+  BookmarkPlus,
   Trash2
 } from 'lucide-react';
 
 interface LeftSidebarProps {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
-  onPageClick: (pageNumber: number) => void;
+  onPageClick: (pageNumber: number, top?: number) => void;
 }
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageClick }) => {
@@ -46,7 +46,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
 
   if (!leftSidebarTab || !activeTab) return null;
 
-  const annotations = activeTab.annotations || [];
+  // Acrobat bağlantıları yorum olarak listelemez
+  const annotations = (activeTab.annotations || []).filter((a) => a.type !== 'link');
 
   const getAnnotationIcon = (type: string) => {
     switch (type) {
@@ -145,6 +146,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
       <div className="flex items-baseline justify-between px-4 pt-3.5 pb-2">
         <h2 className="text-[11px] font-semibold tracking-wide text-secondary">{title}</h2>
         {leftSidebarTab === 'thumbnails' && <span className="text-[11px] text-secondary">{activeTab.numPages}</span>}
+        {leftSidebarTab === 'bookmarks' && (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()} // Belgedeki metin seçimi (yer imi adı) kaybolmasın
+            onClick={requestAddBookmark}
+            title={t('bookmark_add')}
+            aria-label={t('bookmark_add')}
+            className="-my-1 p-1 rounded-md text-secondary hover:bg-hover hover:text-label"
+          >
+            <BookmarkPlus className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Küçük Resimler (Thumbnails) */}
@@ -163,15 +176,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ pdfDocument, onPageCli
         </div>
       )}
 
-      {/* Yer İmleri (Bookmarks) */}
+      {/* Yer İmleri (Bookmarks): ekle, yeniden adlandır, sil, sürükleyerek taşı */}
       {leftSidebarTab === 'bookmarks' && (
-        <div className="flex-1 overflow-y-auto px-2 pb-3 text-[13px]">
-          {activeTab.outline.length === 0 ? (
-            <EmptyState icon={Bookmark} title={t('no_bookmarks_in_document')} />
-          ) : (
-            activeTab.outline.map((item, idx) => <BookmarkNode key={idx} item={item} onPageClick={onPageClick} />)
-          )}
-        </div>
+        <BookmarksPanel key={activeTab.id} outline={activeTab.outline} pdfDocument={pdfDocument} onPageClick={onPageClick} />
       )}
 
       {/* İşaretlemeler (Annotations / Comments) */}
@@ -339,47 +346,5 @@ const ThumbnailItem: React.FC<{
         {pageNumber}
       </span>
     </button>
-  );
-};
-
-// İçindekiler Düğümü (Bookmark Node)
-const BookmarkNode: React.FC<{
-  item: BookmarkItem;
-  onPageClick: (pageNumber: number) => void;
-}> = ({ item, onPageClick }) => {
-  const [open, setOpen] = React.useState(true);
-  const hasChildren = item.children && item.children.length > 0;
-
-  return (
-    <div className="pl-1">
-      <div
-        onClick={() => onPageClick(item.pageNumber)}
-        className="flex items-center gap-1 h-7 px-1.5 rounded-md hover:bg-hover cursor-pointer text-label"
-      >
-        {hasChildren ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(!open);
-            }}
-            className="p-0.5 text-slate-400 hover:text-slate-600"
-          >
-            {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-          </button>
-        ) : (
-          <div className="w-4" />
-        )}
-        <span className="truncate flex-1">{item.title}</span>
-        <span className="text-[11px] text-secondary">{item.pageNumber}</span>
-      </div>
-
-      {hasChildren && open && (
-        <div className="pl-3 ml-2 space-y-0.5">
-          {item.children!.map((child, idx) => (
-            <BookmarkNode key={idx} item={child} onPageClick={onPageClick} />
-          ))}
-        </div>
-      )}
-    </div>
   );
 };

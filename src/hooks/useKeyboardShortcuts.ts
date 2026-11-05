@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { usePdfStore } from '../store/usePdfStore';
 import { isDesktop } from '../services/fileSaveService';
+import { requestAddBookmark } from '../components/layout/BookmarksPanel';
 
 interface ShortcutOptions {
   onOpenFile: () => void;
@@ -41,7 +42,8 @@ export function useKeyboardShortcuts({
     setShortcutHelpModalOpen,
     activeTool,
     setActiveTool,
-    setDocumentPropertiesModalOpen
+    setDocumentPropertiesModalOpen,
+    setLeftSidebarTab
   } = usePdfStore();
 
   useEffect(() => {
@@ -98,6 +100,16 @@ export function useKeyboardShortcuts({
       if (isCtrl && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
         if (activeTabId) setDocumentPropertiesModalOpen(true);
+        return;
+      }
+
+      // Ctrl + B: Görünen konuma yer imi ekle (Acrobat gibi); kenar çubuğu Yer İmleri'ne geçer
+      if (isCtrl && (e.key === 'b' || e.key === 'B') && !isInputActive) {
+        e.preventDefault();
+        if (activeTabId) {
+          setLeftSidebarTab('bookmarks');
+          requestAddBookmark();
+        }
         return;
       }
 
@@ -251,6 +263,7 @@ export function useKeyboardShortcuts({
     setActiveTool,
     shortcutHelpModalOpen,
     setShortcutHelpModalOpen,
-    setDocumentPropertiesModalOpen
+    setDocumentPropertiesModalOpen,
+    setLeftSidebarTab
   ]);
 }

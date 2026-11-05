@@ -1,7 +1,25 @@
 export interface BookmarkItem {
   title: string;
   pageNumber: number;
+  /** Sayfa içi hedef: /XYZ hedefindeki üst kenar (PDF kullanıcı uzayı, alttan yukarı nokta). Yoksa sayfanın başı. */
+  top?: number;
   children?: BookmarkItem[];
+}
+
+/** Belge Özellikleri'nde düzenlenebilen metadata alanları (Info sözlüğü + varsa XMP) */
+export interface DocMetadata {
+  title: string;
+  author: string;
+  subject: string;
+  keywords: string;
+}
+
+/** Geri al/yinele adımı: işaretlemeler, yer imleri ve metadata birlikte geri döner */
+export interface UndoSnapshot {
+  annotations: AnnotationItem[];
+  outline: BookmarkItem[];
+  outlineModified?: boolean;
+  metadata?: DocMetadata;
 }
 
 export interface SearchMatch {
@@ -29,7 +47,8 @@ export type AnnotationType =
   | 'text'
   | 'signature' // Yerleştirilmiş imza görseli (Adobe "Fill & Sign" tarzı)
   | 'redact' // Karartma: kaydederken altındaki içerik dosyadan kalıcı olarak silinir
-  | 'textedit'; // Mevcut PDF metninin üzerine yazılan düzenleme
+  | 'textedit' // Mevcut PDF metninin üzerine yazılan düzenleme
+  | 'link'; // Bağlantı alanı: linkUrl (dış adres) ya da linkPage (belge içi sayfa)
 
 export type ActiveTool =
   | 'select'
@@ -49,6 +68,8 @@ export interface AnnotationItem {
   imageData?: string; // İmza PNG'si (data URL)
   originalText?: string; // 'textedit': düzenlenmeden önceki metin
   bgColor?: string; // 'textedit': eski metni örten arka plan rengi
+  linkUrl?: string; // 'link': dış adres (yalnızca http, https, mailto)
+  linkPage?: number; // 'link': belge içi hedef sayfa (1 tabanlı)
   sourceRef?: string; // Dosyada zaten olan işaretlemenin pdf.js kimliği (ör. "12R"); kayıtta değişmediyse yerinde kalır
   rect?: [number, number, number, number]; // [x, y, width, height] (72 DPI PDF noktası cinsinden)
   points?: { x: number; y: number }[]; // Serbest çizim için nokta koordinatları (72 DPI)
@@ -67,9 +88,13 @@ export interface PdfTab {
   rotation: number; // 0, 90, 180, 270
   isModified: boolean;
   outline: BookmarkItem[];
+  /** Yer imleri dosyadakinden farklı: kayıtta /Outlines baştan yazılır */
+  outlineModified?: boolean;
+  /** Bekleyen metadata düzenlemesi; undefined ise dosyadakine dokunulmaz */
+  metadata?: DocMetadata;
   annotations: AnnotationItem[];
-  undoStack: AnnotationItem[][];
-  redoStack: AnnotationItem[][];
+  undoStack: UndoSnapshot[];
+  redoStack: UndoSnapshot[];
   importedAnnotations?: AnnotationItem[]; // Dosyadan içe alınan işaretlemelerin ilk hâli (değişeni/sileneni bulmak için)
   pageDimensions: PageDimension[];
 }

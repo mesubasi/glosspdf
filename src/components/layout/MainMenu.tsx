@@ -25,7 +25,8 @@ import {
   X,
   LogOut,
   FileText,
-  Trash2
+  Trash2,
+  Link
 } from 'lucide-react';
 import { DropdownMenu, type MenuEntry } from './DropdownMenu';
 
@@ -82,7 +83,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     setShortcutHelpModalOpen,
     setUpdateModalOpen,
     setConvertModalOpen,
-    setDocumentPropertiesModalOpen
+    setDocumentPropertiesModalOpen,
+    setWebLinksModalOpen
   } = usePdfStore();
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
@@ -131,6 +133,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     'separator',
     { label: t('undo_action'), icon: Undo2, shortcut: 'Ctrl+Z', disabled: !activeTab?.undoStack?.length, action: undo },
     { label: t('redo_action'), icon: Redo2, shortcut: 'Ctrl+Y', disabled: !activeTab?.redoStack?.length, action: redo },
+    {
+      label: t('link'),
+      icon: Link,
+      disabled: noDoc,
+      submenu: [
+        { label: t('create_links_from_urls'), action: () => setWebLinksModalOpen('create') },
+        { label: t('remove_web_links'), action: () => setWebLinksModalOpen('remove') }
+      ]
+    },
     'separator',
     {
       label: t('view'),
