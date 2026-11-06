@@ -472,6 +472,7 @@ export const en = {
   "home_tool_convert": "Convert to Office",
   "home_tool_convert_desc": "Save as Word, Excel or PowerPoint",
   "home_recent": "Recent documents",
+  "home_col_opened": "Opened",
   "home_view": "View",
   "home_view_cards": "Card view",
   "home_view_list": "List view",

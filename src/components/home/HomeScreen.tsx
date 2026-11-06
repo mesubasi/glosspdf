@@ -34,6 +34,8 @@ const focusRing = 'outline-none focus-visible:ring-2 focus-visible:ring-red-500 
 const iconButton = `inline-flex items-center justify-center w-10 h-10 rounded-[10px] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-[#1F1F23] hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors ${focusRing}`;
 const card = 'border border-zinc-200 dark:border-[#26262B] bg-white dark:bg-[#18181B] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]';
 const muted = 'text-zinc-500 dark:text-[#8A8A93]';
+// Liste görünümünde başlık ve satırlar aynı sütunları paylaşır; son sütun kaldırma düğmesine yer açar
+const tableRow = 'grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_150px_44px] items-center gap-4 px-2';
 
 /** "C:\Users\Ali\Belgeler\Sözleşmeler\x.pdf" → "Belgeler › Sözleşmeler"; yalnızca dosya adıysa boş */
 const folderOf = (filePath: string) => filePath.split(/[\\/]/).slice(-3, -1).join(' › ');
@@ -62,9 +64,9 @@ function withSlot(text: string, slot: React.ReactNode) {
 }
 
 const THUMB_SIZES = {
-  sm: { img: 'max-w-[34px] max-h-[44px]', box: 'w-[34px] h-[44px]' },
+  sm: { img: 'max-w-[42px] max-h-[54px]', box: 'w-[42px] h-[54px]' },
   md: { img: 'max-w-[116px] max-h-[150px]', box: 'w-[110px] h-[144px]' },
-  lg: { img: 'max-w-[104px] max-h-[136px]', box: 'w-[104px] h-[136px]' }
+  lg: { img: 'max-w-[76px] max-h-[100px]', box: 'w-[76px] h-[100px]' }
 };
 
 /** İlk sayfanın küçük resmi; küçük resmi olmayan eski kayıtlarda boş kağıt gösterilir */
@@ -211,13 +213,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 w-full max-w-[1240px] mx-auto px-8 pt-8 pb-5 flex flex-col gap-7">
-          <section aria-labelledby="home-hello" className="shrink-0 flex flex-col gap-[26px]">
+      <main className="flex-1 min-h-0 w-full max-w-[1240px] mx-auto px-8 pt-6 pb-5 flex flex-col gap-6">
+          <section aria-labelledby="home-hello" className="shrink-0 flex flex-col gap-5">
             <div className="flex flex-col gap-2.5">
               <p className="font-geist-mono text-[12.5px] tracking-[0.04em] text-zinc-600 dark:text-zinc-400">
                 {`${today} · ${greeting}`.toLocaleUpperCase(language)}
               </p>
-              <h1 id="home-hello" className="text-[40px] leading-[1.15] font-semibold tracking-[-0.025em]">
+              <h1 id="home-hello" className="text-[30px] leading-[1.15] font-semibold tracking-[-0.025em]">
                 {withSlot(
                   t('home_headline'),
                   <span className="relative whitespace-nowrap">
@@ -231,13 +233,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
             <div className="flex flex-wrap gap-5">
               {/* Bırakma alanı: dosya App kökündeki onDrop ile açılır, burada yalnızca vurgulanır */}
               <div
-                className={`flex-[999_1_560px] min-w-0 flex flex-wrap items-center gap-9 px-9 py-8 rounded-[20px] border-[1.5px] border-dashed transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${
+                className={`flex-[999_1_560px] min-w-0 flex flex-wrap items-center gap-6 px-7 py-5 rounded-[20px] border-[1.5px] border-dashed transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${
                   dragging
                     ? 'border-red-500 bg-red-500/5'
                     : 'border-zinc-300 dark:border-[#3A3A41] bg-white dark:bg-[#16161A]'
                 }`}
               >
-                <div aria-hidden="true" className="relative shrink-0 w-[172px] h-[176px]">
+                <div aria-hidden="true" className="relative shrink-0 w-[172px] h-[176px] -m-[26px] scale-[0.7]">
                   <span className="absolute left-[22px] top-[22px] w-[108px] h-[140px] rounded-lg bg-zinc-200 dark:bg-[#2A2A30] -rotate-[9deg]" />
                   <span className="absolute left-[38px] top-3 w-[108px] h-[140px] rounded-lg bg-zinc-300 dark:bg-[#3A3A42] rotate-6" />
                   <span className="absolute left-[30px] top-4 w-[108px] h-[140px] px-3.5 py-4 rounded-lg bg-[#F4F4F5] shadow-[0_14px_30px_rgba(0,0,0,0.35)] flex flex-col gap-[7px] overflow-hidden">
@@ -249,19 +251,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
                     <span className="h-1 w-[96%] rounded-sm bg-[#C9CBD2]" />
                     <span className="h-1 w-[64%] rounded-sm bg-[#C9CBD2]" />
                   </span>
-                  <span className="absolute right-1 bottom-1.5 w-[52px] h-[52px] rounded-2xl bg-acrobat-darkRed text-white flex items-center justify-center shadow-[0_10px_24px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]">
+                  <span className="absolute right-1 bottom-1.5 w-[52px] h-[52px] rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-[0_10px_24px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]">
                     <ArrowUp className="w-6 h-6" strokeWidth={2} />
                   </span>
                 </div>
 
-                <div className="flex-[1_1_300px] min-w-0 flex flex-col gap-3.5">
-                  <h2 className="text-[22px] leading-tight font-semibold tracking-[-0.015em]">{t('home_drop_title')}</h2>
+                <div className="flex-[1_1_300px] min-w-0 flex flex-col gap-2.5">
+                  <h2 className="text-[19px] leading-tight font-semibold tracking-[-0.015em]">{t('home_drop_title')}</h2>
                   <p className="text-[14.5px] leading-[1.55] text-zinc-600 dark:text-zinc-400 max-w-[420px]">{t('home_drop_subtitle')}</p>
                   <div className="flex flex-wrap gap-2.5 mt-1">
                     <button
                       type="button"
                       onClick={onOpenFile}
-                      className={`inline-flex items-center gap-2.5 h-11 px-3.5 rounded-xl bg-acrobat-darkRed hover:bg-[#bd1319] text-white text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors ${focusRing}`}
+                      className={`inline-flex items-center gap-2.5 h-11 px-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors ${focusRing}`}
                     >
                       <FileUp className="w-[18px] h-[18px]" />
                       {t('home_open_file')}
@@ -276,7 +278,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
                       {t('home_tool_merge')}
                     </button>
                   </div>
-                  <p className={`flex items-center gap-2 mt-1.5 text-[12.5px] ${muted}`}>
+                  <p className={`flex items-center gap-2 mt-0.5 text-[12.5px] ${muted}`}>
                     <Lock className="w-3.5 h-3.5 shrink-0" />
                     {t('home_local_note')}
                   </p>
@@ -284,13 +286,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
               </div>
 
               {latest && (
-                <article aria-labelledby="home-continue" className={`flex-[1_1_340px] min-w-0 flex flex-col gap-5 p-6 rounded-[20px] ${card}`}>
+                <article aria-labelledby="home-continue" className={`flex-[1_1_340px] min-w-0 flex flex-col gap-3.5 p-5 rounded-[20px] ${card}`}>
                   <p className="flex items-center gap-2 text-[12.5px] font-medium text-zinc-600 dark:text-zinc-400">
                     <Clock className="w-[15px] h-[15px]" />
                     {t('home_continue')}
                   </p>
                   <div className="flex gap-[18px] items-start">
-                    <span className="flex items-center justify-center shrink-0 w-[104px] h-[136px]">
+                    <span className="flex items-center justify-center shrink-0 w-[76px] h-[100px]">
                       <PageThumb src={latest.thumbnail} size="lg" />
                     </span>
                     <div className="min-w-0 flex flex-col gap-2 pt-0.5">
@@ -372,53 +374,60 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
             ) : needle && listed.length === 0 ? (
               <p className={`text-[13.5px] ${muted}`}>{t('home_no_matches', [query.trim()])}</p>
             ) : view === 'cards' ? (
-              <ul className="flex-1 min-h-0 overflow-y-auto content-start grid grid-cols-[repeat(auto-fill,minmax(196px,1fr))] gap-4 p-1 -m-1">
-                {listed.map((file) => (
-                  <li key={file.filePath} className={`group relative rounded-2xl overflow-hidden hover:border-zinc-300 dark:hover:border-[#3A3A41] transition-colors ${card}`}>
-                    <button
-                      type="button"
-                      onClick={() => onOpenRecentFile(file.filePath, file.fileName)}
-                      title={file.filePath}
-                      className={`flex flex-col w-full text-start rounded-2xl ${focusRing}`}
-                    >
-                      <span className="flex items-center justify-center h-[184px] bg-zinc-100 dark:bg-[#1F1F23] border-b border-zinc-200 dark:border-[#26262B]">
-                        <PageThumb src={file.thumbnail} size="md" />
-                      </span>
-                      <span className="flex flex-col gap-1.5 px-3.5 pt-3.5 pb-4 min-w-0">
-                        <span className="text-[13.5px] font-semibold truncate">{file.fileName}</span>
-                        <span className={`flex items-center justify-between gap-2 text-xs ${muted}`}>
-                          <span className="truncate">{folderOf(file.filePath)}</span>
-                          <span className="shrink-0 font-geist-mono text-[11.5px]">{formatOpened(file.lastOpened, language)}</span>
-                        </span>
-                      </span>
-                    </button>
-                    {removeButton(file.filePath, file.fileName, 'top-1 end-1')}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <ul className={`flex-1 min-h-0 overflow-y-auto flex flex-col p-1.5 rounded-2xl ${card}`}>
+              <ul className="flex-1 min-h-0 overflow-y-auto content-start grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-x-5 gap-y-6 p-1 -m-1">
                 {listed.map((file) => (
                   <li key={file.filePath} className="group relative">
                     <button
                       type="button"
                       onClick={() => onOpenRecentFile(file.filePath, file.fileName)}
                       title={file.filePath}
-                      className={`flex items-center gap-4 w-full ps-3 pe-14 py-2.5 rounded-xl text-start hover:bg-zinc-50 dark:hover:bg-[#1F1F23] transition-colors ${focusRing}`}
+                      className={`flex flex-col gap-2.5 w-full text-start rounded-xl ${focusRing}`}
                     >
-                      <span className="flex items-center justify-center shrink-0 w-[34px] h-[44px]">
-                        <PageThumb src={file.thumbnail} size="sm" />
+                      <span className="flex items-center justify-center h-[176px] rounded-xl bg-zinc-100 dark:bg-[#1C1C20] group-hover:ring-2 group-hover:ring-red-500/60 transition-shadow">
+                        <PageThumb src={file.thumbnail} size="md" />
                       </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-[13.5px] font-semibold truncate">{file.fileName}</span>
-                        <span className={`block text-xs truncate ${muted}`}>{folderOf(file.filePath)}</span>
+                      <span className="flex flex-col gap-0.5 px-0.5 min-w-0">
+                        <span className="text-[13px] font-medium truncate">{file.fileName}</span>
+                        <span className={`font-geist-mono text-[11.5px] ${muted}`}>{formatOpened(file.lastOpened, language)}</span>
                       </span>
-                      <span className={`shrink-0 font-geist-mono text-xs ${muted}`}>{formatOpened(file.lastOpened, language)}</span>
                     </button>
-                    {removeButton(file.filePath, file.fileName, 'top-1/2 -translate-y-1/2 end-1.5')}
+                    {removeButton(file.filePath, file.fileName, 'top-0 end-0')}
                   </li>
                 ))}
               </ul>
+            ) : (
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className={`${tableRow} sticky top-0 z-10 h-9 border-b border-zinc-200 dark:border-[#26262B] bg-zinc-50 dark:bg-[#111113] text-[11px] font-medium uppercase tracking-[0.06em] ${muted}`}>
+                  <span className="ps-[62px]">{t('file_name')}</span>
+                  <span>{t('file_location')}</span>
+                  <span>{t('home_col_opened')}</span>
+                </div>
+                <ul>
+                  {listed.map((file) => (
+                    <li key={file.filePath} className="group relative border-b border-zinc-200 dark:border-[#222226]">
+                      <button
+                        type="button"
+                        onClick={() => onOpenRecentFile(file.filePath, file.fileName)}
+                        title={file.filePath}
+                        className={`${tableRow} w-full py-2.5 text-start hover:bg-zinc-100 dark:hover:bg-[#18181B] transition-colors ${focusRing}`}
+                      >
+                        <span className="flex items-center gap-4 min-w-0">
+                          <span className="flex items-center justify-center shrink-0 w-[46px] h-[56px]">
+                            <PageThumb src={file.thumbnail} size="sm" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[13.5px] font-medium truncate">{file.fileName.replace(/\.pdf$/i, '')}</span>
+                            <span className={`block text-[11.5px] ${muted}`}>PDF</span>
+                          </span>
+                        </span>
+                        <span className={`text-[13px] truncate ${muted}`}>{folderOf(file.filePath)}</span>
+                        <span className={`font-geist-mono text-[12px] ${muted}`}>{formatOpened(file.lastOpened, language)}</span>
+                      </button>
+                      {removeButton(file.filePath, file.fileName, 'top-1/2 -translate-y-1/2 end-0')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
 

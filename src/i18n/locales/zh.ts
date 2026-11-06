@@ -474,6 +474,7 @@ export const zh: Record<MessageKey, string> = {
   "home_tool_convert": "转换为 Office",
   "home_tool_convert_desc": "另存为 Word、Excel 或 PowerPoint",
   "home_recent": "最近的文档",
+  "home_col_opened": "打开时间",
   "home_view": "视图",
   "home_view_cards": "卡片视图",
   "home_view_list": "列表视图",

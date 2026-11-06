@@ -474,6 +474,7 @@ export const ar: Record<MessageKey, string> = {
   "home_tool_convert": "التحويل إلى Office",
   "home_tool_convert_desc": "احفظ بصيغة Word أو Excel أو PowerPoint",
   "home_recent": "المستندات الأخيرة",
+  "home_col_opened": "تاريخ الفتح",
   "home_view": "العرض",
   "home_view_cards": "عرض البطاقات",
   "home_view_list": "عرض القائمة",

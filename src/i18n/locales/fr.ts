@@ -474,6 +474,7 @@ export const fr: Record<MessageKey, string> = {
   "home_tool_convert": "Convertir en Office",
   "home_tool_convert_desc": "Enregistrer au format Word, Excel ou PowerPoint",
   "home_recent": "Documents récents",
+  "home_col_opened": "Ouvert le",
   "home_view": "Affichage",
   "home_view_cards": "Vue en cartes",
   "home_view_list": "Vue en liste",

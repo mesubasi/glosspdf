@@ -474,6 +474,7 @@ export const tr: Record<MessageKey, string> = {
   "home_tool_convert": "Office'e dönüştür",
   "home_tool_convert_desc": "Word, Excel ya da PowerPoint olarak kaydedin",
   "home_recent": "Son belgeler",
+  "home_col_opened": "Açıldığı tarih",
   "home_view": "Görünüm",
   "home_view_cards": "Kart görünümü",
   "home_view_list": "Liste görünümü",
