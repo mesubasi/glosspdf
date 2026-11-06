@@ -40,6 +40,9 @@ interface MainMenuProps {
   onFitWidth: () => void;
   onToggleFullScreen: () => void;
   updateReady: boolean;
+  /** Menü sağ kenardaysa panel tetikleyicinin sağına hizalanır */
+  triggerClassName?: string;
+  panelPositionClassName?: string;
 }
 
 export const MainMenu: React.FC<MainMenuProps> = ({
@@ -51,7 +54,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onFitPage,
   onFitWidth,
   onToggleFullScreen,
-  updateReady
+  updateReady,
+  triggerClassName,
+  panelPositionClassName
 }) => {
   const {
     tabs,
@@ -226,6 +231,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       label={t('menu')}
       entries={entries}
       title={t('menu')}
+      triggerClassName={triggerClassName}
+      panelPositionClassName={panelPositionClassName}
       trigger={
         <>
           <span className="relative">

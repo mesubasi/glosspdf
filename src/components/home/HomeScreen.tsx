@@ -5,7 +5,7 @@ import { usePdfStore } from '../../store/usePdfStore';
 import { isRealPath } from '../../services/fileSaveService';
 import { useUpdateState } from '../../hooks/useUpdateState';
 import { MainMenu } from '../layout/MainMenu';
-import { t, type MessageKey } from '@/i18n';
+import { t } from '@/i18n';
 import {
   House,
   Plus,
@@ -21,18 +21,11 @@ import {
   FolderOpen,
   FileText,
   Merge,
-  Scissors,
-  Minimize2,
   LayoutGrid,
-  PenLine,
-  Stamp,
-  ShieldCheck,
-  Repeat,
   List,
   X,
   Keyboard,
-  RefreshCw,
-  type LucideIcon
+  RefreshCw
 } from 'lucide-react';
 
 type HomeScreenProps = Omit<React.ComponentProps<typeof MainMenu>, 'onToggleFullScreen' | 'updateReady'>;
@@ -103,14 +96,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
     clearRecentFiles,
     setShortcutHelpModalOpen,
     setUpdateModalOpen,
-    setMergeModalOpen,
-    setSplitModalOpen,
-    setCompressModalOpen,
-    setOrganizeModalOpen,
-    setSignatureModalOpen,
-    setWatermarkModalOpen,
-    setProtectModalOpen,
-    setConvertModalOpen
+    setMergeModalOpen
   } = usePdfStore();
 
   const updateState = useUpdateState();
@@ -135,26 +121,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
       localStorage.setItem('glosspdf_home_view', next);
     } catch {}
   };
-
-  // Birleştirme dışındaki araçlar açık belge ister: önce dosya seçilir, seçim iptal edilirse araç açılmaz
-  const openTool = async (open: () => void, needsDocument: boolean) => {
-    if (needsDocument) {
-      await onOpenFile();
-      if (!usePdfStore.getState().activeTabId) return;
-    }
-    open();
-  };
-
-  const tools: { title: MessageKey; desc: MessageKey; icon: LucideIcon; tint: string; open: () => void; needsDocument: boolean }[] = [
-    { title: 'home_tool_merge', desc: 'home_tool_merge_desc', icon: Merge, tint: 'bg-violet-500/10 text-violet-600 dark:bg-violet-400/15 dark:text-violet-400', open: () => setMergeModalOpen(true), needsDocument: false },
-    { title: 'home_tool_split', desc: 'home_tool_split_desc', icon: Scissors, tint: 'bg-sky-500/10 text-sky-600 dark:bg-sky-400/15 dark:text-sky-400', open: () => setSplitModalOpen(true), needsDocument: true },
-    { title: 'home_tool_compress', desc: 'home_tool_compress_desc', icon: Minimize2, tint: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-400', open: () => setCompressModalOpen(true), needsDocument: true },
-    { title: 'home_tool_organize', desc: 'home_tool_organize_desc', icon: LayoutGrid, tint: 'bg-amber-500/10 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400', open: () => setOrganizeModalOpen(true), needsDocument: true },
-    { title: 'home_tool_sign', desc: 'home_tool_sign_desc', icon: PenLine, tint: 'bg-rose-500/10 text-rose-600 dark:bg-rose-400/15 dark:text-rose-400', open: () => setSignatureModalOpen(true), needsDocument: true },
-    { title: 'home_tool_watermark', desc: 'home_tool_watermark_desc', icon: Stamp, tint: 'bg-orange-500/10 text-orange-600 dark:bg-orange-400/15 dark:text-orange-400', open: () => setWatermarkModalOpen(true), needsDocument: true },
-    { title: 'home_tool_protect', desc: 'home_tool_protect_desc', icon: ShieldCheck, tint: 'bg-teal-500/10 text-teal-600 dark:bg-teal-400/15 dark:text-teal-400', open: () => setProtectModalOpen(true), needsDocument: true },
-    { title: 'home_tool_convert', desc: 'home_tool_convert_desc', icon: Repeat, tint: 'bg-blue-500/10 text-blue-600 dark:bg-blue-400/15 dark:text-blue-400', open: () => setConvertModalOpen(true), needsDocument: true }
-  ];
 
   const hour = new Date().getHours();
   const greeting = t(hour >= 5 && hour < 12 ? 'home_greeting_morning' : hour >= 12 && hour < 18 ? 'home_greeting_afternoon' : 'home_greeting_evening');
@@ -235,13 +201,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
           >
             {theme === 'dark' ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
           </button>
-          <MainMenu {...menuProps} onToggleFullScreen={toggleFullScreen} updateReady={updateReady} />
+          <MainMenu
+            {...menuProps}
+            onToggleFullScreen={toggleFullScreen}
+            updateReady={updateReady}
+            triggerClassName={`${iconButton} w-auto gap-2 px-3 text-[13.5px] font-medium`}
+            panelPositionClassName="top-full end-0 mt-1.5"
+          />
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
-        <main className="max-w-[1240px] mx-auto px-8 pt-11 pb-12 flex flex-col gap-[52px]">
-          <section aria-labelledby="home-hello" className="flex flex-col gap-[26px]">
+      <main className="flex-1 min-h-0 w-full max-w-[1240px] mx-auto px-8 pt-8 pb-5 flex flex-col gap-7">
+          <section aria-labelledby="home-hello" className="shrink-0 flex flex-col gap-[26px]">
             <div className="flex flex-col gap-2.5">
               <p className="font-geist-mono text-[12.5px] tracking-[0.04em] text-zinc-600 dark:text-zinc-400">
                 {`${today} · ${greeting}`.toLocaleUpperCase(language)}
@@ -361,33 +332,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
             </div>
           </section>
 
-          <section aria-labelledby="home-tools" className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-              <h2 id="home-tools" className="text-lg font-semibold tracking-[-0.01em]">{t('home_tools')}</h2>
-              <p className={`text-[13px] ${muted}`}>{t('home_tools_hint')}</p>
-            </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
-              {tools.map(({ title, desc, icon: Icon, tint, open, needsDocument }) => (
-                <button
-                  key={title}
-                  type="button"
-                  onClick={() => openTool(open, needsDocument)}
-                  className={`flex items-center gap-3.5 min-h-[78px] p-4 rounded-2xl text-start hover:border-zinc-300 dark:hover:border-[#3A3A41] hover:bg-zinc-50 dark:hover:bg-[#1C1C20] transition-colors ${card} ${focusRing}`}
-                >
-                  <span aria-hidden="true" className={`shrink-0 w-[42px] h-[42px] rounded-xl flex items-center justify-center ${tint}`}>
-                    <Icon className="w-5 h-5" />
-                  </span>
-                  <span className="flex flex-col gap-[3px] min-w-0">
-                    <span className="text-[14.5px] font-semibold">{t(title)}</span>
-                    <span className="text-[12.5px] leading-[1.4] text-zinc-600 dark:text-zinc-400">{t(desc)}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section aria-labelledby="home-recent" className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
+          <section aria-labelledby="home-recent" className="flex-1 min-h-0 flex flex-col gap-4">
+            <div className="shrink-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
               <h2 id="home-recent" className="text-lg font-semibold tracking-[-0.01em]">{t('home_recent')}</h2>
               {recentFiles.length > 0 && (
                 <div className="flex items-center gap-2">
@@ -426,7 +372,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
             ) : needle && listed.length === 0 ? (
               <p className={`text-[13.5px] ${muted}`}>{t('home_no_matches', [query.trim()])}</p>
             ) : view === 'cards' ? (
-              <ul className="grid grid-cols-[repeat(auto-fill,minmax(196px,1fr))] gap-4">
+              <ul className="flex-1 min-h-0 overflow-y-auto content-start grid grid-cols-[repeat(auto-fill,minmax(196px,1fr))] gap-4 p-1 -m-1">
                 {listed.map((file) => (
                   <li key={file.filePath} className={`group relative rounded-2xl overflow-hidden hover:border-zinc-300 dark:hover:border-[#3A3A41] transition-colors ${card}`}>
                     <button
@@ -451,7 +397,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
                 ))}
               </ul>
             ) : (
-              <ul className={`flex flex-col p-1.5 rounded-2xl ${card}`}>
+              <ul className={`flex-1 min-h-0 overflow-y-auto flex flex-col p-1.5 rounded-2xl ${card}`}>
                 {listed.map((file) => (
                   <li key={file.filePath} className="group relative">
                     <button
@@ -476,7 +422,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
             )}
           </section>
 
-          <footer className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-x-6 gap-y-4 pt-[26px] border-t border-zinc-200 dark:border-[#222226]">
+          <footer className="shrink-0 grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-x-6 gap-y-4 pt-[26px] border-t border-zinc-200 dark:border-[#222226]">
             <div className="flex items-start gap-3 p-2 -m-2">
               <span aria-hidden="true" className="shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center bg-zinc-100 dark:bg-[#1C1C20] text-zinc-600 dark:text-zinc-400">
                 <Lock className="w-[17px] h-[17px]" />
@@ -525,8 +471,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (menuProps) => {
               </span>
             </button>
           </footer>
-        </main>
-      </div>
+      </main>
     </div>
   );
 };
