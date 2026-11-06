@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GlossPDF — every PDF tool you need, none of the cloud</title>
+<meta name="description" content="GlossPDF is a free, open-source PDF viewer and editor for Windows, macOS and Linux. Annotate, edit text, sign, convert, organize and protect PDFs. Everything stays on your computer.">
+<meta name="theme-color" content="#0a0a0c">
+<meta property="og:type" content="website">
+<meta property="og:title" content="GlossPDF">
+<meta property="og:description" content="Every PDF tool you need. None of the cloud. Free and open source for Windows, macOS and Linux.">
+<meta property="og:image" content="https://mesubasi.github.io/glosspdf/screenshots/01-welcome.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="logo/glosspdf-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --accent: #e5262d;
+    --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
+    --bg: #0a0a0c;
+    --surface: #111115;
+    --surface-2: #17171c;
+    --line: #222228;
+    --line-2: #2a2a31;
+    --text: #f4f4f6;
+    --text-2: #dcdce2;
+    --muted: #a9a9b3;
+    --subtle: #8f8f9a;
+    --dim: #7d7d88;
+    --mono: "Geist Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 Geist, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  img { max-width: 100%; }
+  a { color: var(--text); }
+  h1, h2, h3, h4, p { margin: 0; }
+  svg { flex: none; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  section { padding-top: 140px; }
+
+  /* buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    min-height: 48px; padding: 0 22px; border-radius: 12px; border: 1px solid transparent;
+    font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1; text-decoration: none; cursor: pointer;
+    transition: filter .15s, background-color .15s, border-color .15s;
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost { border-color: var(--line-2); color: var(--text); font-weight: 500; }
+  .btn-ghost:hover { border-color: #4a4a55; background: var(--surface-2); filter: none; }
+  .btn-light { background: var(--text); color: var(--bg); }
+  .btn-lg { min-height: 52px; padding: 0 24px; font-size: 16px; }
+  .btn-sm { min-height: 40px; padding: 0 15px; border-radius: 10px; font-size: 14px; }
+
+  /* nav */
+  .nav-bar { border-bottom: 1px solid #1c1c22; }
+  nav { height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; font-size: 18px; letter-spacing: -0.01em; }
+  .brand img { width: 30px; height: 30px; border-radius: 7px; }
+  .brand span span, .red { color: var(--accent); }
+  .nav-links { display: flex; gap: 32px; font-size: 15px; }
+  .nav-links a, .footer-links a { color: var(--muted); text-decoration: none; }
+  .nav-links a:hover, .footer-links a:hover { color: #fff; }
+  .nav-actions { display: flex; gap: 10px; }
+
+  /* hero */
+  .hero { position: relative; padding-top: 88px; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 720px; pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,.09) 1px, transparent 1px); background-size: 26px 26px;
+    -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 0%, #000 20%, transparent 75%);
+            mask-image: radial-gradient(ellipse 60% 70% at 50% 0%, #000 20%, transparent 75%);
+  }
+  .hero .wrap { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 999px;
+    border: 1px solid var(--line-2); background: #121216; color: #c9c9d1; font-size: 14px; text-decoration: none;
+  }
+  .pill b { padding: 3px 10px; border-radius: 999px; background: var(--accent); color: #fff; font: 500 12px var(--mono); }
+  h1 { margin-top: 28px; max-width: 980px; font-size: clamp(42px, 6.6vw, 88px); line-height: 1.02; font-weight: 600; letter-spacing: -0.045em; }
+  .dim { color: var(--dim); }
+  .lead { margin-top: 28px; max-width: 640px; font-size: clamp(17px, 1.6vw, 20px); line-height: 1.55; color: var(--muted); }
+  .cta { margin-top: 40px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+  .platforms { margin-top: 22px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; font-size: 14px; color: var(--subtle); }
+  .platforms span { display: inline-flex; align-items: center; gap: 8px; }
+  .seg { margin-top: 64px; display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; border: 1px solid var(--line-2); background: #121216; }
+  .seg button {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0;
+    background: transparent; color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: #26262e; color: #fff; }
+  .shot-wrap { position: relative; width: 100%; max-width: 1120px; margin-top: 24px; }
+  .shot {
+    border-radius: 18px; padding: 8px; background: #141418; border: 1px solid #26262d;
+    box-shadow: 0 40px 120px -20px rgba(0,0,0,.8);
+  }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 11px; }
+  .chip {
+    position: absolute; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; text-align: left;
+    background: rgba(20,20,24,.92); border: 1px solid #2c2c34; box-shadow: 0 18px 40px rgba(0,0,0,.5);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  }
+  .chip-l { left: -36px; top: 22%; }
+  .chip-r { right: -36px; bottom: 18%; }
+  .chip strong { display: block; font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .chip small { display: block; font-size: 13px; color: #9b9ba6; line-height: 1.3; }
+  .icon-tile { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); flex: none; }
+
+  /* facts */
+  .facts { padding-top: 96px; }
+  .facts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border: 1px solid #1f1f25; border-radius: 20px; overflow: hidden; background: #0e0e11; }
+  .facts-grid div { padding: 28px 28px 30px; border-right: 1px solid #1f1f25; }
+  .facts-grid div:last-child { border-right: 0; }
+  .facts-grid b { display: block; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+  .facts-grid span { display: block; margin-top: 8px; font-size: 15px; color: var(--muted); }
+
+  /* section heads */
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font: 13px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #9b9ba6; }
+  .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  h2 { margin-top: 18px; font-size: clamp(34px, 4.4vw, 56px); line-height: 1.05; font-weight: 600; letter-spacing: -0.04em; }
+  .head-center { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .head-center h2 { max-width: 760px; }
+  .sub { margin-top: 18px; max-width: 560px; font-size: 18px; color: var(--muted); }
+
+  /* showcase */
+  .tabs { margin-top: 44px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .tabs button {
+    display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px; border-radius: 999px;
+    border: 1px solid var(--line-2); background: transparent; color: var(--muted); font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer;
+  }
+  .tabs button span { font: 12px var(--mono); opacity: .7; }
+  .tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+  .panel { margin-top: 32px; display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 24px; overflow: hidden; background: #0f0f12; }
+  .panel-text { flex: 1 1 340px; min-width: 0; padding: 48px 44px; display: flex; flex-direction: column; justify-content: center; }
+  .panel-text h3 { font-size: 32px; line-height: 1.15; font-weight: 600; letter-spacing: -0.03em; }
+  .panel-text p { margin-top: 16px; font-size: 17px; color: var(--muted); }
+  .checks { margin: 28px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+  .checks li { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--text-2); }
+  .checks li::before {
+    content: ""; flex: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%23e5262d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center no-repeat;
+  }
+  .panel-img { flex: 999 1 560px; min-width: 0; padding: 28px 0 28px 28px; background: #121216; border-left: 1px solid var(--line); display: flex; align-items: center; }
+  .panel-img img { display: block; width: 100%; height: auto; border-radius: 12px 0 0 12px; border: 1px solid var(--line-2); border-right: 0; }
+
+  /* bento */
+  .head-split { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .head-split h2 { max-width: 640px; }
+  .head-split p { max-width: 380px; font-size: 17px; color: var(--muted); }
+  .bento { margin-top: 48px; display: flex; flex-direction: column; gap: 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .card { flex: 1 1 320px; min-width: 0; padding: 32px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 24px; }
+  .card.wide { flex: 2 1 560px; gap: 28px; }
+  .card h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .card p { margin-top: 8px; font-size: 15px; color: var(--muted); }
+  .card .mono { font: 13px var(--mono); color: #9b9ba6; }
+  .convert { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+  .pdf-tile { display: grid; place-items: center; width: 96px; height: 120px; border-radius: 12px; background: var(--accent); color: #fff; font: 500 18px var(--mono); }
+  .fmt { width: 128px; padding: 16px; white-space: nowrap; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-2); }
+  .fmt b { display: block; margin-top: 26px; font-size: 15px; font-weight: 500; }
+  .fmt small { font-size: 13px; color: #9b9ba6; }
+  .lock-tile { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: var(--accent-soft); color: var(--accent); }
+  .presets { display: flex; padding: 4px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-2); font-size: 14px; }
+  .presets span { flex: 1; text-align: center; padding: 8px 0; border-radius: 9px; color: var(--muted); }
+  .presets .on { background: #26262e; color: #fff; font-weight: 500; }
+  .bars { display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: #9b9ba6; }
+  .bars div { display: flex; align-items: center; gap: 12px; }
+  .bars span:first-child { width: 64px; }
+  .bars i { flex: 1; height: 8px; border-radius: 99px; background: #3a3a44; }
+  .bars i.after { flex: none; width: calc((100% - 76px) * .42); background: var(--accent); }
+  .redact { padding: 20px; border-radius: 12px; background: #f4f4f2; display: flex; flex-direction: column; gap: 10px; }
+  .redact i { display: block; height: 8px; border-radius: 4px; background: #cfcfd4; }
+  .redact .bar { height: 14px; border-radius: 2px; background: #0a0a0c; }
+  .card.media { padding: 0; overflow: hidden; gap: 0; }
+  .card.media .card-head { padding: 32px 32px 20px; }
+  .crop { position: relative; margin-top: auto; height: 240px; overflow: hidden; border-top: 1px solid var(--line); }
+  .crop img { position: absolute; max-width: none; height: auto; }
+  .mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .mini div { padding: 24px; border-radius: 18px; background: #0f0f12; border: 1px solid #1f1f25; }
+  .mini h4 { margin-top: 16px; font-size: 16px; font-weight: 600; }
+  .mini p { margin-top: 6px; font-size: 14px; color: #9b9ba6; }
+
+  /* privacy */
+  .split { display: flex; flex-wrap: wrap; align-items: center; gap: 56px; }
+  .split > div { flex: 1 1 420px; min-width: 0; }
+  .split .sub { max-width: 500px; margin-top: 22px; }
+  .link-arrow { margin-top: 28px; display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; text-decoration: none; }
+  .ledger { border-radius: 22px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+  .ledger header { display: flex; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--line); font: 13px var(--mono); color: #9b9ba6; }
+  .ledger header span:last-child { display: inline-flex; align-items: center; gap: 8px; }
+  .ledger header span:last-child::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #3ecf8e; }
+  .ledger dl { margin: 0; }
+  .ledger dl div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding: 20px 24px; border-bottom: 1px solid #1c1c22; }
+  .ledger dl div:last-child { border-bottom: 0; }
+  .ledger dt { font-size: 15px; }
+  .ledger dd { margin: 0; font: 14px var(--mono); color: var(--muted); }
+
+  /* keyboard + languages */
+  .twin { display: flex; flex-wrap: wrap; gap: 16px; }
+  .twin > div { flex: 1 1 460px; min-width: 0; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); }
+  .twin .pad { padding: 36px; }
+  .twin-title { display: flex; align-items: center; gap: 12px; color: #e8e8ec; }
+  .twin-title h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .twin .pad > p { margin-top: 8px; font-size: 15px; color: var(--muted); }
+  .keys { margin-top: 24px; }
+  .keys div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 0; border-bottom: 1px solid #1c1c22; font-size: 15px; color: var(--text-2); }
+  .keys div:last-child { border-bottom: 0; }
+  .keys span { display: flex; gap: 6px; color: #6b6b76; }
+  kbd { font: 13px/1 var(--mono); padding: 6px 9px; border-radius: 7px; border: 1px solid #2e2e36; border-bottom-width: 2px; background: #16161b; color: #e8e8ec; white-space: nowrap; }
+  .langs-card { display: flex; flex-direction: column; overflow: hidden; }
+  .langs-card .pad { padding-bottom: 0; }
+  .langs { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; font-size: 14px; }
+  .langs span { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text-2); }
+  .langs-card .crop { margin: 28px 0 0 36px; min-height: 250px; flex: 1; border: 1px solid var(--line-2); border-right: 0; border-bottom: 0; border-radius: 12px 0 0 0; }
+
+  /* download */
+  .dl-grid { margin-top: 48px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .dl-grid .card { gap: 20px; }
+  .dl-grid h3 + p { margin-top: 6px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; font: 12px var(--mono); color: var(--muted); }
+  .tags span { padding: 4px 8px; border-radius: 6px; background: #1a1a20; }
+  .dl-grid .btn { margin-top: auto; }
+  .fineprint { margin: 24px auto 0; max-width: 720px; text-align: center; font-size: 14px; color: var(--subtle); }
+
+  /* open source */
+  .oss { border-radius: 28px; background: var(--surface); border: 1px solid var(--line); padding: clamp(32px, 5vw, 64px); display: flex; flex-wrap: wrap; align-items: center; gap: 48px; }
+  .oss > div { flex: 1 1 400px; min-width: 0; }
+  .oss h2 { margin: 0; font-size: clamp(30px, 3.6vw, 46px); line-height: 1.08; letter-spacing: -0.035em; }
+  .oss .sub { max-width: 460px; font-size: 17px; }
+  .oss .cta { justify-content: flex-start; margin-top: 28px; }
+  .term { border-radius: 16px; background: var(--bg); border: 1px solid #23232a; overflow: hidden; }
+  .term header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #1c1c22; font: 12px var(--mono); color: var(--subtle); }
+  .term header i { width: 10px; height: 10px; border-radius: 50%; background: #2c2c34; }
+  .term header i:last-of-type { margin-right: 8px; }
+  .term pre { margin: 0; padding: 20px; font: 14px/1.9 var(--mono); color: var(--text-2); overflow-x: auto; }
+  .term pre b { color: var(--accent); font-weight: 400; }
+
+  footer { margin-top: 120px; border-top: 1px solid #1c1c22; }
+  footer .wrap { padding-top: 40px; padding-bottom: 56px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; }
+  footer .brand { font-size: 16px; }
+  footer .brand img { width: 24px; height: 24px; border-radius: 6px; }
+  footer .brand small { margin-left: 8px; font-weight: 400; font-size: 14px; color: var(--subtle); }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 24px; font-size: 14px; }
+
+  @media (max-width: 820px) {
+    .hide-sm { display: none !important; }
+    section { padding-top: 96px; }
+    .facts-grid div { border-right: 0; border-bottom: 1px solid #1f1f25; }
+    .facts-grid div:last-child { border-bottom: 0; }
+    .panel-text { padding: 32px 24px; }
+    .panel-img { border-left: 0; border-top: 1px solid var(--line); padding: 20px 0 20px 20px; }
+    .card, .twin .pad { padding: 24px; }
+    .langs-card .crop { margin-left: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <nav class="wrap" aria-label="Main">
+    <a class="brand" href="#top"><img src="logo/glosspdf-logo.png" alt=""><span>Gloss<span>PDF</span></span></a>
+    <div class="nav-links hide-sm">
+      <a href="#features">Features</a>
+      <a href="#tools">Tools</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#download">Download</a>
+    </div>
+    <div class="nav-actions">
+      <a class="btn btn-ghost btn-sm hide-sm" href="https://github.com/mesubasi/glosspdf">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-primary btn-sm" href="#download">Download</a>
+    </div>
+  </nav>
+</div>
+
+<main>
+<section id="top" class="hero">
+  <div class="wrap">
+    <a class="pill" href="https://github.com/mesubasi/glosspdf/releases/latest">
+      <b id="version">Latest</b><span>See what’s new in the latest release</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+    <h1>Every PDF tool you need.<br><span class="dim">None of the cloud.</span></h1>
+    <p class="lead">View, annotate, edit, sign, convert, organize and protect PDFs in one fast desktop app. Everything happens on your computer — no account, no uploads, no telemetry.</p>
+    <div class="cta">
+      <a class="btn btn-primary btn-lg" href="https://github.com/mesubasi/glosspdf/releases/latest">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+        Download for free
+      </a>
+      <a class="btn btn-ghost btn-lg" href="https://github.com/mesubasi/glosspdf">View source on GitHub</a>
+    </div>
+    <div class="platforms">
+      <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Windows</span>
+      <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M2 20h20"/></svg>macOS</span>
+      <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>Linux</span>
+      <span>GPL-3.0 · Free and open source</span>
+    </div>
+
+    <div class="seg" role="group" aria-label="Preview theme">
+      <button type="button" data-theme="dark" aria-pressed="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Dark</button>
+      <button type="button" data-theme="light" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>Light</button>
+    </div>
+    <div class="shot-wrap">
+      <div class="shot"><img id="hero-img" src="screenshots/01-welcome.png" width="2880" height="1800" alt="The GlossPDF home screen in the dark theme, with recent documents"></div>
+      <div class="chip chip-l hide-sm">
+        <span class="icon-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span><strong>Processed on your device</strong><small>Works fully offline</small></span>
+      </div>
+      <div class="chip chip-r hide-sm">
+        <span class="icon-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+        <span><strong>Pick up where you left off</strong><small>Recent documents with previews</small></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="facts">
+  <div class="wrap">
+    <div class="facts-grid">
+      <div><b>3</b><span>Platforms — Windows, macOS and Linux</span></div>
+      <div><b>7</b><span>Interface languages, right-to-left included</span></div>
+      <div><b>AES-256</b><span>Password protection for your files</span></div>
+      <div><b>0</b><span>Accounts, uploads or tracking</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="head-center">
+      <div class="eyebrow">Features</div>
+      <h2>Real editing, not just viewing.</h2>
+      <p class="sub">The tools you reach for every day, built into one clean window.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Features"></div>
+    <div class="panel" id="feature-panel" role="tabpanel">
+      <div class="panel-text">
+        <h3 id="f-title">Mark up anything</h3>
+        <p id="f-body">Highlight, underline, strike out, add sticky notes, draw with the pen, place shapes and text boxes. Everything is saved as standard PDF annotations, so it looks the same in any viewer.</p>
+        <ul class="checks" id="f-points">
+          <li>Adjustable highlight opacity</li>
+          <li>Comments sidebar for every note</li>
+          <li>Full undo and redo</li>
+        </ul>
+      </div>
+      <div class="panel-img"><img id="f-img" src="screenshots/03-annotations.png" width="2880" height="1800" loading="lazy" alt="Highlights, a drawing, a note and a text box on a page, with the comments sidebar open"></div>
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="head-split">
+      <div>
+        <div class="eyebrow">Document tools</div>
+        <h2>A full toolbox,<br>one click away.</h2>
+      </div>
+      <p>Convert, compress, protect and redact without uploading a single page to someone else’s server.</p>
+    </div>
+
+    <div class="bento">
+      <div class="row">
+        <div class="card wide">
+          <div>
+            <h3>Convert to Office</h3>
+            <p>Turn a PDF into an editable Word document, an Excel workbook or a PowerPoint deck — right on your machine.</p>
+          </div>
+          <div class="convert">
+            <div class="pdf-tile">PDF</div>
+            <svg width="36" height="20" viewBox="0 0 36 20" fill="none" stroke="#6b6b76" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10h30"/><path d="m26 4 6 6-6 6"/></svg>
+            <div class="convert">
+              <div class="fmt"><span class="mono">.docx</span><b>Word</b><small>Editable text</small></div>
+              <div class="fmt"><span class="mono">.xlsx</span><b>Excel</b><small>Sheet per page</small></div>
+              <div class="fmt"><span class="mono">.pptx</span><b>PowerPoint</b><small>Slide per page</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="justify-content: space-between">
+          <div class="lock-tile"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div>
+            <div class="mono">AES-256</div>
+            <h3 style="margin-top: 6px">Password protection</h3>
+            <p>Encrypt a document with a password, and open protected files you receive.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="card">
+          <div>
+            <h3>Compress</h3>
+            <p>Shrink large files. Text and vector graphics stay untouched.</p>
+          </div>
+          <div class="presets" aria-hidden="true"><span>Light</span><span class="on">Balanced</span><span>Strong</span></div>
+          <div class="bars" aria-hidden="true">
+            <div><span>Before</span><i></i></div>
+            <div><span>After</span><i class="after"></i></div>
+          </div>
+        </div>
+        <div class="card">
+          <div>
+            <h3>Redact</h3>
+            <p>Draw over sensitive content. On save, what’s underneath is removed from the file.</p>
+          </div>
+          <div class="redact" aria-hidden="true">
+            <i style="width: 92%"></i>
+            <i style="width: 78%"></i>
+            <span style="display: flex; gap: 8px"><i style="width: 24%"></i><i class="bar" style="width: 46%; margin-top: -3px"></i></span>
+            <i style="width: 86%"></i>
+            <i class="bar" style="width: 38%"></i>
+          </div>
+        </div>
+        <div class="card media">
+          <div class="card-head">
+            <h3>Quick tools panel</h3>
+            <p>Organize, merge, split, watermark, protect and compress — grouped in one panel.</p>
+          </div>
+          <div class="crop"><img src="screenshots/08-tools-panel.png" loading="lazy" alt="The tools panel with page, content and protection tools" style="right: 0; top: -40px; width: 1400px"></div>
+        </div>
+      </div>
+
+      <div class="mini">
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
+          <h4>Merge and split</h4><p>Combine files or split by page ranges.</p>
+        </div>
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5S5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+          <h4>Watermarks and stamps</h4><p>Position, angle and opacity with live preview.</p>
+        </div>
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+          <h4>Read aloud</h4><p>Uses your system’s text-to-speech voices.</p>
+        </div>
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+          <h4>Images in and out</h4><p>Insert images, export pages as PNG or JPEG.</p>
+        </div>
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10"/><path d="M7 13h6"/><rect x="14" y="12" width="3" height="3" rx=".5"/></svg>
+          <h4>Fill forms</h4><p>Text fields, checkboxes and dropdowns.</p>
+        </div>
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <h4>Print with annotations</h4><p>Your markup comes out on paper too.</p>
+        </div>
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 12h8"/></svg>
+          <h4>Zoom 8% to 800%</h4><p>Fit page, fit width and Ctrl + wheel.</p>
+        </div>
+        <div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 5V3"/><path d="M12 5V3"/></svg>
+          <h4>Tabs and drag-and-drop</h4><p>Open many files, set as default PDF app.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">Privacy</div>
+      <h2>Your documents never leave your disk.</h2>
+      <p class="sub">Contracts, invoices, medical records — they stay on your computer. GlossPDF has no servers to send them to, and it works with your Wi-Fi switched off.</p>
+      <a class="link-arrow" href="https://github.com/mesubasi/glosspdf#privacy">Read the privacy details<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+    </div>
+    <div class="ledger">
+      <header><span>What GlossPDF sends</span><span>Local</span></header>
+      <dl>
+        <div><dt>Your documents</dt><dd>never uploaded</dd></div>
+        <div><dt>Account</dt><dd>not required</dd></div>
+        <div><dt>Telemetry and analytics</dt><dd>none</dd></div>
+        <div><dt>Network</dt><dd>update check via GitHub only</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap twin">
+    <div class="pad">
+      <div class="twin-title"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg><h3>Built for the keyboard</h3></div>
+      <p>Press F1 in the app for the full cheat sheet. On macOS, use Cmd instead of Ctrl.</p>
+      <div class="keys">
+        <div>Open / Save<span><kbd>Ctrl</kbd><kbd>O</kbd>/<kbd>Ctrl</kbd><kbd>S</kbd></span></div>
+        <div>Find in document<span><kbd>Ctrl</kbd><kbd>F</kbd></span></div>
+        <div>Fit page / fit width<span><kbd>Ctrl</kbd><kbd>0</kbd>/<kbd>Ctrl</kbd><kbd>2</kbd></span></div>
+        <div>Rotate clockwise<span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>R</kbd></span></div>
+        <div>Undo / redo<span><kbd>Ctrl</kbd><kbd>Z</kbd>/<kbd>Ctrl</kbd><kbd>Y</kbd></span></div>
+        <div>Full screen<span><kbd>F11</kbd></span></div>
+      </div>
+    </div>
+    <div class="langs-card">
+      <div class="pad">
+        <div class="twin-title"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10z"/></svg><h3>Your language, your theme</h3></div>
+        <p>Follows your system language by default. Light and dark themes included.</p>
+        <div class="langs">
+          <span lang="en">English</span><span lang="tr">Türkçe</span><span lang="de">Deutsch</span><span lang="fr">Français</span><span lang="es">Español</span><span lang="ar" dir="rtl">العربية</span><span lang="zh">中文</span>
+        </div>
+      </div>
+      <div class="crop"><img src="screenshots/11-light-theme.png" loading="lazy" alt="GlossPDF in the light theme with the comments sidebar open" style="left: 0; top: 0; width: 1100px"></div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <div class="head-center">
+      <div class="eyebrow">Download</div>
+      <h2>Get GlossPDF for free.</h2>
+      <p class="sub">Installed builds keep themselves up to date from GitHub Releases.</p>
+    </div>
+    <div class="dl-grid">
+      <div class="card">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+        <div><h3>Windows</h3><p>Installer, or a portable .exe that needs no installation.</p></div>
+        <div class="tags"><span>Setup.exe</span><span>portable.exe</span></div>
+        <a class="btn btn-primary" href="https://github.com/mesubasi/glosspdf/releases/latest">Download for Windows</a>
+      </div>
+      <div class="card">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M2 20h20"/></svg>
+        <div><h3>macOS</h3><p>For Apple silicon and Intel Macs.</p></div>
+        <div class="tags"><span>.dmg</span><span>.zip</span><span>arm64 · x64</span></div>
+        <a class="btn btn-ghost" href="https://github.com/mesubasi/glosspdf/releases/latest" style="font-weight: 600">Download for macOS</a>
+      </div>
+      <div class="card">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e8e8ec" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
+        <div><h3>Linux</h3><p>AppImage for any distro, or a Debian package.</p></div>
+        <div class="tags"><span>.AppImage</span><span>.deb</span></div>
+        <a class="btn btn-ghost" href="https://github.com/mesubasi/glosspdf/releases/latest" style="font-weight: 600">Download for Linux</a>
+      </div>
+    </div>
+    <p class="fineprint">Installers aren’t code-signed yet, so Windows SmartScreen or macOS Gatekeeper may ask for confirmation on first launch. Every release is built from the public repository by GitHub Actions.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="oss">
+      <div>
+        <h2>Free and open source.<br><span class="dim">Built in the open.</span></h2>
+        <p class="sub">GlossPDF is licensed under GPL-3.0. Read the code, report an issue or send a pull request.</p>
+        <div class="cta">
+          <a class="btn btn-light" href="https://github.com/mesubasi/glosspdf"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>Star on GitHub</a>
+          <a class="btn btn-ghost" href="https://github.com/mesubasi/glosspdf/issues">Report an issue</a>
+        </div>
+      </div>
+      <div class="term">
+        <header><i></i><i></i><i></i>terminal</header>
+        <pre><b>$</b> git clone https://github.com/mesubasi/glosspdf
+<b>$</b> cd glosspdf
+<b>$</b> npm install
+<b>$</b> npm run dev</pre>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="logo/glosspdf-logo.png" alt=""><span>Gloss<span>PDF</span></span><small>GPL-3.0-or-later</small></a>
+    <div class="footer-links">
+      <a href="https://github.com/mesubasi/glosspdf">Source code</a>
+      <a href="https://github.com/mesubasi/glosspdf/releases">Releases</a>
+      <a href="https://github.com/mesubasi/glosspdf/issues">Issues</a>
+      <a href="privacy.html">Privacy policy</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Hero preview: dark / light home screen
+  const HERO = {
+    dark: ['screenshots/01-welcome.png', 'The GlossPDF home screen in the dark theme, with recent documents'],
+    light: ['screenshots/12-welcome-light.png', 'The GlossPDF home screen in the light theme, with recent documents']
+  };
+  const heroImg = document.getElementById('hero-img');
+  document.querySelectorAll('.seg button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      [heroImg.src, heroImg.alt] = HERO[btn.dataset.theme];
+    });
+  });
+  new Image().src = HERO.light[0];
+
+  // Feature tabs
+  const TABS = [
+    { label: 'Annotate', title: 'Mark up anything',
+      body: 'Highlight, underline, strike out, add sticky notes, draw with the pen, place shapes and text boxes. Everything is saved as standard PDF annotations, so it looks the same in any viewer.',
+      points: ['Adjustable highlight opacity', 'Comments sidebar for every note', 'Full undo and redo'],
+      img: 'screenshots/03-annotations.png', alt: 'Highlights, a drawing, a note and a text box on a page, with the comments sidebar open' },
+    { label: 'Edit text', title: 'Fix a typo in place',
+      body: 'Choose Edit Text, click a line and type the replacement. Background and text colors are sampled from the page, so the edit blends right in.',
+      points: ['Works on existing PDFs', 'Colors sampled from the page', 'Re-editable until you save'],
+      img: 'screenshots/04-edit-text.png', alt: 'Editing a line of text directly on a PDF page' },
+    { label: 'Sign', title: 'Sign in seconds',
+      body: 'Draw, type or import your signature, then click anywhere on a page to place it. Drag to move, pull the corner to resize.',
+      points: ['Handwriting-style fonts', 'White backgrounds removed automatically', 'Saved locally for next time'],
+      img: 'screenshots/07-signature-placed.png', alt: 'A drawn signature placed on the signature line, with move and resize handles' },
+    { label: 'Organize', title: 'Put pages in order',
+      body: 'Reorder pages by drag and drop, rotate, delete, insert blank pages or extract the ones you need.',
+      points: ['Merge several PDFs into one', 'Split by page ranges', 'Rotation saved into the file'],
+      img: 'screenshots/09-organize-pages.png', alt: 'The organize pages view with page thumbnails' },
+    { label: 'Search', title: 'Find it on the page',
+      body: 'Full-text search highlights every match right on the page, with the active one in orange. Jump between them from the keyboard.',
+      points: ['F3 and Shift+F3 to step through', 'Bookmarks outline and thumbnails', 'Clickable links inside documents'],
+      img: 'screenshots/10-search.png', alt: 'Search matches highlighted on a PDF page, the active one in orange' }
+  ];
+  const tablist = document.querySelector('.tabs');
+  const panel = { title: document.getElementById('f-title'), body: document.getElementById('f-body'), points: document.getElementById('f-points'), img: document.getElementById('f-img') };
+  const buttons = TABS.map((tab, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-controls', 'feature-panel');
+    b.innerHTML = '<span>0' + (i + 1) + '</span>';
+    b.append(tab.label);
+    b.addEventListener('click', () => select(i));
+    b.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const next = (i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length;
+      select(next); buttons[next].focus();
+    });
+    tablist.append(b);
+    return b;
+  });
+  function select(i) {
+    const tab = TABS[i];
+    buttons.forEach((b, k) => { b.setAttribute('aria-selected', String(k === i)); b.tabIndex = k === i ? 0 : -1; });
+    panel.title.textContent = tab.title;
+    panel.body.textContent = tab.body;
+    panel.points.replaceChildren(...tab.points.map((p) => Object.assign(document.createElement('li'), { textContent: p })));
+    panel.img.src = tab.img;
+    panel.img.alt = tab.alt;
+  }
+  select(0);
+
+  // Show the real latest version in the hero pill
+  fetch('https://api.github.com/repos/mesubasi/glosspdf/releases/latest')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((rel) => { if (rel && rel.tag_name) document.getElementById('version').textContent = rel.tag_name; })
+    .catch(() => {});
+</script>
+</body>
+</html>
