@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronRight, Check, type LucideIcon } from 'lucide-react';
 
 export interface MenuItem {
@@ -43,11 +44,15 @@ const isRtl = () => document.documentElement.dir === 'rtl';
 const focusFirstItem = (menu: Element | null | undefined) =>
   menu?.querySelector<HTMLElement>('[role^="menuitem"]:not(:disabled)')?.focus();
 
-// Ekranın altına taşan alt menüyü yukarı kaydır
-const fitToViewport = (el: HTMLDivElement | null) => {
+// Ekranın altına taşan alt menüyü yukarı kaydır; yanda yer yoksa ana menünün öbür yanına aç
+const fitToViewport = (el: HTMLDivElement | null, back: number) => {
   if (!el) return;
-  const overflow = el.getBoundingClientRect().bottom - (window.innerHeight - 8);
+  const rect = el.getBoundingClientRect();
+  const overflow = rect.bottom - (window.innerHeight - 8);
   if (overflow > 0) el.style.top = `${Math.max(8, parseFloat(el.style.top) - overflow)}px`;
+  if (parseFloat(el.style.insetInlineStart) + rect.width > window.innerWidth - 8) {
+    el.style.insetInlineStart = `${Math.max(8, back - rect.width)}px`;
+  }
 };
 
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
@@ -62,7 +67,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   // Alt menü fixed konumlanır: ana menü kaydırılabilir olduğu için içinde kalsa kırpılırdı
-  const [sub, setSub] = useState<{ index: number; top: number; inset: number } | null>(null);
+  // inset: alt menünün satır-başı kenarı; back: öbür yana açılırsa satır-sonu kenarının gideceği yer
+  const [sub, setSub] = useState<{ index: number; top: number; inset: number; back: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -75,7 +81,9 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   useEffect(() => {
     if (!open) return;
     const onMouseDown = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) close();
+      // Alt menü body'ye portal edildiği için kök öğenin dışında kalır
+      const target = e.target as Element;
+      if (!rootRef.current?.contains(target) && !target.closest?.('[data-submenu]')) close();
     };
     document.addEventListener('mousedown', onMouseDown);
     // Fareyle açılışta odak halkası görünmez (focus-visible); klavyeyle açan doğrudan oklarla gezer
@@ -85,13 +93,19 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 
   const openSub = (index: number, anchor: HTMLElement) => {
     const r = anchor.getBoundingClientRect();
-    setSub({ index, top: r.top - 5, inset: isRtl() ? window.innerWidth - r.left + 2 : r.right + 2 });
+    const rtl = isRtl();
+    setSub({
+      index,
+      top: r.top - 5,
+      inset: rtl ? window.innerWidth - r.left + 2 : r.right + 2,
+      back: rtl ? window.innerWidth - r.right - 2 : r.left - 2
+    });
   };
 
   // Klavyeyle açılan alt menüde odak, menü DOM'a girdiği anda ilk öğeye geçer
   const focusSubOnMount = useRef(false);
   const onSubMount = (el: HTMLDivElement | null) => {
-    fitToViewport(el);
+    if (sub) fitToViewport(el, sub.back);
     if (el && focusSubOnMount.current) {
       focusSubOnMount.current = false;
       focusFirstItem(el);
@@ -237,7 +251,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                   'aria-expanded': isOpen,
                   onClick: (e) => (isOpen ? setSub(null) : openSub(i, e.currentTarget))
                 })}
-                {isOpen && (
+                {/* Portal: panelin backdrop-filter'ı fixed öğeyi panele göre konumlayıp kırpardı */}
+                {isOpen && createPortal(
                   <div
                     ref={onSubMount}
                     role="menu"
@@ -253,7 +268,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                         <React.Fragment key={j}>{renderItem(child, { onClick: () => run(child) })}</React.Fragment>
                       )
                     )}
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             );
