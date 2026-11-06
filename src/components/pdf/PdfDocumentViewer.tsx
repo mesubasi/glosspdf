@@ -3,22 +3,17 @@ import { usePdfStore, MAX_ZOOM } from '../../store/usePdfStore';
 import { PdfPage } from './PdfPage';
 import { SearchBar } from './SearchBar';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Upload, FileText, FolderOpen, X } from 'lucide-react';
 import { t } from '@/i18n';
 
 interface PdfDocumentViewerProps {
   pdfDocument: pdfjsLib.PDFDocumentProxy | null;
-  onOpenFile: () => void;
   onFileDrop: (file: File) => void;
-  onOpenRecentFile?: (filePath: string, fileName: string) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   pdfDocument,
-  onOpenFile,
   onFileDrop,
-  onOpenRecentFile,
   containerRef
 }) => {
   const {
@@ -30,17 +25,12 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     setSelectedAnnotationId,
     pendingSignature,
     language,
-    recentFiles,
-    clearRecentFiles,
-    removeRecentFile,
     pageLayout,
-    showCoverPage,
-    setMergeModalOpen
+    showCoverPage
   } = usePdfStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const [visiblePages, setVisiblePages] = useState<number[]>([]);
-  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   // Belge yüklendiğinde sayfaların görünürlüğünü başlat
   useEffect(() => {
@@ -254,17 +244,14 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   // Dosya Sürükle - Bırak (Drag & Drop)
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDraggingFile(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDraggingFile(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDraggingFile(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       if (file.name.toLowerCase().endsWith('.pdf')) {
@@ -273,101 +260,8 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
     }
   };
 
-  // Açık Belge Yoksa Karşılama Ekranı
-  if (!activeTab) {
-    return (
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className="flex-1 overflow-y-auto bg-window text-label"
-      >
-        <div className="w-full max-w-[960px] mx-auto px-6 pt-14 pb-12 flex flex-col gap-10">
-          <div className="flex flex-col items-center gap-3.5 text-center">
-            <img
-              src={`${import.meta.env.BASE_URL}logo.png`}
-              alt=""
-              className="w-[76px] h-[76px] rounded-[18px] shadow-[0_1px_2px_rgba(0,0,0,0.12),0_10px_24px_rgba(0,0,0,0.14)]"
-            />
-            <h1 className="mt-1.5 text-[26px] font-bold tracking-tight">{t('welcome_title')}</h1>
-            <p className="max-w-[460px] text-[15px] text-secondary">
-              {t('fast_modern_and_privacy_respecting_desktop_pdf_workstati')}
-            </p>
-          </div>
-
-          {/* Sürükle-bırak alanı */}
-          <div
-            className={`flex flex-col items-center justify-center gap-2.5 min-h-[184px] px-6 py-7 rounded-2xl border-[1.5px] border-dashed text-center transition-colors ${
-              isDraggingFile ? 'border-accent bg-accent/10' : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-white/[0.03]'
-            }`}
-          >
-            <Upload className="w-[30px] h-[30px] text-secondary" strokeWidth={1.6} />
-            <span className="text-[15px] font-semibold">{t('drop_pdf_here')}</span>
-            <span className="text-xs text-secondary">{t('or_choose_from_computer')}</span>
-            <div className="flex flex-wrap justify-center gap-2 mt-2">
-              <button
-                onClick={onOpenFile}
-                className="flex items-center gap-2 h-[30px] px-4 rounded-[7px] bg-accent hover:bg-accent-hover text-white text-[13px] font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
-              >
-                <FolderOpen className="w-4 h-4" strokeWidth={1.8} />
-                {t('open_pdf')}
-              </button>
-              <button
-                onClick={() => setMergeModalOpen(true)}
-                className="h-[30px] px-4 rounded-[7px] bg-group text-label text-[13px] shadow-btn hover:bg-hover"
-              >
-                {t('merge_pdfs')}
-              </button>
-            </div>
-          </div>
-
-          {/* Son Açılan Belgeler */}
-          {recentFiles.length > 0 && (
-            <section className="flex flex-col gap-3.5">
-              <div className="flex items-baseline justify-between">
-                <h2 className="text-[17px] font-semibold">{t('recent_documents')}</h2>
-                <button onClick={clearRecentFiles} className="h-6 px-1.5 text-[13px] text-accent-text hover:underline">
-                  {t('clear_recent_list')}
-                </button>
-              </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-5">
-                {recentFiles.map((file) => (
-                  <div key={file.filePath} className="group relative">
-                    <button
-                      onClick={() => onOpenRecentFile && onOpenRecentFile(file.filePath, file.fileName)}
-                      title={file.filePath}
-                      className="flex flex-col gap-2 w-full text-left"
-                    >
-                      <span className="flex justify-center items-end w-full h-[148px] pt-4 rounded-[10px] bg-sidebar overflow-hidden group-hover:ring-2 group-hover:ring-accent transition-shadow">
-                        <span className="flex items-start justify-center w-[100px] h-[132px] pt-9 bg-white rounded-t-[3px] shadow-[0_0_0_1px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.08)]">
-                          <FileText className="w-8 h-8 text-slate-300" strokeWidth={1.4} />
-                        </span>
-                      </span>
-                      <span className="flex flex-col gap-px px-0.5 min-w-0">
-                        <span className="text-[13px] font-medium truncate">{file.fileName}</span>
-                        <span className="text-[11px] text-secondary">
-                          {new Date(file.lastOpened).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                        </span>
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeRecentFile(file.filePath)}
-                      className="absolute top-2 right-2 grid place-items-center w-6 h-6 rounded-full bg-hud shadow-hud text-secondary hover:text-label opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-                      title={t('remove_from_list')}
-                      aria-label={t('remove_from_list')}
-                    >
-                      <X className="w-3.5 h-3.5" strokeWidth={2.2} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // Açık belge yoksa App ana sayfayı gösterir
+  if (!activeTab) return null;
 
   // Belge seçildi ancak PDF.js motoru hazırlanıyorsa yükleniyor göstergesi
   if (!pdfDocument) {

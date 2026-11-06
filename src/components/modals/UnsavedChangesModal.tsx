@@ -8,30 +8,18 @@ interface UnsavedChangesModalProps {
 }
 
 export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave }) => {
-  const { closeRequest, setCloseRequest, tabs, closeTab, setActiveTab, language } = usePdfStore();
+  const { closeRequest, setCloseRequest, tabs, language } = usePdfStore();
   const tab = tabs.find((x) => x.id === closeRequest?.tabIds[0]);
 
   if (!closeRequest || !tab) return null;
 
-  // Sıradaki sekmeye geç; sıra bitince (pencere kapanıyorsa) pencereyi kapat
-  const advance = () => {
-    const rest = closeRequest.tabIds.slice(1);
-    if (!closeRequest.closeWindow) closeTab(tab.id);
-    if (rest.length > 0) {
-      setCloseRequest({ ...closeRequest, tabIds: rest });
-      setActiveTab(rest[0]);
-      return;
-    }
-    setCloseRequest(null);
-    if (closeRequest.closeWindow) window.electronAPI?.confirmClose();
-  };
+  // Hiçbir seçenek kapatmaz: belge, değişiklikleri ve uygulama açık kalır
+  const dismiss = () => setCloseRequest(null);
 
   const save = async () => {
     await onSave();
     // Hâlâ değişmiş görünüyorsa kullanıcı "Farklı Kaydet"ten vazgeçti ya da kayıt başarısız oldu: soruyu açık bırak
-    if (usePdfStore.getState().tabs.find((x) => x.id === tab.id)?.isModified) return;
-    // Kaydetmek kapatmayı iptal eder: belge de uygulama da açık kalır
-    setCloseRequest(null);
+    if (!usePdfStore.getState().tabs.find((x) => x.id === tab.id)?.isModified) dismiss();
   };
 
   const secondaryClass =
@@ -54,10 +42,10 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave
         <p className="p-5 text-slate-600 dark:text-slate-300">{t('unsaved_changes_message', { name: tab.fileName })}</p>
 
         <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-group-sep bg-slate-50 dark:bg-[#252526]">
-          <button onClick={advance} className={secondaryClass}>
+          <button onClick={dismiss} className={secondaryClass}>
             {t('dont_save')}
           </button>
-          <button onClick={() => setCloseRequest(null)} className={secondaryClass}>
+          <button onClick={dismiss} className={secondaryClass}>
             {t('cancel')}
           </button>
           <button

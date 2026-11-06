@@ -147,8 +147,8 @@ interface PdfStoreState {
   setWebLinksModalOpen: (mode: 'create' | 'remove' | null) => void;
 
   // Son Açılan Belgeler (Recent Files) & Kısayol Yardım Modalı
-  recentFiles: { filePath: string; fileName: string; lastOpened: number }[];
-  addRecentFile: (file: { filePath: string; fileName: string }) => void;
+  recentFiles: { filePath: string; fileName: string; lastOpened: number; thumbnail?: string }[];
+  addRecentFile: (file: { filePath: string; fileName: string; thumbnail?: string }) => void;
   removeRecentFile: (filePath: string) => void;
   clearRecentFiles: () => void;
   shortcutHelpModalOpen: boolean;
@@ -179,7 +179,7 @@ function getInitialTheme(): 'light' | 'dark' {
   return prefersDark ? 'dark' : 'light';
 }
 
-function getInitialRecentFiles(): { filePath: string; fileName: string; lastOpened: number }[] {
+function getInitialRecentFiles(): PdfStoreState['recentFiles'] {
   try {
     const saved = localStorage.getItem('glosspdf_recent_files');
     if (saved) {
@@ -599,7 +599,9 @@ export const usePdfStore = create<PdfStoreState>((set, get) => ({
   addRecentFile: (file) => {
     set((state) => {
       const filtered = state.recentFiles.filter((f) => f.filePath !== file.filePath);
-      const updated = [{ ...file, lastOpened: Date.now() }, ...filtered].slice(0, 8);
+      // Yeni küçük resim yoksa (sekmeye geçiş, çizim hatası) öncekini koru
+      const thumbnail = file.thumbnail ?? state.recentFiles.find((f) => f.filePath === file.filePath)?.thumbnail;
+      const updated = [{ ...file, thumbnail, lastOpened: Date.now() }, ...filtered].slice(0, 8);
       try {
         localStorage.setItem('glosspdf_recent_files', JSON.stringify(updated));
       } catch {}

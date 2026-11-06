@@ -114,6 +114,9 @@
   --color-acrobat-darkPanel: #2c2c2e;
   --color-acrobat-border: #d6d6db;
   --color-acrobat-darkBorder: #3a3a3c;
+  /* Ana sayfa (HomeScreen) yazı tipleri; @fontsource-variable paketleriyle çevrimdışı gelir */
+  --font-geist: 'Geist Variable', system-ui, sans-serif;
+  --font-geist-mono: 'Geist Mono Variable', ui-monospace, monospace;
 }
 
 /*

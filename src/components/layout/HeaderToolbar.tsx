@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { usePdfStore } from '../../store/usePdfStore';
-import type { UpdateState } from '../../types/electron';
 import { readAloudSupported, useReadAloud } from '../../hooks/useReadAloud';
+import { useUpdateState } from '../../hooks/useUpdateState';
 import { MainMenu } from './MainMenu';
 import { t } from '@/i18n';
 import {
   PanelLeft,
-  PanelRight,
+  Wrench,
   BookOpen,
   Highlighter,
   TextCursorInput,
@@ -92,15 +92,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
     setSignatureModalOpen
   } = usePdfStore();
 
-  // Güncelleme durumu: menü kapalıyken de menü düğmesinde rozet göstermek için burada izlenir
-  const [updateState, setUpdateState] = useState<UpdateState>({ status: 'idle' });
-  useEffect(() => {
-    const api = window.electronAPI;
-    if (!api?.onUpdateState) return;
-    const off = api.onUpdateState(setUpdateState);
-    api.getUpdateState().then(({ autoDownload, ...current }) => setUpdateState(current));
-    return off;
-  }, []);
+  const updateState = useUpdateState();
   const updateReady = updateState.status === 'available' || updateState.status === 'downloaded';
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -276,7 +268,7 @@ export const HeaderToolbar: React.FC<HeaderToolbarProps> = ({
         </button>
 
         <ToolbarButton label={t('inspector')} active={rightPanelOpen} onClick={toggleRightPanel}>
-          <PanelRight className="w-[17px] h-[17px]" strokeWidth={1.75} />
+          <Wrench className="w-[17px] h-[17px]" strokeWidth={1.75} />
         </ToolbarButton>
       </div>
     </header>

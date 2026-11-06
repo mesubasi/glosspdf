@@ -129,6 +129,20 @@ export class PdfRenderService {
   }
 
   /**
+   * Ana sayfadaki son belgeler için ilk sayfanın küçük JPEG görüntüsü.
+   * Data URL döner: localStorage'da son açılanlar kaydıyla birlikte saklanır.
+   */
+  static async renderThumbnail(doc: pdfjsLib.PDFDocumentProxy, width: number = 240): Promise<string> {
+    const page = await doc.getPage(1);
+    const viewport = viewportFor(page, width / viewportFor(page, 1).width);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    await page.render({ canvas, viewport, intent: 'print', background: '#ffffff' }).promise;
+    return canvas.toDataURL('image/jpeg', 0.8);
+  }
+
+  /**
    * Yazdırma için tüm sayfaları 150 DPI görüntüye çizer (pdf.js görüntüleyicisinin yöntemi).
    * Dönen blob URL'lerini işi biten çağıran serbest bırakır.
    */

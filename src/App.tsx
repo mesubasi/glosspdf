@@ -10,6 +10,7 @@ import { LeftSidebar } from './components/layout/LeftSidebar';
 import { RightToolsPanel } from './components/layout/RightToolsPanel';
 import { StatusBar } from './components/layout/StatusBar';
 import { PdfDocumentViewer } from './components/pdf/PdfDocumentViewer';
+import { HomeScreen } from './components/home/HomeScreen';
 import { PasswordModal } from './components/modals/PasswordModal';
 import { OrganizePagesModal } from './components/modals/OrganizePagesModal';
 import { MergePdfModal } from './components/modals/MergePdfModal';
@@ -237,8 +238,12 @@ export function App() {
       // Baytları oturum önbelleğine al (son açılanlar için yedek kaynak)
       cacheFileBytes(filePath, fileName, storeData);
 
-      // Son açılanlar geçmişine kaydet
-      addRecentFile({ filePath, fileName });
+      // Son açılanlar geçmişine ana sayfada gösterilecek ilk sayfa küçük resmiyle kaydet
+      const thumbnail = await PdfRenderService.renderThumbnail(doc).catch((err) => {
+        console.warn('Thumbnail could not be rendered:', err);
+        return undefined;
+      });
+      addRecentFile({ filePath, fileName, thumbnail });
     } catch (err: any) {
       console.error('Failed to open PDF:', err);
       alert(t('error_opening_pdf', { message: err?.message || err }));
@@ -317,17 +322,22 @@ export function App() {
       return;
     }
 
-    // Tarayıcı / Web Fallback (HTML5 File Input)
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'application/pdf,.pdf';
-    fileInput.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        await handleFileDrop(file);
-      }
-    };
-    fileInput.click();
+    // Tarayıcı / Web Fallback (HTML5 File Input); seçim ya da iptal bitene kadar bekler
+    // (ana sayfadaki araçlar dosya açıldıktan sonra açılır)
+    await new Promise<void>((resolve) => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'application/pdf,.pdf';
+      fileInput.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          await handleFileDrop(file);
+        }
+        resolve();
+      };
+      fileInput.oncancel = () => resolve();
+      fileInput.click();
+    });
   };
 
   // Sürükle - Bırak ile Dosya Yükleme
@@ -547,6 +557,17 @@ export function App() {
     onFitWidth: handleFitWidth
   });
 
+  // Menü (ve ana sayfa) ile araç çubuğunun ortak dosya işlemleri
+  const menuHandlers = {
+    onOpenFile: handleOpenFile,
+    onOpenRecentFile: handleOpenRecentFile,
+    onSaveFile: handleSaveFile,
+    onSaveFileAs: handleSaveFileAs,
+    onPrint: handlePrint,
+    onFitPage: handleFitPage,
+    onFitWidth: handleFitWidth
+  };
+
   return (
     <div
       className="flex flex-col h-screen w-screen overflow-hidden bg-window text-label font-sans"
@@ -559,51 +580,46 @@ export function App() {
         }
       }}
     >
-      {/* 1. Birleşik araç çubuğu */}
-      <HeaderToolbar
-        pdfDocument={activePdfDoc}
-        onPageChange={handlePageClick}
-        onOpenFile={handleOpenFile}
-        onOpenRecentFile={handleOpenRecentFile}
-        onSaveFile={handleSaveFile}
-        onSaveFileAs={handleSaveFileAs}
-        onPrint={handlePrint}
-        onFitPage={handleFitPage}
-        onFitWidth={handleFitWidth}
-      />
+      {/* Açık belge yokken: ana sayfa (kendi üst çubuğuyla) */}
+      {!activeTab ? (
+        <HomeScreen {...menuHandlers} />
+      ) : (
+        <>
+          {/* 1. Birleşik araç çubuğu */}
+          <HeaderToolbar pdfDocument={activePdfDoc} onPageChange={handlePageClick} {...menuHandlers} />
 
-      {/* 2. Belge sekmeleri */}
-      <TabBar onOpenFile={handleOpenFile} />
+          {/* 2. Belge sekmeleri */}
+          <TabBar onOpenFile={handleOpenFile} />
 
-      {/* 3. Ana Çalışma Alanı (Sol Panel + PDF Görüntüleyici + İnceleyici) */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Sol Gezinme Paneli */}
-        <LeftSidebar
-          pdfDocument={activePdfDoc}
-          onPageClick={handlePageClick}
-        />
+          {/* 3. Ana Çalışma Alanı (Sol Panel + PDF Görüntüleyici + İnceleyici) */}
+          <div className="flex-1 flex overflow-hidden relative">
+            {/* Sol Gezinme Paneli */}
+            <LeftSidebar
+              pdfDocument={activePdfDoc}
+              onPageClick={handlePageClick}
+            />
 
-        {/* PDF görüntüleme alanı; işaretleme araçları ve sayfa kapsülü üstünde yüzer */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-          <PdfDocumentViewer
-            pdfDocument={activePdfDoc}
-            onOpenFile={handleOpenFile}
-            onFileDrop={handleFileDrop}
-            onOpenRecentFile={handleOpenRecentFile}
-            containerRef={containerRef}
-          />
-          {annotationModeOpen && <AnnotationToolbar />}
-          <StatusBar
-            onPageChange={handlePageClick}
-            onFitPage={handleFitPage}
-            onFitWidth={handleFitWidth}
-            onFitHeight={handleFitHeight}
-          />
-        </div>
+            {/* PDF görüntüleme alanı; işaretleme araçları ve sayfa kapsülü üstünde yüzer */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+              <PdfDocumentViewer
+                pdfDocument={activePdfDoc}
+                onFileDrop={handleFileDrop}
+                containerRef={containerRef}
+              />
+              {annotationModeOpen && <AnnotationToolbar />}
+              <StatusBar
+                onPageChange={handlePageClick}
+                onFitPage={handleFitPage}
+                onFitWidth={handleFitWidth}
+                onFitHeight={handleFitHeight}
+              />
+            </div>
 
-        {/* Sağ İnceleyici */}
-        <RightToolsPanel />
-      </div>
+            {/* Sağ İnceleyici */}
+            <RightToolsPanel />
+          </div>
+        </>
+      )}
 
       {/* Modallar */}
       <PasswordModal />
