@@ -8,13 +8,25 @@ interface UnsavedChangesModalProps {
 }
 
 export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave }) => {
-  const { closeRequest, setCloseRequest, tabs, language } = usePdfStore();
+  const { closeRequest, setCloseRequest, tabs, closeTab, setActiveTab, language } = usePdfStore();
   const tab = tabs.find((x) => x.id === closeRequest?.tabIds[0]);
 
   if (!closeRequest || !tab) return null;
 
-  // Hiçbir seçenek kapatmaz: belge, değişiklikleri ve uygulama açık kalır
   const dismiss = () => setCloseRequest(null);
+
+  // Kaydetme: değişiklikleri at; sekmeyi kapat ya da sıradaki belgeye geç, sıra bitince uygulamadan çık
+  const discard = () => {
+    const rest = closeRequest.tabIds.slice(1);
+    if (!closeRequest.closeWindow) closeTab(tab.id);
+    if (rest.length > 0) {
+      setCloseRequest({ ...closeRequest, tabIds: rest });
+      setActiveTab(rest[0]);
+      return;
+    }
+    setCloseRequest(null);
+    if (closeRequest.closeWindow) window.electronAPI?.confirmClose();
+  };
 
   const save = async () => {
     await onSave();
@@ -42,7 +54,7 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({ onSave
         <p className="p-5 text-slate-600 dark:text-slate-300">{t('unsaved_changes_message', { name: tab.fileName })}</p>
 
         <div className="flex items-center justify-end space-x-2 px-5 py-3 border-t border-group-sep bg-slate-50 dark:bg-[#252526]">
-          <button onClick={dismiss} className={secondaryClass}>
+          <button onClick={discard} className={secondaryClass}>
             {t('dont_save')}
           </button>
           <button onClick={dismiss} className={secondaryClass}>
